@@ -51,18 +51,22 @@ class DashboardController extends Controller
     {
         $rows = $this->legacy->sales($request->query('search'), 10);
 
-        return response()->json([
-            'data' => array_map(fn (object $row): array => LegacyRowFormatter::sales($row), $rows),
-        ]);
+        return response()
+            ->json([
+                'data' => array_map(fn (object $row): array => LegacyRowFormatter::sales($row), $rows),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     public function technicians(Request $request): JsonResponse
     {
         $rows = $this->legacy->technicians($request->query('search'), 200);
 
-        return response()->json([
-            'data' => array_map(fn (object $row): array => LegacyRowFormatter::technician($row), $rows),
-        ]);
+        return response()
+            ->json([
+                'data' => array_map(fn (object $row): array => LegacyRowFormatter::technician($row), $rows),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     public function storeWorkOrder(StoreLegacyWorkOrderRequest $request): RedirectResponse
