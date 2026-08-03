@@ -185,6 +185,11 @@
         }
         .gps-on { background: #dcfce7; color: #166534; }
         .gps-off { background: #fee2e2; color: #991b1b; }
+        .gps-live-note {
+            background: #dcfce7; color: #166534; border: 1px solid #86efac; border-radius: 12px;
+            padding: 10px 12px; font-size: 12.5px; font-weight: 600; margin: 0 16px 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
         .pulse { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.2s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
@@ -295,6 +300,11 @@
                     <div class="num">{{ activeOrders.length }}</div>
                     <div class="lbl">Sedang diproses</div>
                 </div>
+            </div>
+
+            <div v-if="onTrip" class="gps-live-note">
+                <span class="pulse" style="color:var(--green)"></span>
+                Live tracking aktif — posisimu sedang dibagikan ke pelanggan. Biarkan aplikasi tetap terbuka ya!
             </div>
 
             <div v-if="loading" class="loading"><div class="spinner"></div></div>
@@ -540,6 +550,7 @@
                 watchId: null,
                 gpsTimer: null,
                 lastPos: null,
+                tripSessionId: null,
                 pollTimer: null,
                 mapInstance: null,
                 mapMarker: null,
@@ -585,6 +596,11 @@
             },
             noTechnicianLink() {
                 return this.user && !this.user.technician_id;
+            },
+            onTrip() {
+                return this.orders.some(wo =>
+                    wo.status === 'on_the_way' && this.myAssignment(wo) && this.myAssignment(wo).status === 'accepted'
+                );
             },
             steps() {
                 return ['Diterima', 'Berangkat', 'Tiba', 'Pasang', 'Selesai'];
@@ -722,6 +738,7 @@
                         this.user = me.data || me;
                         localStorage.setItem('fsm_tech_user', JSON.stringify(me));
                     }
+                    await this.syncTracking();
                 } catch (err) {
                     if (!silent) this.showToast(err.message, 'error');
                 } finally {
@@ -739,6 +756,10 @@
                 try {
                     const data = await this.api('/work-orders/' + wo.id);
                     this.current = data.data || data;
+                    const session = this.current.tracking_sessions
+                        ? this.current.tracking_sessions.find(s => s.status === 'active')
+                        : null;
+                    if (this.current.status === 'on_the_way' && session) this.tripSessionId = session.id;
                     this.$nextTick(() => this.initMap());
                 } catch (err) {
                     this.showToast(err.message, 'error');
@@ -746,9 +767,9 @@
             },
             goHome() {
                 this.view = 'home';
-                this.stopGps();
                 this.destroyMap();
                 this.current = null;
+                if (!this.onTrip) this.stopGps();
             },
             async runAction(act) {
                 if (act.key === 'accept') {
@@ -805,10 +826,44 @@
                 try {
                     const data = await this.api('/work-orders/' + this.current.id);
                     this.current = data.data || data;
-                    if (this.current.status === 'on_the_way') this.startGps(); else this.stopGps();
+                    if (this.current.status === 'on_the_way') {
+                        const session = this.current.tracking_sessions
+                            ? this.current.tracking_sessions.find(s => s.status === 'active')
+                            : null;
+                        if (session) this.tripSessionId = session.id;
+                        this.startGps();
+                    } else {
+                        this.tripSessionId = null;
+                        this.stopGps();
+                    }
                     this.$nextTick(() => this.initMap());
                     await this.loadOrders(true);
                 } catch (err) { this.showToast(err.message, 'error'); }
+            },
+            async syncTracking() {
+                if (!this.token) return;
+                const trip = this.orders.find(wo =>
+                    wo.status === 'on_the_way' && this.myAssignment(wo) && this.myAssignment(wo).status === 'accepted'
+                );
+
+                if (!trip) {
+                    this.tripSessionId = null;
+                    this.stopGps();
+                    return;
+                }
+
+                if (!this.tripSessionId) {
+                    try {
+                        const data = await this.api('/work-orders/' + trip.id);
+                        const wo = data.data || data;
+                        const session = (wo.tracking_sessions || []).find(s => s.status === 'active');
+                        if (session) this.tripSessionId = session.id;
+                    } catch (err) {
+                        return; // coba lagi di polling berikutnya
+                    }
+                }
+
+                if (this.tripSessionId) this.startGps();
             },
             activeSession() {
                 if (!this.current || !this.current.tracking_sessions) return null;
@@ -828,15 +883,15 @@
                     { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
                 );
                 this.gpsTimer = setInterval(() => {
-                    if (this.lastPos && this.current && this.current.status === 'on_the_way') this.sendLocation();
+                    if (this.lastPos && this.onTrip) this.sendLocation();
                 }, 15000);
             },
             async sendLocation() {
-                const session = this.activeSession();
-                if (!session || !this.lastPos) return;
+                const sessionId = this.tripSessionId || (this.activeSession() ? this.activeSession().id : null);
+                if (!sessionId || !this.lastPos) return;
                 const pos = this.lastPos.coords;
                 try {
-                    await this.api('/tracking-sessions/' + session.id + '/locations', {
+                    await this.api('/tracking-sessions/' + sessionId + '/locations', {
                         method: 'POST',
                         body: {
                             latitude: +pos.latitude.toFixed(7),
