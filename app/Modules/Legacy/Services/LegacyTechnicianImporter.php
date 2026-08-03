@@ -7,7 +7,6 @@ use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Identity\Models\Technician;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
  * Copies legacy technicians into the FSM identity tables (users + technicians)
@@ -54,7 +53,7 @@ class LegacyTechnicianImporter
                 [
                     'name' => $name,
                     'phone' => $phone,
-                    'password' => Hash::make(Str::random(40)),
+                    'password' => Hash::make(config('fsm.technician_default_password')),
                     'role' => UserRole::Technician,
                 ],
             );

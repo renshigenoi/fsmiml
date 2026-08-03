@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ChangePasswordRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
@@ -40,5 +41,24 @@ class AuthController extends Controller
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $user->update([
+            'password' => Hash::make($request->validated('new_password')),
+        ]);
+
+        $currentToken = $request->user()->currentAccessToken();
+
+        if ($currentToken !== null) {
+            $user->tokens()
+                ->where('id', '!=', $currentToken->getKey())
+                ->delete();
+        }
+
+        return response()->json(['message' => 'Password berhasil diubah.']);
     }
 }

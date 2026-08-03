@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Hash;
 
 class SetPassword extends Command
 {
-    protected $signature = 'fsm:set-password {identifier} {password}';
+    protected $signature = 'fsm:set-password {identifier} {password=12345}';
 
-    protected $description = 'Set/reset password akun: bisa pakai email, kode pegawai (user_id), serial, atau nomor HP teknisi';
+    protected $description = 'Set/reset password akun: email, kode pegawai (user_id), serial, atau no HP teknisi. Default 12345 bila tidak diisi.';
 
     public function handle(): int
     {

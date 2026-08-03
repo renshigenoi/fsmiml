@@ -232,6 +232,13 @@
         .modal-actions .cancel { background: #eef1f7; color: var(--muted); }
         .modal-actions .ok-red { background: var(--red-grad); color: #fff; }
         .modal-actions .ok-green { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; }
+        .mfield { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin: 12px 0 6px; }
+        .modal input[type="password"] {
+            width: 100%; padding: 12px 13px; border: 1.5px solid var(--line); border-radius: 12px;
+            font-size: 14px; background: #f8fafc; outline: none;
+        }
+        .modal input[type="password"]:focus { border-color: var(--red); background: #fff; }
+        .modal-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 11px; font-size: 12.5px; margin-top: 10px; }
 
         .loading { display: flex; justify-content: center; padding: 40px 0; }
         .spinner { width: 30px; height: 30px; border: 3.5px solid #dbe4f5; border-top-color: var(--red); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -272,6 +279,7 @@
                     <span>{{ todayLabel }}</span>
                 </div>
                 <button class="icon-btn" @click="refresh" title="Muat ulang">⟳</button>
+                <button class="icon-btn" @click="openPassModal" title="Ganti password">🔑</button>
                 <button class="icon-btn" @click="doLogout" title="Keluar">⎋</button>
             </div>
             <div class="greet">
@@ -430,6 +438,27 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL GANTI PASSWORD -->
+    <div v-if="passModal.show" class="modal-backdrop" @click.self="passModal.show = false">
+        <div class="modal">
+            <h3>Ganti Password 🔑</h3>
+            <p class="desc">Password awal teknisi adalah <b>12345</b>. Segera ganti dengan password pribadimu ya!</p>
+            <label class="mfield">Password saat ini</label>
+            <input type="password" v-model.trim="passModal.current" placeholder="Password lama" autocomplete="current-password">
+            <label class="mfield">Password baru (min. 6 karakter)</label>
+            <input type="password" v-model.trim="passModal.next" placeholder="Password baru" autocomplete="new-password">
+            <label class="mfield">Ulangi password baru</label>
+            <input type="password" v-model.trim="passModal.confirm" placeholder="Ulangi password baru" autocomplete="new-password" @keyup.enter="submitPasswordChange">
+            <div v-if="passModal.error" class="modal-error">{{ passModal.error }}</div>
+            <div class="modal-actions">
+                <button class="cancel" @click="passModal.show = false">Batal</button>
+                <button class="ok-red" :disabled="busy" @click="submitPasswordChange">
+                    {{ busy ? 'Menyimpan...' : 'Simpan Password' }}
+                </button>
+            </div>
+        </div>
+    </div>
     <div class="bottom-safe"></div>
 </div>
 
@@ -480,6 +509,7 @@
                 current: null,
                 toast: { show: false, message: '', type: 'info' },
                 modal: { show: false, mode: 'reject', reason: '', title: '', desc: '', chips: [] },
+                passModal: { show: false, current: '', next: '', confirm: '', error: '' },
                 gpsState: 'off',
                 gpsSentLabel: '',
                 watchId: null,
@@ -817,6 +847,33 @@
                 try { await this.api('/auth/logout', { method: 'DELETE' }); } catch (err) { /* tetap logout lokal */ }
                 this.forceLogout();
                 this.showToast('Sampai jumpa! 👋');
+            },
+            openPassModal() {
+                this.passModal = { show: true, current: '', next: '', confirm: '', error: '' };
+            },
+            async submitPasswordChange() {
+                const p = this.passModal;
+                if (!p.current || !p.next || !p.confirm) { p.error = 'Semua kolom wajib diisi.'; return; }
+                if (p.next !== p.confirm) { p.error = 'Password baru tidak sama dengan ulangannya.'; return; }
+                if (p.next.length < 6) { p.error = 'Password baru minimal 6 karakter.'; return; }
+                this.busy = true;
+                p.error = '';
+                try {
+                    await this.api('/auth/change-password', {
+                        method: 'POST',
+                        body: {
+                            current_password: p.current,
+                            new_password: p.next,
+                            new_password_confirmation: p.confirm,
+                        },
+                    });
+                    p.show = false;
+                    this.showToast('Password berhasil diganti. Simpan baik-baik ya! 🔐', 'success');
+                } catch (err) {
+                    p.error = err.message;
+                } finally {
+                    this.busy = false;
+                }
             },
         },
     });
