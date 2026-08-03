@@ -9,11 +9,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 
 class RecordAssignmentRespondedNotification implements ShouldQueue
 {
-    public function handle(AssignmentResponded $event, NotificationAuditService $notifications): void
+    public function __construct(private readonly NotificationAuditService $notifications) {}
+
+    public function handle(AssignmentResponded $event): void
     {
         $assignment = $event->assignment->loadMissing(['assignedBy', 'workOrder']);
 
-        $notifications->queue(
+        $this->notifications->queue(
             $assignment->assignedBy,
             $assignment->workOrder,
             NotificationChannel::Push,

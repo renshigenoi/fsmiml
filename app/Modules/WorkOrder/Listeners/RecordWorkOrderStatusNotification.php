@@ -17,13 +17,15 @@ use Throwable;
 
 class RecordWorkOrderStatusNotification implements ShouldQueue
 {
-    public function handle(WorkOrderStatusChanged $event, NotificationAuditService $notifications): void
+    public function __construct(private readonly NotificationAuditService $notifications) {}
+
+    public function handle(WorkOrderStatusChanged $event): void
     {
         $workOrder = $event->workOrder->loadMissing(['assignments.assignedBy', 'customer']);
         $assignment = $workOrder->assignments->sortByDesc('assigned_at')->first();
 
         if ($assignment?->assignedBy !== null) {
-            $notifications->queue(
+            $this->notifications->queue(
                 $assignment->assignedBy,
                 $workOrder,
                 NotificationChannel::Push,
@@ -33,13 +35,12 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
         }
 
         if ($event->toStatus === WorkOrderStatus::OnTheWay) {
-            $this->queueCustomerTrackingNotifications($workOrder, $notifications);
+            $this->queueCustomerTrackingNotifications($workOrder);
         }
     }
 
     private function queueCustomerTrackingNotifications(
         WorkOrder $workOrder,
-        NotificationAuditService $notifications,
     ): void {
         $workOrder->loadMissing(['trackingSessions']);
 
@@ -54,7 +55,7 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
         $content = $this->customerTrackingContent($workOrder, $customer, $session);
 
         if (filled($customer->phone)) {
-            $notifications->queue(
+            $this->notifications->queue(
                 null,
                 $workOrder,
                 NotificationChannel::WhatsApp,
@@ -65,7 +66,7 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
         }
 
         if (filled($customer->email)) {
-            $notifications->queue(
+            $this->notifications->queue(
                 null,
                 $workOrder,
                 NotificationChannel::Email,

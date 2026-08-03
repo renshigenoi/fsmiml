@@ -9,7 +9,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 
 class RecordAssignmentSupersededNotification implements ShouldQueue
 {
-    public function handle(AssignmentSuperseded $event, NotificationAuditService $notifications): void
+    public function __construct(private readonly NotificationAuditService $notifications) {}
+
+    public function handle(AssignmentSuperseded $event): void
     {
         $assignment = $event->assignment->loadMissing(['technician.user', 'workOrder']);
         $user = $assignment->technician?->user;
@@ -18,7 +20,7 @@ class RecordAssignmentSupersededNotification implements ShouldQueue
             return;
         }
 
-        $notifications->queue(
+        $this->notifications->queue(
             $user,
             $assignment->workOrder,
             NotificationChannel::Push,
