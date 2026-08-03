@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\MobileController;
 use App\Http\Controllers\Web\ProfileController;
+use App\Http\Controllers\Web\TrackingPageController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -11,6 +12,7 @@ Route::redirect('/', '/dashboard');
 Route::get('mobile', [MobileController::class, 'app'])->name('mobile.app');
 Route::get('mobile/manifest.webmanifest', [MobileController::class, 'manifest']);
 Route::get('mobile/sw.js', [MobileController::class, 'serviceWorker']);
+Route::get('tracking/{token}', [TrackingPageController::class, 'show'])->name('tracking.show');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');

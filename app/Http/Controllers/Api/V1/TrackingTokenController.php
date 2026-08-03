@@ -34,12 +34,12 @@ class TrackingTokenController extends Controller
             ->where('token_hash', hash('sha256', $token))
             ->first();
 
-        if ($trackingToken === null
-            || $trackingToken->status !== TrackingTokenStatus::Active
-            || $trackingToken->expires_at->isPast()
-            || $trackingToken->trackingSession->status !== TrackingSessionStatus::Active
-            || $trackingToken->trackingSession->workOrder->status !== WorkOrderStatus::OnTheWay) {
-            if ($trackingToken?->status === TrackingTokenStatus::Active && $trackingToken->expires_at->isPast()) {
+        if ($trackingToken === null) {
+            throw new NotFoundHttpException;
+        }
+
+        if ($trackingToken->expires_at->isPast()) {
+            if ($trackingToken->status === TrackingTokenStatus::Active) {
                 $trackingToken->update(['status' => TrackingTokenStatus::Expired]);
             }
 
@@ -47,19 +47,44 @@ class TrackingTokenController extends Controller
         }
 
         $workOrder = $trackingToken->trackingSession->workOrder;
+
+        $terminal = match (true) {
+            $workOrder->status === WorkOrderStatus::Finished => 'finished',
+            in_array($workOrder->status, [WorkOrderStatus::Cancelled, WorkOrderStatus::Failed], true) => $workOrder->status->value,
+            default => null,
+        };
+
+        if ($terminal !== null) {
+            return $this->payload($trackingToken, $terminal, null);
+        }
+
+        if ($trackingToken->status !== TrackingTokenStatus::Active
+            || $trackingToken->trackingSession->status !== TrackingSessionStatus::Active
+            || $workOrder->status !== WorkOrderStatus::OnTheWay) {
+            throw new NotFoundHttpException;
+        }
+
         $location = Cache::get("tracking:session:{$trackingToken->tracking_session_id}:current_location");
 
+        return $this->payload($trackingToken, 'on_the_way', $location);
+    }
+
+    private function payload(TrackingToken $trackingToken, string $status, ?array $location): JsonResponse
+    {
+        $workOrder = $trackingToken->trackingSession->workOrder;
+
         return response()->json([
+            'status' => $status,
             'work_order' => [
                 'number' => $workOrder->number,
                 'status' => $workOrder->status->value,
-                'scheduled_start_at' => $workOrder->scheduled_start_at->toISOString(),
+                'scheduled_start_at' => $workOrder->scheduled_start_at?->toISOString(),
             ],
             'destination' => [
-                'label' => $workOrder->serviceLocation->label,
-                'address' => $workOrder->serviceLocation->address,
-                'latitude' => $workOrder->serviceLocation->latitude,
-                'longitude' => $workOrder->serviceLocation->longitude,
+                'label' => $workOrder->serviceLocation?->label,
+                'address' => $workOrder->serviceLocation?->address,
+                'latitude' => $workOrder->serviceLocation?->latitude,
+                'longitude' => $workOrder->serviceLocation?->longitude,
             ],
             'current_location' => $location,
         ]);
