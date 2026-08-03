@@ -8,6 +8,7 @@ use App\Modules\Notification\Exceptions\NotificationDeliveryException;
 use App\Modules\Notification\Models\Notification;
 use App\Modules\Notification\Providers\LogNotificationProvider;
 use App\Modules\Notification\Providers\WhatsApp\FonnteProvider;
+use App\Modules\Notification\Providers\WhatsApp\GowaProvider;
 use App\Modules\Notification\Providers\WhatsApp\MetaProvider;
 use App\Modules\Notification\Providers\WhatsApp\WablasProvider;
 use App\Modules\Notification\Providers\WhatsApp\WhatsAppProviderManager;
@@ -82,6 +83,47 @@ class WhatsAppProvidersTest extends TestCase
     }
 
     #[Test]
+    public function gowa_sends_to_the_configured_gateway_with_a_bearer_token(): void
+    {
+        config([
+            'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
+            'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+        ]);
+        Http::fake(['wa.indomotorlestari.co.id/*' => Http::response(['id' => 'gowa-1'], 200)]);
+
+        $result = (new GowaProvider)->send($this->notification(), new NotificationContent('T', 'Halo pelanggan'));
+
+        $this->assertSame('gowa-1', $result->messageId);
+
+        Http::assertSent(function ($request): bool {
+            return $request->url() === 'https://wa.indomotorlestari.co.id/send/message'
+                && $request->hasHeader('Authorization', 'Bearer gowa-secret')
+                && $request['phone'] === '628123456789'
+                && $request['message'] === 'Halo pelanggan';
+        });
+    }
+
+    #[Test]
+    public function gowa_normalizes_local_phone_numbers_to_international_format(): void
+    {
+        config([
+            'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
+            'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+        ]);
+        Http::fake(['wa.indomotorlestari.co.id/*' => Http::response(['id' => 'gowa-2'], 200)]);
+
+        $notification = new Notification([
+            'channel' => NotificationChannel::WhatsApp,
+            'type' => 'tracking_link_ready',
+            'recipient' => '+62 812-3456-789',
+        ]);
+
+        (new GowaProvider)->send($notification, new NotificationContent('T', 'Halo pelanggan'));
+
+        Http::assertSent(fn ($request) => $request['phone'] === '628123456789');
+    }
+
+    #[Test]
     public function providers_throw_a_clear_error_when_credentials_are_missing(): void
     {
         config(['notifications.whatsapp.fonnte.token' => null]);
@@ -100,6 +142,7 @@ class WhatsAppProvidersTest extends TestCase
         $this->assertInstanceOf(FonnteProvider::class, $manager->driver('fonnte'));
         $this->assertInstanceOf(WablasProvider::class, $manager->driver('wablas'));
         $this->assertInstanceOf(MetaProvider::class, $manager->driver('meta'));
+        $this->assertInstanceOf(GowaProvider::class, $manager->driver('gowa'));
         $this->assertInstanceOf(LogNotificationProvider::class, $manager->driver('log'));
     }
 

@@ -13,6 +13,7 @@ final class WhatsAppProviderManager
             'fonnte' => new FonnteProvider,
             'wablas' => new WablasProvider,
             'meta' => new MetaProvider,
+            'gowa' => new GowaProvider,
             default => new LogNotificationProvider,
         };
     }

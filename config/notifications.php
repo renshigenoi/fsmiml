@@ -66,6 +66,10 @@ return [
             'token' => env('META_WHATSAPP_TOKEN'),
             'phone_number_id' => env('META_WHATSAPP_PHONE_NUMBER_ID'),
         ],
+        'gowa' => [
+            'base_url' => env('GOWA_BASE_URL'),
+            'api_key' => env('GOWA_API_KEY'),
+        ],
     ],
 
     /*
