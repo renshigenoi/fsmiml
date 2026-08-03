@@ -19,6 +19,8 @@ class NotificationDeliveryServiceTest extends TestCase
     #[Test]
     public function it_marks_a_queued_notification_as_sent_after_successful_delivery(): void
     {
+        config(['notifications.channels.whatsapp.driver' => 'log']);
+
         $notification = Mockery::mock(Notification::class)->makePartial();
         $notification->forceFill([
             'channel' => NotificationChannel::WhatsApp,

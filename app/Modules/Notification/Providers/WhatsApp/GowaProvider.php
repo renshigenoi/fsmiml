@@ -27,7 +27,17 @@ final class GowaProvider implements NotificationProvider
             throw new NotificationDeliveryException('GOWA is not configured: set GOWA_BASE_URL and GOWA_API_KEY.');
         }
 
-        $response = Http::withHeaders(['Authorization' => 'Bearer '.$apiKey])
+        $headers = ['Authorization' => 'Bearer '.$apiKey];
+
+        // GoWA v8+: device-scoped calls require X-Device-Id when more than one
+        // device is registered. Falls back to the default device when blank.
+        $deviceId = config('notifications.whatsapp.gowa.device_id');
+
+        if (filled($deviceId)) {
+            $headers['X-Device-Id'] = (string) $deviceId;
+        }
+
+        $response = Http::withHeaders($headers)
             ->acceptJson()
             ->post($baseUrl.'/send/message', [
                 'phone' => $this->normalizePhone($notification->recipient),

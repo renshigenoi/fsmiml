@@ -88,6 +88,7 @@ class WhatsAppProvidersTest extends TestCase
         config([
             'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
             'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+            'notifications.whatsapp.gowa.device_id' => 'device-notifwa-tracking',
         ]);
         Http::fake(['wa.indomotorlestari.co.id/*' => Http::response(['id' => 'gowa-1'], 200)]);
 
@@ -98,9 +99,25 @@ class WhatsAppProvidersTest extends TestCase
         Http::assertSent(function ($request): bool {
             return $request->url() === 'https://wa.indomotorlestari.co.id/send/message'
                 && $request->hasHeader('Authorization', 'Bearer gowa-secret')
+                && $request->hasHeader('X-Device-Id', 'device-notifwa-tracking')
                 && $request['phone'] === '628123456789'
                 && $request['message'] === 'Halo pelanggan';
         });
+    }
+
+    #[Test]
+    public function gowa_omits_the_device_header_when_no_device_is_configured(): void
+    {
+        config([
+            'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
+            'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+            'notifications.whatsapp.gowa.device_id' => null,
+        ]);
+        Http::fake(['wa.indomotorlestari.co.id/*' => Http::response(['id' => 'gowa-3'], 200)]);
+
+        (new GowaProvider)->send($this->notification(), new NotificationContent('T', 'Halo pelanggan'));
+
+        Http::assertSent(fn ($request) => ! $request->hasHeader('X-Device-Id'));
     }
 
     #[Test]
