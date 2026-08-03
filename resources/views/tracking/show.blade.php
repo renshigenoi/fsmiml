@@ -27,7 +27,7 @@
             font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
             background: var(--bg); color: var(--ink); font-size: 15px;
         }
-        #app { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+        #app { width: 100%; min-height: 100vh; }
         .header {
             background: var(--navy-grad); color: #fff; padding: 18px 18px 26px;
             border-radius: 0 0 26px 26px; text-align: center;

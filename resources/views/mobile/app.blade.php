@@ -39,7 +39,7 @@
             background: var(--bg); color: var(--ink); font-size: 15px;
         }
         [v-cloak] { display: none; }
-        #app { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; }
+        #app { width: 100%; min-height: 100vh; position: relative; }
         .muted { color: var(--muted); }
         .small { font-size: 13px; }
         .hidden { display: none !important; }
@@ -209,7 +209,7 @@
             display: flex; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px);
         }
         .modal {
-            background: #fff; width: 100%; max-width: 480px; border-radius: 22px 22px 0 0;
+            background: #fff; width: 100%; border-radius: 22px 22px 0 0;
             padding: 22px 20px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 40px rgba(0,0,0,.2);
         }
         .modal h3 { margin: 0 0 4px; font-size: 17px; }
