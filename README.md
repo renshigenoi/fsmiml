@@ -1,122 +1,140 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Field Service Management (FSM) — fsmiml
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Platform **Field Service Management** untuk manajemen pemasangan kaca film:
+SPK dari sistem penjualan, penugasan tim teknisi, live tracking GPS, notifikasi,
+dan portal tracking untuk customer.
 
-## About Laravel
+> **Status:** Backend + integrasi data penjualan + dashboard admin trial sudah
+> berjalan. Frontend Vue dan aplikasi mobile Capacitor menyusul sesuai roadmap.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Alur Utama
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```mermaid
+flowchart LR
+    A[Koordinator cari nomor SPK] --> B[Pilih tim teknisi]
+    B --> C[Simpan & assign]
+    C --> D[Semua teknisi dapat notifikasi]
+    D --> E[Salah satu accept, lainnya superseded]
+    E --> F[Start trip -> live tracking]
+    F --> G[Notifikasi admin + link ke customer]
+    G --> H[Selesai / batal / gagal]
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Fitur Utama
 
-## Learning Laravel
+- **Autentikasi peran** — administrator, coordinator, technician (Laravel Sanctum).
+- **Work Order dari SPK** — pencarian lintas database (sistem penjualan lama,
+  read-only) dengan auto-suggest; saat simpan, data disalin ke PostgreSQL FSM.
+- **Assignment multi-teknisi** — satu Work Order bisa ditugaskan ke banyak
+  teknisi; yang pertama `accept` yang menang, penugasan lainnya otomatis
+  `superseded` beserta notifikasi ke rekan tim.
+- **State machine Work Order** —
+  `draft → waiting_acceptance → accepted → on_the_way → arrived → installation → finished`,
+  plus `rejected`, `cancelled`, `failed`; semua transisi divalidasi backend dan
+  tercatat di riwayat.
+- **Live tracking GPS** — lokasi terkini di Redis (TTL), histori di PostgreSQL
+  via queue, dan broadcast realtime lewat Reverb (private channel per work order).
+- **Tracking link customer** — token aman (hanya hash disimpan), masa berlaku,
+  dan auto-revoke saat trip selesai/dibatalkan.
+- **Notifikasi** — push FCM, WhatsApp (Fonnte / Wablas / Meta Cloud API), email,
+  plus driver `log` untuk development.
+- **Dashboard admin trial** — cari SPK, pilih teknisi, simpan, dan pantau daftar
+  Work Order (Blade, responsif untuk mobile browser).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Arsitektur
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- **Modular monolith** — domain dipisah di `app/Modules` (Identity, Customer,
+  Sales, WorkOrder, Assignment, Tracking, Notification, Legacy).
+- **Service layer** — state machine, assignment, tracking token, delivery
+  notifikasi; controller tetap tipis.
+- **Event + Queue** — efek samping (notifikasi, audit, realtime) berjalan
+  asinkron via Redis; event domain dipancarkan setelah transaksi sukses.
+- **Satu API, banyak client** — `/api/v1` melayani web admin, mobile, dan
+  portal customer dengan payload JSON via API Resource.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Tech Stack
 
-## Laravel Sponsors
+| Lapisan | Teknologi |
+|---|---|
+| Backend | Laravel 12, PHP 8.3 |
+| Database | PostgreSQL (FSM) + koneksi read-only ke database sales lama |
+| Cache / Queue / Realtime | Redis, Laravel Reverb (WebSocket) |
+| Auth API | Laravel Sanctum |
+| Web Admin (trial) | Blade (server-rendered, responsif) |
+| Roadmap | Vue 3 + Vite (admin), Capacitor (mobile), deployment VPS |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Quickstart Lokal
 
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-## Notification Providers (FSM)
-
-Notification audits are created with status `queued`, then picked up by the
-`notifications` queue worker and delivered through a channel provider:
-
-| Channel  | Driver       | Environment variables                        |
-| -------- | ------------ | -------------------------------------------- |
-| Push     | `log` (dev)  | `FCM_DRIVER=log`                             |
-| Push     | `fcm`        | `FCM_PROJECT_ID`, `FCM_CREDENTIALS`          |
-| WhatsApp | `log` (dev)  | `WHATSAPP_DRIVER=log`                        |
-| WhatsApp | `fonnte`     | `WHATSAPP_DRIVER=fonnte`, `FONNTE_TOKEN`     |
-| WhatsApp | `wablas`     | `WHATSAPP_DRIVER=wablas`, `WABLAS_TOKEN`, `WABLAS_DOMAIN` |
-| WhatsApp | `meta`       | `WHATSAPP_DRIVER=meta`, `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID` |
-| Email    | Laravel mail | `MAIL_MAILER`, `MAIL_FROM_ADDRESS`           |
-
-The `log` driver writes the composed message to the application log and marks
-the audit as `sent`, which is safe for local development only. When a customer
-trip starts (`on_the_way`), the system auto-issues a tracking token and queues
-the customer WhatsApp/email notification with the tracking link.
-
-Start the delivery worker with:
+Persyaratan: PHP 8.2+, Composer, PostgreSQL, Redis (untuk queue/realtime).
 
 ```bash
-php artisan queue:work redis --queue=notifications --tries=3 --backoff=10,60,300
+composer install
+cp .env.example .env        # isi DB_*, DB_OLD_*, FCM_*, WHATSAPP_*, dll
+php artisan key:generate
+php artisan migrate
+php artisan fsm:create-user "Nama Koordinator" koordinator@example.com "password" --role=coordinator
 ```
 
-Register mobile/web device tokens for FCM push via:
-
-```http
-POST /api/v1/device-tokens
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{ "token": "<fcm-device-token>", "platform": "android", "device_name": "Pixel 8" }
-```
-
-## Web Admin Dashboard (Trial)
-
-An interim Blade dashboard for coordinators to trial the data-input flow while
-the Vue frontend is still being built:
-
-- `GET /login` — session login (administrator/coordinator only)
-- `GET /dashboard` — search SPK (AJAX from the legacy sales DB), pick multiple
-  technicians, save, and see the work order list
-- `GET /dashboard/work-orders/{id}` — work order detail (team, status history)
-
-Create a coordinator account first:
+Jalankan layanan pendukung (Redis, queue worker, Reverb), lalu akses
+`http://localhost:8000` atau virtual host Laragon:
 
 ```bash
-php artisan fsm:create-user "Nama Koordinator" koordinator@example.com "password-anda" --role=coordinator
+php artisan queue:work redis --queue=notifications,default,tracking --tries=3
+php artisan reverb:start
+php artisan serve
 ```
 
-The legacy sales search reads from the `sales` connection (`DB_OLD_*` in
-`.env`) and is read-only; saving copies the data into the FSM PostgreSQL
-database.
+Login koordinator di `/login`, lalu mulai dari cari SPK di `/dashboard`.
+
+## Web Admin Dashboard
+
+- `/login` — session login (khusus administrator/coordinator)
+- `/dashboard` — cari SPK (AJAX ke database sales), pilih banyak teknisi,
+  atur tanggal pemasangan, simpan & assign
+- `/dashboard/work-orders/{id}` — detail tim, item, riwayat status
+- Daftar Work Order difilter default ke status **Menunggu Konfirmasi** agar
+  cepat; ada dropdown untuk status lain / semua.
+
+## API Ringkasan (`/api/v1`)
+
+| Grup | Endpoint |
+|---|---|
+| Auth | `POST auth/login`, `GET auth/me`, `DELETE auth/logout` |
+| Work Order | `GET/POST work-orders`, `GET work-orders/{id}`, `POST .../start-trip`, `arrive`, `start-installation`, `finish`, `cancel`, `fail` |
+| Assignment | `POST work-orders/{id}/assignments` (multi-teknisi), `POST assignments/{id}/accept\|reject` |
+| Tracking | `POST tracking-sessions/{id}/locations`, `POST .../tokens`, `GET public/tracking/{token}` |
+| Legacy | `GET legacy/technicians`, `GET legacy/sales`, `POST legacy/work-orders` |
+| Device | `POST device-tokens` |
+
+## Notifikasi
+
+Audit notifikasi dibuat dengan status `queued`, diproses queue `notifications`,
+dan diperbarui menjadi `sent`/`failed`.
+
+| Channel | Driver | Env |
+|---|---|---|
+| Push | `log` (dev) / `fcm` | `FCM_DRIVER`, `FCM_PROJECT_ID`, `FCM_CREDENTIALS` |
+| WhatsApp | `log` / `fonnte` / `wablas` / `meta` | `WHATSAPP_DRIVER`, `FONNTE_TOKEN`, `WABLAS_*`, `META_WHATSAPP_*` |
+| Email | Laravel Mail | `MAIL_MAILER`, `MAIL_FROM_*` |
+
+## Integrasi Database Sales (Legacy)
+
+- Koneksi **read-only** `sales` dikonfigurasi lewat `DB_OLD_*` di `.env`.
+- `GET legacy/sales?search=` mencari `spk_no`; `GET legacy/technicians` untuk
+  daftar teknisi.
+- `POST legacy/work-orders` menyalin data ke PostgreSQL FSM dalam satu
+  transaksi: customer (dedupe `external_id`), lokasi, sales order (snapshot
+  `source_payload`), Work Order (nomor = `spk_no`), item, lalu import teknisi
+  (dedupe `external_serial`) dan assign tim.
+
+## Roadmap
+
+1. Frontend Vue 3 admin (dashboard produksi, realtime map)
+2. Mobile Capacitor (background GPS, push notification, offline sync)
+3. Deployment VPS (Nginx, HTTPS, supervisor untuk queue/reverb, backup, monitoring)
+4. Fitur lanjutan: checklist & foto pemasangan, tanda tangan digital, KPI
+   teknisi, geofencing, ETA otomatis
+
+## Lisensi
+
+MIT
