@@ -719,7 +719,7 @@
                     this.orders = data.data || [];
                     if (!this.user) {
                         const me = await this.api('/auth/me');
-                        this.user = me;
+                        this.user = me.data || me;
                         localStorage.setItem('fsm_tech_user', JSON.stringify(me));
                     }
                 } catch (err) {
@@ -738,7 +738,7 @@
                 this.current = wo;
                 try {
                     const data = await this.api('/work-orders/' + wo.id);
-                    this.current = data;
+                    this.current = data.data || data;
                     this.$nextTick(() => this.initMap());
                 } catch (err) {
                     this.showToast(err.message, 'error');
@@ -804,8 +804,8 @@
                 if (!this.current) return;
                 try {
                     const data = await this.api('/work-orders/' + this.current.id);
-                    this.current = data;
-                    if (data.status === 'on_the_way') this.startGps(); else this.stopGps();
+                    this.current = data.data || data;
+                    if (this.current.status === 'on_the_way') this.startGps(); else this.stopGps();
                     this.$nextTick(() => this.initMap());
                     await this.loadOrders(true);
                 } catch (err) { this.showToast(err.message, 'error'); }
@@ -922,6 +922,9 @@
             },
         },
     });
+    app.config.errorHandler = (err) => {
+        console.error('[FSM Mobile]', err);
+    };
     app.mount('#app');
 </script>
 </body>
