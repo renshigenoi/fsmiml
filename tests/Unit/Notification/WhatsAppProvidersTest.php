@@ -124,6 +124,25 @@ class WhatsAppProvidersTest extends TestCase
     }
 
     #[Test]
+    public function gowa_reads_message_id_from_the_results_field(): void
+    {
+        config([
+            'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
+            'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+            'notifications.whatsapp.gowa.basic_user' => null,
+            'notifications.whatsapp.gowa.basic_pass' => null,
+        ]);
+        Http::fake(['wa.indomotorlestari.co.id/*' => Http::response([
+            'code' => 'SUCCESS',
+            'results' => ['message_id' => 'GOWA-99'],
+        ], 200)]);
+
+        $result = (new GowaProvider)->send($this->notification(), new NotificationContent('T', 'Halo pelanggan'));
+
+        $this->assertSame('GOWA-99', $result->messageId);
+    }
+
+    #[Test]
     public function gowa_omits_the_device_header_when_no_device_is_configured(): void
     {
         config([

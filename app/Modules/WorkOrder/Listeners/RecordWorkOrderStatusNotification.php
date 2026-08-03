@@ -90,7 +90,9 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
 
         try {
             $issued = app(TrackingTokenService::class)->issue($session);
-            $trackingUrl = config('notifications.tracking.public_url').'/'.$issued->plainToken;
+            $publicBase = rtrim((string) config('notifications.tracking.public_url'), '/');
+            $trackingUrl = ($publicBase !== '' ? $publicBase : rtrim((string) url('/tracking'), '/'))
+                .'/'.$issued->plainToken;
             $expiresAt = $issued->trackingToken->expires_at->format('d M Y H:i');
         } catch (Throwable $exception) {
             Log::warning('Failed to issue tracking token for customer notification.', [

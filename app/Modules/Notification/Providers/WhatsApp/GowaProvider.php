@@ -54,7 +54,9 @@ final class GowaProvider implements NotificationProvider
             throw new NotificationDeliveryException('GOWA send failed: '.Str::limit($response->body(), 500));
         }
 
-        $id = $response->json('data.message_id')
+        $id = $response->json('results.message_id')
+            ?? $response->json('results.id')
+            ?? $response->json('data.message_id')
             ?? $response->json('data.id')
             ?? $response->json('id')
             ?? $response->json('message_id');
