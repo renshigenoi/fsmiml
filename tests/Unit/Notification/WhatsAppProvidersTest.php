@@ -83,11 +83,13 @@ class WhatsAppProvidersTest extends TestCase
     }
 
     #[Test]
-    public function gowa_sends_to_the_configured_gateway_with_a_bearer_token(): void
+    public function gowa_sends_to_the_configured_gateway_with_basic_auth(): void
     {
         config([
             'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
             'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+            'notifications.whatsapp.gowa.basic_user' => 'admin',
+            'notifications.whatsapp.gowa.basic_pass' => 'PasswordK0s0ng',
             'notifications.whatsapp.gowa.device_id' => 'device-notifwa-tracking',
         ]);
         Http::fake(['wa.indomotorlestari.co.id/*' => Http::response(['id' => 'gowa-1'], 200)]);
@@ -98,11 +100,27 @@ class WhatsAppProvidersTest extends TestCase
 
         Http::assertSent(function ($request): bool {
             return $request->url() === 'https://wa.indomotorlestari.co.id/send/message'
-                && $request->hasHeader('Authorization', 'Bearer gowa-secret')
+                && $request->hasHeader('Authorization', 'Basic '.base64_encode('admin:PasswordK0s0ng'))
                 && $request->hasHeader('X-Device-Id', 'device-notifwa-tracking')
                 && $request['phone'] === '628123456789'
                 && $request['message'] === 'Halo pelanggan';
         });
+    }
+
+    #[Test]
+    public function gowa_falls_back_to_a_bearer_token_when_basic_auth_is_not_configured(): void
+    {
+        config([
+            'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
+            'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+            'notifications.whatsapp.gowa.basic_user' => null,
+            'notifications.whatsapp.gowa.basic_pass' => null,
+        ]);
+        Http::fake(['wa.indomotorlestari.co.id/*' => Http::response(['id' => 'gowa-2'], 200)]);
+
+        (new GowaProvider)->send($this->notification(), new NotificationContent('T', 'Halo pelanggan'));
+
+        Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer gowa-secret'));
     }
 
     #[Test]
@@ -111,6 +129,8 @@ class WhatsAppProvidersTest extends TestCase
         config([
             'notifications.whatsapp.gowa.base_url' => 'https://wa.indomotorlestari.co.id',
             'notifications.whatsapp.gowa.api_key' => 'gowa-secret',
+            'notifications.whatsapp.gowa.basic_user' => null,
+            'notifications.whatsapp.gowa.basic_pass' => null,
             'notifications.whatsapp.gowa.device_id' => null,
         ]);
         Http::fake(['wa.indomotorlestari.co.id/*' => Http::response(['id' => 'gowa-3'], 200)]);

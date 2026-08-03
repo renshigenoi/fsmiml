@@ -22,12 +22,18 @@ final class GowaProvider implements NotificationProvider
     {
         $baseUrl = rtrim((string) config('notifications.whatsapp.gowa.base_url'), '/');
         $apiKey = config('notifications.whatsapp.gowa.api_key');
+        $basicUser = config('notifications.whatsapp.gowa.basic_user');
+        $basicPass = config('notifications.whatsapp.gowa.basic_pass');
 
-        if (blank($baseUrl) || blank($apiKey)) {
-            throw new NotificationDeliveryException('GOWA is not configured: set GOWA_BASE_URL and GOWA_API_KEY.');
+        if (blank($baseUrl) || (blank($apiKey) && (blank($basicUser) || blank($basicPass)))) {
+            throw new NotificationDeliveryException(
+                'GOWA is not configured: set GOWA_BASE_URL and either GOWA_API_KEY or GOWA_BASIC_USER/GOWA_BASIC_PASS.'
+            );
         }
 
-        $headers = ['Authorization' => 'Bearer '.$apiKey];
+        $headers = filled($basicUser) && filled($basicPass)
+            ? ['Authorization' => 'Basic '.base64_encode($basicUser.':'.$basicPass)]
+            : ['Authorization' => 'Bearer '.$apiKey];
 
         // GoWA v8+: device-scoped calls require X-Device-Id when more than one
         // device is registered. Falls back to the default device when blank.

@@ -69,6 +69,8 @@ return [
         'gowa' => [
             'base_url' => env('GOWA_BASE_URL'),
             'api_key' => env('GOWA_API_KEY'),
+            'basic_user' => env('GOWA_BASIC_USER'),
+            'basic_pass' => env('GOWA_BASIC_PASS'),
             'device_id' => env('GOWA_DEVICE_ID'),
         ],
     ],
