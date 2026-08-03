@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 
 class CreateUser extends Command
 {
-    protected $signature = 'fsm:create-user {name} {email} {password} {--role=coordinator}';
+    protected $signature = 'fsm:create-user {name} {email} {password} {--role=coordinator} {--phone=}';
 
     protected $description = 'Create an FSM user (roles: administrator, coordinator, technician)';
 
@@ -34,6 +34,7 @@ class CreateUser extends Command
         User::query()->create([
             'name' => $this->argument('name'),
             'email' => $email,
+            'phone' => $this->option('phone'),
             'password' => Hash::make($this->argument('password')),
             'role' => $role,
         ]);

@@ -76,6 +76,7 @@
     @auth
         <div class="user">
             <span>{{ auth()->user()->name }} ({{ auth()->user()->role->value }})</span>
+            <a href="{{ url('/dashboard/profile') }}" style="color:var(--muted);text-decoration:none;">Profil</a>
             <form method="POST" action="{{ url('/logout') }}">
                 @csrf
                 <button class="btn btn-secondary" type="submit">Logout</button>

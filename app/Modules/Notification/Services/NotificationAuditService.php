@@ -5,6 +5,7 @@ namespace App\Modules\Notification\Services;
 use App\Models\User;
 use App\Modules\Notification\Enums\NotificationChannel;
 use App\Modules\Notification\Enums\NotificationStatus;
+use App\Modules\Notification\Jobs\DeliverNotification;
 use App\Modules\Notification\Models\Notification;
 use App\Modules\WorkOrder\Models\WorkOrder;
 
@@ -18,7 +19,7 @@ class NotificationAuditService
         string $recipient,
         array $content = [],
     ): Notification {
-        return Notification::query()->create([
+        $notification = Notification::query()->create([
             'user_id' => $user?->getKey(),
             'work_order_id' => $workOrder?->getKey(),
             'channel' => $channel,
@@ -27,5 +28,9 @@ class NotificationAuditService
             'content' => $content === [] ? null : $content,
             'status' => NotificationStatus::Queued,
         ]);
+
+        DeliverNotification::dispatch($notification);
+
+        return $notification;
     }
 }
