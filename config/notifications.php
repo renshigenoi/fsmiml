@@ -85,6 +85,7 @@ return [
 
     'tracking' => [
         'public_url' => rtrim((string) env('TRACKING_PUBLIC_URL', env('APP_URL', 'http://localhost')), '/'),
+        'token_ttl_hours' => (float) env('TRACKING_TOKEN_TTL_HOURS', 8),
     ],
 
     /*

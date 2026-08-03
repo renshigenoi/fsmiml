@@ -86,14 +86,12 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
         TrackingSession $session,
     ): array {
         $trackingUrl = null;
-        $expiresAt = null;
 
         try {
             $issued = app(TrackingTokenService::class)->issue($session);
             $publicBase = rtrim((string) config('notifications.tracking.public_url'), '/');
             $trackingUrl = ($publicBase !== '' ? $publicBase : rtrim((string) url('/tracking'), '/'))
                 .'/'.$issued->plainToken;
-            $expiresAt = $issued->trackingToken->expires_at->format('d M Y H:i');
         } catch (Throwable $exception) {
             Log::warning('Failed to issue tracking token for customer notification.', [
                 'work_order_id' => $workOrder->getKey(),
@@ -105,7 +103,7 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
 
         if ($trackingUrl !== null) {
             $body .= " Pantau perjalanan teknisi di: {$trackingUrl}";
-            $body .= $expiresAt !== null ? " (link berlaku hingga {$expiresAt})" : '';
+            $body .= ' (link berlaku selama perjalanan berlangsung)';
         }
 
         return [

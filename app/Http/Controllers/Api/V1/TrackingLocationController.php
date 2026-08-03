@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreTrackingLocationRequest;
 use App\Modules\Tracking\Enums\TrackingSessionStatus;
+use App\Modules\Tracking\Enums\TrackingTokenStatus;
 use App\Modules\Tracking\Events\TrackingLocationUpdated;
 use App\Modules\Tracking\Jobs\PersistTrackingPoint;
 use App\Modules\Tracking\Models\TrackingSession;
+use App\Modules\Tracking\Models\TrackingToken;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -32,6 +34,14 @@ class TrackingLocationController extends Controller
         ];
 
         Cache::put("tracking:session:{$trackingSession->getKey()}:current_location", $location, now()->addMinutes(2));
+
+        TrackingToken::query()
+            ->where('tracking_session_id', $trackingSession->getKey())
+            ->where('status', TrackingTokenStatus::Active->value)
+            ->update([
+                'expires_at' => now()->addHours((float) config('notifications.tracking.token_ttl_hours')),
+            ]);
+
         PersistTrackingPoint::dispatch($trackingSession->getKey(), $location);
         TrackingLocationUpdated::dispatch($trackingSession->work_order_id, $trackingSession->getKey(), $location);
 

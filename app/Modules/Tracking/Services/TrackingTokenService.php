@@ -40,7 +40,7 @@ class TrackingTokenService
                 'tracking_session_id' => $session->getKey(),
                 'token_hash' => hash('sha256', $plainToken),
                 'status' => TrackingTokenStatus::Active,
-                'expires_at' => now()->addHours(8),
+                'expires_at' => now()->addHours((float) config('notifications.tracking.token_ttl_hours')),
             ]);
 
             return new IssuedTrackingLink($token, $plainToken);
