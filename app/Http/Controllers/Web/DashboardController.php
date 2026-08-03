@@ -24,7 +24,36 @@ class DashboardController extends Controller
         private readonly LegacyWorkOrderService $workOrders,
     ) {}
 
-    public function index(Request $request): View
+    public function index(): View
+    {
+        $statusCounts = WorkOrder::query()
+            ->selectRaw('status, COUNT(*) AS total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $pending = WorkOrder::query()
+            ->with(['customer', 'assignments.technician.user'])
+            ->where('status', WorkOrderStatus::WaitingAcceptance)
+            ->latest('scheduled_start_at')
+            ->limit(8)
+            ->get();
+
+        $technicians = collect($this->legacy->technicians(null, 8));
+
+        return view('dashboard.home', [
+            'statusCounts' => $statusCounts,
+            'pending' => $pending,
+            'technicians' => $technicians,
+            'technicianCount' => $this->legacy->countTechnicians(),
+        ]);
+    }
+
+    public function input(): View
+    {
+        return view('dashboard.input');
+    }
+
+    public function workOrders(Request $request): View
     {
         $statusParam = $request->query('status');
 
@@ -40,10 +69,20 @@ class DashboardController extends Controller
             ->latest('scheduled_start_at')
             ->paginate(20);
 
-        return view('dashboard.index', [
+        return view('dashboard.work-orders', [
             'workOrders' => $workOrders,
             'selectedStatus' => $selectedStatus?->value,
             'statuses' => WorkOrderStatus::cases(),
+        ]);
+    }
+
+    public function technicians(Request $request): View
+    {
+        $rows = $this->legacy->technicians($request->query('search'), 200);
+
+        return view('dashboard.technicians', [
+            'technicians' => $rows,
+            'search' => (string) $request->query('search'),
         ]);
     }
 
@@ -58,7 +97,7 @@ class DashboardController extends Controller
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
-    public function technicians(Request $request): JsonResponse
+    public function techniciansJson(Request $request): JsonResponse
     {
         $rows = $this->legacy->technicians($request->query('search'), 200);
 

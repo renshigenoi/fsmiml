@@ -1,33 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
-
-@php
-    $statusLabels = [
-        'draft' => 'Draft',
-        'waiting_acceptance' => 'Menunggu Konfirmasi',
-        'accepted' => 'Diterima',
-        'on_the_way' => 'Dalam Perjalanan',
-        'arrived' => 'Tiba di Lokasi',
-        'installation' => 'Pemasangan',
-        'finished' => 'Selesai',
-        'rejected' => 'Ditolak',
-        'cancelled' => 'Dibatalkan',
-        'failed' => 'Gagal',
-    ];
-    $statusColors = [
-        'draft' => 'gray',
-        'waiting_acceptance' => 'amber',
-        'accepted' => 'blue',
-        'on_the_way' => 'indigo',
-        'arrived' => 'cyan',
-        'installation' => 'violet',
-        'finished' => 'green',
-        'rejected' => 'rose',
-        'cancelled' => 'gray',
-        'failed' => 'red',
-    ];
-@endphp
+@section('title', 'Input SPK')
 
 @section('content')
     <div class="card">
@@ -71,60 +44,6 @@
             <button class="btn" type="submit">Simpan &amp; Assign Teknisi</button>
         </form>
     </div>
-
-    <div class="card">
-        <h2>Daftar Work Order</h2>
-        <form method="GET" action="{{ url('/dashboard') }}" class="filter-bar">
-            <label for="status" style="margin:0;">Filter status:</label>
-            <select name="status" id="status" onchange="this.form.submit()">
-                @foreach ($statuses as $status)
-                    <option value="{{ $status->value }}" @selected(($selectedStatus ?? null) === $status->value)>
-                        {{ $statusLabels[$status->value] ?? ucfirst($status->value) }}
-                    </option>
-                @endforeach
-                <option value="all" @selected($selectedStatus === null)>Semua Status</option>
-            </select>
-            <span class="muted">{{ $workOrders->total() }} work order</span>
-        </form>
-        @if ($workOrders->isEmpty())
-            <p class="muted">Belum ada work order. Mulai dengan mencari SPK di atas.</p>
-        @else
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Nomor SPK</th>
-                        <th>Customer</th>
-                        <th>Tanggal Pasang</th>
-                        <th>Status</th>
-                        <th>Teknisi</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach ($workOrders as $workOrder)
-                        <tr>
-                            <td><strong>{{ $workOrder->number }}</strong></td>
-                            <td>{{ $workOrder->customer?->name }}</td>
-                            <td>{{ $workOrder->scheduled_start_at?->format('d M Y H:i') }}</td>
-                            <td>
-                                <span class="badge b-{{ $statusColors[$workOrder->status->value] ?? 'gray' }}">
-                                    {{ $statusLabels[$workOrder->status->value] ?? ucfirst($workOrder->status->value) }}
-                                </span>
-                            </td>
-                            <td>
-                                {{ $workOrder->assignments->pluck('technician.user.name')->filter()->implode(', ') ?: '-' }}
-                            </td>
-                            <td><a href="{{ route('dashboard.work-orders.show', $workOrder) }}">Detail</a></td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-            {{ $workOrders->links() }}
-        @endif
-    </div>
-
 @endsection
 
 @push('scripts')

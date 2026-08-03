@@ -161,6 +161,16 @@ class LegacyDataSourceService
         return $rows[0] ?? null;
     }
 
+    public function countTechnicians(): int
+    {
+        $row = DB::connection('sales')->selectOne(
+            "SELECT COUNT(*) AS total FROM users
+             WHERE status ILIKE '%1%' AND user_type ILIKE '%7%' AND division ILIKE '%09%'",
+        );
+
+        return (int) ($row->total ?? 0);
+    }
+
     private function limit(int $limit): int
     {
         return max(1, min($limit, 500));

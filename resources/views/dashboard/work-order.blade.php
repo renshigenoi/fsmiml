@@ -2,41 +2,14 @@
 
 @section('title', 'Work Order '.$workOrder->number)
 
-@php
-    $statusLabels = [
-        'draft' => 'Draft',
-        'waiting_acceptance' => 'Menunggu Konfirmasi',
-        'accepted' => 'Diterima',
-        'on_the_way' => 'Dalam Perjalanan',
-        'arrived' => 'Tiba di Lokasi',
-        'installation' => 'Pemasangan',
-        'finished' => 'Selesai',
-        'rejected' => 'Ditolak',
-        'cancelled' => 'Dibatalkan',
-        'failed' => 'Gagal',
-    ];
-    $statusColors = [
-        'draft' => 'gray',
-        'waiting_acceptance' => 'amber',
-        'accepted' => 'blue',
-        'on_the_way' => 'indigo',
-        'arrived' => 'cyan',
-        'installation' => 'violet',
-        'finished' => 'green',
-        'rejected' => 'rose',
-        'cancelled' => 'gray',
-        'failed' => 'red',
-    ];
-@endphp
-
 @section('content')
-    <p><a href="{{ route('dashboard') }}">&larr; Kembali ke dashboard</a></p>
+    <p><a href="{{ route('dashboard.work-orders') }}">&larr; Kembali ke daftar work order</a></p>
 
     <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
             <h2 style="margin:0;">Work Order {{ $workOrder->number }}</h2>
-            <span class="badge b-{{ $statusColors[$workOrder->status->value] ?? 'gray' }}">
-                {{ $statusLabels[$workOrder->status->value] ?? ucfirst($workOrder->status->value) }}
+            <span class="badge b-{{ \App\Support\StatusMap::color($workOrder->status->value) }}">
+                {{ \App\Support\StatusMap::label($workOrder->status->value) }}
             </span>
         </div>
 
