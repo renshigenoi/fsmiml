@@ -300,6 +300,13 @@
             <div v-if="loading" class="loading"><div class="spinner"></div></div>
 
             <template v-else>
+                <div v-if="noTechnicianLink" class="section">
+                    <div class="empty" style="border-color:#fecaca; background:#fef2f2; color:#991b1b;">
+                        <span class="big">⚠️</span>
+                        Akun ini belum terhubung ke data teknisi. Hubungi koordinator agar akunmu ditautkan.
+                    </div>
+                </div>
+
                 <div class="section">
                     <h3>🔔 Menunggu konfirmasi</h3>
                     <div v-if="pendingOrders.length === 0" class="empty"><span class="big">🎉</span>Tidak ada pekerjaan baru. Santai dulu, tugas akan segera datang!</div>
@@ -326,6 +333,18 @@
                             📍 {{ wo.service_location ? wo.service_location.address : '-' }}
                             <span v-if="superseded(wo)"> · Diambil teknisi lain</span>
                         </div>
+                    </button>
+                </div>
+
+                <div class="section" v-if="historyOrders.length">
+                    <h3>🗂️ Riwayat</h3>
+                    <button v-for="wo in historyOrders" :key="wo.id" class="wo-card" @click="openDetail(wo)">
+                        <div class="row1">
+                            <span class="number">{{ wo.number }}</span>
+                            <span class="badge" :class="statusBadge(historyStatus(wo))">{{ historyStatusLabel(wo) }}</span>
+                        </div>
+                        <div class="cust">{{ wo.customer ? wo.customer.name : 'Customer' }}</div>
+                        <div class="sub">📅 {{ fmtDate(wo.scheduled_start_at) }}</div>
                     </button>
                 </div>
             </template>
@@ -392,6 +411,11 @@
                             {{ act.label }}
                         </button>
                     </div>
+                </div>
+
+                <div v-if="superseded(current)" class="card" style="border-color:#fecaca; background:#fff7f7;">
+                    <h4>ℹ️ Informasi</h4>
+                    <p class="small" style="margin:0;">Pekerjaan ini sudah diambil teknisi lain, jadi kamu tidak bisa mengerjakannya. Tenang, tugas baru akan segera datang! 💪</p>
                 </div>
 
                 <div v-if="current.status === 'on_the_way'" class="card">
@@ -474,13 +498,14 @@
         installation:       { label: 'Sedang Pemasangan',    color: '#4f46e5' },
         finished:           { label: 'Selesai',              color: '#16a34a' },
         rejected:           { label: 'Ditolak',              color: '#e11d48' },
+        superseded:         { label: 'Diambil Teknisi Lain', color: '#64748b' },
         cancelled:          { label: 'Dibatalkan',           color: '#64748b' },
         failed:             { label: 'Gagal',                color: '#991b1b' },
     };
     const BADGE_CLASS = {
         waiting_acceptance: 'b-amber', accepted: 'b-sky', on_the_way: 'b-violet',
         arrived: 'b-blue', installation: 'b-indigo', finished: 'b-green',
-        rejected: 'b-rose', cancelled: 'b-gray', failed: 'b-red', draft: 'b-gray',
+        rejected: 'b-rose', superseded: 'b-gray', cancelled: 'b-gray', failed: 'b-red', draft: 'b-gray',
     };
     const HINTS = {
         waiting_acceptance: 'Konfirmasi dulu ya, apakah kamu bisa mengerjakan tugas ini?',
@@ -545,8 +570,21 @@
             activeOrders() {
                 return this.orders.filter(wo => {
                     const a = this.myAssignment(wo);
-                    return a && (a.status === 'accepted' || ['on_the_way', 'arrived', 'installation'].includes(wo.status));
+                    return a && (a.status === 'accepted'
+                        || a.status === 'superseded'
+                        || ['on_the_way', 'arrived', 'installation'].includes(wo.status));
                 });
+            },
+            historyOrders() {
+                return this.orders.filter(wo => {
+                    const a = this.myAssignment(wo);
+                    if (!a) return false;
+                    return ['rejected', 'superseded'].includes(a.status)
+                        || ['finished', 'cancelled', 'failed'].includes(wo.status);
+                });
+            },
+            noTechnicianLink() {
+                return this.user && !this.user.technician_id;
             },
             steps() {
                 return ['Diterima', 'Berangkat', 'Tiba', 'Pasang', 'Selesai'];
@@ -607,6 +645,13 @@
             },
             statusLabel(status) { return (STATUS_META[status] || STATUS_META.draft).label; },
             statusBadge(status) { return BADGE_CLASS[status] || 'b-gray'; },
+            historyStatus(wo) {
+                const a = this.myAssignment(wo);
+                if (a && a.status === 'superseded') return 'superseded';
+                if (a && a.status === 'rejected') return 'rejected';
+                return wo.status;
+            },
+            historyStatusLabel(wo) { return this.statusLabel(this.historyStatus(wo)); },
             fmtDate(value) {
                 if (!value) return '-';
                 return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
