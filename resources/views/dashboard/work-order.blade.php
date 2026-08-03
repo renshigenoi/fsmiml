@@ -22,6 +22,28 @@
         </div>
     </div>
 
+    @if ($workOrder->serviceLocation)
+        <div class="card">
+            <h2>Lokasi Pemasangan</h2>
+            <div class="meta-grid">
+                <div><span class="muted">Alamat</span><br>{{ $workOrder->serviceLocation->address }}</div>
+                @if ($workOrder->serviceLocation->city)
+                    <div><span class="muted">Kota</span><br>{{ $workOrder->serviceLocation->city }}</div>
+                @endif
+                @if ($workOrder->serviceLocation->latitude)
+                    <div>
+                        <span class="muted">Koordinat</span><br>
+                        {{ $workOrder->serviceLocation->latitude }}, {{ $workOrder->serviceLocation->longitude }}
+                    </div>
+                    <div>
+                        <span class="muted">Buka di Peta</span><br>
+                        <a href="https://www.google.com/maps?q={{ $workOrder->serviceLocation->latitude }},{{ $workOrder->serviceLocation->longitude }}" target="_blank" rel="noopener">Google Maps &nearr;</a>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <div class="card">
         <h2>Tim Teknisi &amp; Assignment</h2>
         @if ($workOrder->assignments->isEmpty())

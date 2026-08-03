@@ -36,6 +36,9 @@ class LegacyWorkOrderService
         ?string $scheduledStartAt,
         ?string $notes,
         User $actor,
+        ?string $locationAddress = null,
+        ?float $latitude = null,
+        ?float $longitude = null,
     ): WorkOrder {
         $row = $this->legacy->salesBySerial($salesSerial);
 
@@ -45,9 +48,18 @@ class LegacyWorkOrderService
             ]);
         }
 
-        return DB::transaction(function () use ($row, $technicianSerials, $scheduledStartAt, $notes, $actor): WorkOrder {
+        return DB::transaction(function () use (
+            $row,
+            $technicianSerials,
+            $scheduledStartAt,
+            $notes,
+            $actor,
+            $locationAddress,
+            $latitude,
+            $longitude,
+        ): WorkOrder {
             $customer = $this->upsertCustomer($row);
-            $location = $this->upsertServiceLocation($customer, $row);
+            $location = $this->upsertServiceLocation($customer, $row, $locationAddress, $latitude, $longitude);
             $salesOrder = $this->upsertSalesOrder($customer, $row);
             $workOrder = $this->createWorkOrder($salesOrder, $customer, $location, $row, $scheduledStartAt, $notes, $actor);
 
@@ -81,23 +93,35 @@ class LegacyWorkOrderService
         );
     }
 
-    private function upsertServiceLocation(Customer $customer, object $row): ServiceLocation
-    {
-        $address = $row->installation_address ?: $row->address;
+    private function upsertServiceLocation(
+        Customer $customer,
+        object $row,
+        ?string $addressOverride,
+        ?float $latitude,
+        ?float $longitude,
+    ): ServiceLocation {
+        $address = trim((string) ($addressOverride ?: ($row->installation_address ?: $row->address)));
 
-        if (blank($address)) {
+        if (blank($address) && ($latitude === null || $longitude === null)) {
             throw ValidationException::withMessages([
-                'legacy_sales_serial' => 'Sales record has no installation address.',
+                'legacy_sales_serial' => 'Sales record has no installation address. Set the location on the map first.',
             ]);
         }
 
-        return ServiceLocation::query()->firstOrCreate(
+        if (blank($address)) {
+            $address = 'Lokasi '.rtrim(rtrim(number_format((float) $latitude, 6), '0'), '.').', '
+                .rtrim(rtrim(number_format((float) $longitude, 6), '0'), '.');
+        }
+
+        return ServiceLocation::query()->updateOrCreate(
             ['customer_id' => $customer->getKey(), 'address' => $address],
             [
                 'label' => filled($row->spk_no) ? 'SPK '.$row->spk_no : null,
                 'city' => $row->city ?? null,
                 'province' => $row->state ?? null,
                 'postal_code' => $row->zip ?? null,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
             ],
         );
     }

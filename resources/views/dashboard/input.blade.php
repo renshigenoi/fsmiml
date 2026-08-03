@@ -4,6 +4,9 @@
 
 @section('content')
     <div class="card">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
         <h2>Input Pemasangan Baru</h2>
 
         <label for="spk-search">Cari Nomor SPK</label>
@@ -41,6 +44,20 @@
                 </div>
             </div>
 
+            <h3 class="mt">Lokasi Pemasangan</h3>
+            <label for="location-search">Cari lokasi / nama tempat</label>
+            <div class="search-bar">
+                <input type="text" id="location-search" placeholder="Cari alamat, nama jalan, atau landmark..." autocomplete="off">
+                <button type="button" id="location-search-btn" class="btn">Cari</button>
+            </div>
+            <label for="location-address">Alamat (bisa diedit / diketik ulang)</label>
+            <input type="text" id="location-address" name="location_address" placeholder="Alamat lengkap lokasi pemasangan" autocomplete="off">
+            <button type="button" id="location-geocode" class="btn btn-secondary">Cari di Peta dari Alamat</button>
+            <div id="location-map" class="mt" style="height: 340px; border: 1px solid var(--border); border-radius: 10px; z-index: 0;"></div>
+            <p class="muted small">Klik di peta atau geser pin untuk mengatur titik lokasi. Alamat dari SPK otomatis dicari di peta saat SPK dipilih.</p>
+            <input type="hidden" name="latitude" id="latitude">
+            <input type="hidden" name="longitude" id="longitude">
+
             <button class="btn" type="submit">Simpan &amp; Assign Teknisi</button>
         </form>
     </div>
@@ -53,7 +70,9 @@
             document.getElementById('spk-selected').classList.remove('hidden');
             document.getElementById('s-spk').textContent = data.spk_no || '-';
             document.getElementById('s-customer').textContent = data.customer_name || '-';
-            document.getElementById('s-address').textContent = [data.address, data.city, data.state].filter(Boolean).join(', ') || '-';
+            const fullAddress = [data.address, data.city, data.state].filter(Boolean).join(', ');
+            document.getElementById('s-address').textContent = fullAddress || '-';
+            document.getElementById('location-address').value = fullAddress;
             document.getElementById('s-car').textContent = [data.car_brand, data.car_model].filter(Boolean).join(' ') || '-';
             document.getElementById('s-date').textContent = data.installation_date || '-';
             document.getElementById('legacy-sales-serial').value = data.serial || '';
@@ -61,12 +80,106 @@
             if (!dateInput.value && data.installation_date) {
                 dateInput.value = data.installation_date.slice(0, 10);
             }
+            autoGeocode(fullAddress);
         },
         clear() {
             document.getElementById('spk-selected').classList.add('hidden');
             document.getElementById('legacy-sales-serial').value = '';
         },
     };
+
+    // ---------- Lokasi Pemasangan (Leaflet + Nominatim/OSM) ----------
+    const DEFAULT_MAP = { lat: -2.5489, lng: 118.0149, zoom: 5 };
+    let map = null;
+    let pin = null;
+    let geocodeSeq = 0;
+
+    function initLocationMap() {
+        if (map || typeof L === 'undefined') return;
+        map = L.map('location-map').setView([DEFAULT_MAP.lat, DEFAULT_MAP.lng], DEFAULT_MAP.zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+        map.on('click', (e) => placePin(e.latlng.lat, e.latlng.lng, true));
+    }
+
+    function placePin(lat, lng, reverse) {
+        document.getElementById('latitude').value = lat.toFixed(7);
+        document.getElementById('longitude').value = lng.toFixed(7);
+        if (!pin) {
+            pin = L.marker([lat, lng], { draggable: true }).addTo(map);
+            pin.on('dragend', () => {
+                const p = pin.getLatLng();
+                placePin(p.lat, p.lng, true);
+            });
+        } else {
+            pin.setLatLng([lat, lng]);
+        }
+        if (reverse) reverseGeocode(lat, lng);
+    }
+
+    async function nominatimGet(path, params) {
+        const url = 'https://nominatim.openstreetmap.org/' + path + '?' + new URLSearchParams(params).toString();
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error('Layanan pencarian lokasi error (' + response.status + ')');
+        return response.json();
+    }
+
+    async function searchAndPin(query, zoom = 16, silent = false) {
+        initLocationMap();
+        if (typeof L === 'undefined' || !query.trim()) return;
+        const seq = ++geocodeSeq;
+        try {
+            const results = await nominatimGet('search', {
+                format: 'jsonv2',
+                q: query,
+                limit: 1,
+                countrycodes: 'id',
+            });
+            if (seq !== geocodeSeq) return;
+            if (!results.length) {
+                if (!silent) alert('Lokasi tidak ditemukan. Coba kata kunci lain atau klik langsung di peta.');
+                return;
+            }
+            const r = results[0];
+            map.flyTo([parseFloat(r.lat), parseFloat(r.lon)], zoom);
+            placePin(parseFloat(r.lat), parseFloat(r.lon), true);
+        } catch (err) {
+            if (!silent) alert('Gagal mencari lokasi: ' + err.message);
+        }
+    }
+
+    async function reverseGeocode(lat, lng) {
+        try {
+            const data = await nominatimGet('reverse', { format: 'jsonv2', lat: lat, lon: lng, zoom: 16 });
+            const input = document.getElementById('location-address');
+            if (data && data.display_name && !input.value.trim()) {
+                input.value = data.display_name;
+            }
+        } catch (err) {
+            // Abaikan; koordinator tetap bisa mengetik alamat manual.
+        }
+    }
+
+    function autoGeocode(address) {
+        if (!address.trim()) return;
+        initLocationMap();
+        searchAndPin(address, 14, true);
+    }
+
+    document.getElementById('location-search-btn').addEventListener('click', () => {
+        searchAndPin(document.getElementById('location-search').value, 16, false);
+    });
+    document.getElementById('location-search').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('location-search-btn').click();
+        }
+    });
+    document.getElementById('location-geocode').addEventListener('click', () => {
+        searchAndPin(document.getElementById('location-address').value, 16, false);
+    });
 
     const spkInput = document.getElementById('spk-search');
     const spkResults = document.getElementById('spk-results');

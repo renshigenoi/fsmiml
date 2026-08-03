@@ -22,6 +22,9 @@ class StoreLegacyWorkOrderRequest extends FormRequest
             'technician_legacy_serials.*' => ['required', 'string', 'distinct', 'max:100'],
             'scheduled_start_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'location_address' => ['nullable', 'string', 'max:500'],
+            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
         ];
     }
 }

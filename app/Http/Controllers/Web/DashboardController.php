@@ -119,6 +119,9 @@ class DashboardController extends Controller
                 $validated['scheduled_start_at'] ?? null,
                 $validated['notes'] ?? null,
                 $request->user(),
+                $validated['location_address'] ?? null,
+                isset($validated['latitude']) ? (float) $validated['latitude'] : null,
+                isset($validated['longitude']) ? (float) $validated['longitude'] : null,
             );
         } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors())->withInput();
