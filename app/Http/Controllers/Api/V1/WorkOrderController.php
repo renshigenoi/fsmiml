@@ -24,7 +24,7 @@ class WorkOrderController extends Controller
         $user = request()->user();
         $this->authorize('viewAny', WorkOrder::class);
 
-        $query = WorkOrder::query()->with(['customer', 'serviceLocation', 'items']);
+        $query = WorkOrder::query()->with(['customer', 'serviceLocation', 'items', 'assignments']);
 
         if (! in_array($user->role, [UserRole::Administrator, UserRole::Coordinator], true)) {
             $query->whereHas('assignments', fn ($assignments) => $assignments->where('technician_id', $user->technician?->getKey()));
