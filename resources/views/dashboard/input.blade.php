@@ -53,7 +53,7 @@
             <label for="location-address">Alamat (bisa diedit / diketik ulang)</label>
             <input type="text" id="location-address" name="location_address" placeholder="Alamat lengkap lokasi pemasangan" autocomplete="off">
             <button type="button" id="location-geocode" class="btn btn-secondary">Cari di Peta dari Alamat</button>
-            <div id="location-map" class="mt" style="height: 340px; border: 1px solid var(--border); border-radius: 10px; z-index: 0;"></div>
+            <div id="location-map" class="mt" style="height: 340px; border: 1px solid var(--line); border-radius: 10px; z-index: 0;"></div>
             <p class="muted small">Klik di peta atau geser pin untuk mengatur titik lokasi. Alamat dari SPK otomatis dicari di peta saat SPK dipilih.</p>
             <input type="hidden" name="latitude" id="latitude">
             <input type="hidden" name="longitude" id="longitude">
