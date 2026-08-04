@@ -598,7 +598,7 @@
                 <div class="card">
                     <h4>📍 Lokasi Teknisi</h4>
                     <div id="track-map"></div>
-                    <div class="eta-bar">
+                    <div class="eta-bar" id="eta-bar">
                         <span class="eta-icon">🛵</span>
                         <div>
                             <div class="eta-line" id="eta-line">Menghitung perkiraan tiba...</div>
@@ -701,6 +701,7 @@
             pollTimer = null,
             subscribed = false,
             lastRealtime = 0,
+            tripLayer = null,
             destLatLng = null,
             routeLayer = null,
             lastRouteFetch = 0,
@@ -926,13 +927,33 @@
                 showActive();
                 initMap(data.destination);
                 updatePosition(data.current_location);
+                showEtaBar(true);
             } else {
                 stopPolling();
                 showActive();
                 if (data.destination) initMap(data.destination, true);
+                showEtaBar(false);
+                drawTripPath(data.trip_points);
             }
 
             initTrackingRealtime(data);
+        }
+
+        function showEtaBar(show) {
+            const bar = document.getElementById('eta-bar');
+            if (bar) bar.style.display = show ? 'flex' : 'none';
+        }
+
+        function drawTripPath(points) {
+            if (!map || !points || points.length < 2) return;
+            if (tripLayer) map.removeLayer(tripLayer);
+            tripLayer = L.polyline(points.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]), {
+                color: '#64748b',
+                weight: 3,
+                opacity: .7,
+                dashArray: '4 6',
+            }).addTo(map);
+            map.fitBounds(tripLayer.getBounds().pad(0.25), { maxZoom: 16 });
         }
 
         function initMap(dest, finalize) {

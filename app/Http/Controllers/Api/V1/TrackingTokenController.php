@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Tracking\Enums\TrackingSessionStatus;
 use App\Modules\Tracking\Enums\TrackingTokenStatus;
 use App\Modules\Tracking\Models\TrackingSession;
+use App\Modules\Tracking\Models\TrackingPoint;
 use App\Modules\Tracking\Models\TrackingToken;
 use App\Modules\Tracking\Services\TrackingTokenService;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
@@ -73,6 +74,27 @@ class TrackingTokenController extends Controller
     {
         $workOrder = $trackingToken->trackingSession->workOrder;
 
+        $tripPoints = [];
+        if ($status !== 'on_the_way') {
+            $points = TrackingPoint::query()
+                ->where('tracking_session_id', $trackingToken->tracking_session_id)
+                ->orderBy('recorded_at')
+                ->get(['latitude', 'longitude', 'recorded_at']);
+
+            $total = $points->count();
+            $step = $total > 300 ? (int) ceil($total / 300) : 1;
+
+            $tripPoints = $points
+                ->filter(fn ($point, $index): bool => $index % $step === 0 || $index === $total - 1)
+                ->values()
+                ->map(fn ($point): array => [
+                    'latitude' => (float) $point->latitude,
+                    'longitude' => (float) $point->longitude,
+                    'recorded_at' => $point->recorded_at->toIso8601String(),
+                ])
+                ->all();
+        }
+
         return response()->json([
             'status' => $status,
             'work_order' => [
@@ -88,6 +110,7 @@ class TrackingTokenController extends Controller
             ],
             'realtime_channel' => $trackingToken->trackingSession->realtime_channel,
             'current_location' => $location,
+            'trip_points' => $tripPoints,
         ]);
     }
 }
