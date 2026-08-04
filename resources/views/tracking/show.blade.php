@@ -706,7 +706,9 @@
             lastRouteFetch = 0,
             routeDistanceM = null,
             routeDurationS = null,
-            lastSpeedMps = null;
+            lastSpeedMps = null,
+            lastKnownLat = null,
+            lastKnownLng = null;
 
         function initTrackingRealtime(data) {
             if (subscribed || !data.realtime_channel || typeof Echo === 'undefined') return;
@@ -750,11 +752,16 @@
             const now = Date.now();
             if (now - lastRouteFetch < 60000) return;
             lastRouteFetch = now;
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 10000);
             try {
                 const url = 'https://router.project-osrm.org/route/v1/driving/' +
                     lng + ',' + lat + ';' + destLatLng.lng + ',' + destLatLng.lat +
                     '?overview=full&geometries=geojson&steps=false';
-                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal,
+                });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
                 if (data.code !== 'Ok' || !data.routes || !data.routes.length) throw new Error('no route');
@@ -769,6 +776,8 @@
                     routeDurationS = routeDistanceM / (30 * 1000 / 3600);
                 }
                 renderEta();
+            } finally {
+                clearTimeout(timer);
             }
         }
 
@@ -787,7 +796,9 @@
             const sub = document.getElementById('eta-sub');
             if (!line) return;
             if (routeDurationS === null) {
-                line.textContent = 'Menghitung perkiraan tiba...';
+                line.textContent = lastKnownLat ?
+                    'Menghitung perkiraan tiba...' :
+                    'Menunggu posisi teknisi...';
                 sub.textContent = '';
                 return;
             }
@@ -1000,6 +1011,8 @@
             <span>Posisi diperbarui otomatis &nbsp;<strong>${timeStr}</strong></span>`;
 
             lastSpeedMps = location.speed_mps || null;
+            lastKnownLat = lat;
+            lastKnownLng = lng;
             if (destLatLng) {
                 fetchRoute(lat, lng);
                 renderEta();
@@ -1017,6 +1030,7 @@
         load();
         pollTimer = setInterval(() => {
             if (Date.now() - lastRealtime > 20000) load();
+            if (destLatLng && lastKnownLat) fetchRoute(lastKnownLat, lastKnownLng);
         }, 8000);
     </script>
 </body>
