@@ -1119,14 +1119,15 @@
         }
         $wsScheme = (string) ($reverbOptions['scheme'] ?? 'http');
         $wsPort = (int) ($reverbOptions['port'] ?? 8080);
-    @endphp
-    <script>
-        window.FSM_REALTIME = @json([
+        $fsmRealtime = [
             'key' => config('broadcasting.connections.reverb.key'),
             'host' => $wsHost,
             'port' => $wsPort,
             'scheme' => $wsScheme,
-        ]);
+        ];
+    @endphp
+    <script>
+        window.FSM_REALTIME = @json($fsmRealtime);
     </script>
 
     <div id="realtime-toast" class="realtime-toast">
