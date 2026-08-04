@@ -909,6 +909,121 @@
             flex-shrink: 0;
         }
 
+        .install-banner {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 12px) + 64px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 94;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--navy-800);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 12.5px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(6, 20, 41, .35);
+            max-width: calc(100vw - 32px);
+        }
+
+        .install-banner .ib-btn {
+            border: 0;
+            background: var(--red-grad);
+            color: #fff;
+            border-radius: 9px;
+            padding: 8px 14px;
+            font-size: 12.5px;
+            font-weight: 800;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .offline-banner {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 12px) + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 96;
+            background: #b45309;
+            color: #fff;
+            padding: 9px 16px;
+            border-radius: 99px;
+            font-size: 12.5px;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(180, 83, 9, .35);
+            white-space: nowrap;
+        }
+
+        .ptr-indicator {
+            height: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            transition: height .15s;
+        }
+
+        .ptr-indicator.active {
+            height: 44px;
+        }
+
+        .ptr-indicator.refreshing span {
+            animation: spin .75s linear infinite;
+        }
+
+        .search-bar {
+            position: relative;
+            margin: 4px 16px 12px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            border: 1.5px solid var(--line);
+            border-radius: 12px;
+            padding: 11px 38px 11px 38px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--surface-2);
+            color: var(--ink);
+            outline: none;
+            margin: 0;
+        }
+
+        .search-bar input:focus {
+            border-color: var(--red-500);
+            background: #fff;
+        }
+
+        .search-ico {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 15px;
+            opacity: .5;
+            pointer-events: none;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: var(--bg-2);
+            color: var(--muted);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
         /* =========================================================
            MODAL & BOTTOM SHEET (ENHANCED FORM DESIGN)
         ========================================================= */
@@ -1340,6 +1455,18 @@
                     @click.stop="updateInfo = null">✕</button>
             </div>
 
+            <!-- ============ INSTALL BANNER (PWA) ============ -->
+            <div v-if="installVisible || iosInstallHint" class="install-banner">
+                <span v-if="installVisible">📲 Pasang FSM Teknisi</span>
+                <span v-else>📲 Pasang: Safari → Bagikan → Tambahkan ke Layar Utama</span>
+                <button v-if="installVisible" type="button" class="ib-btn" @click="installApp">Pasang</button>
+                <button type="button" class="ub-close"
+                    @click="installVisible = false; iosInstallHint = false">✕</button>
+            </div>
+
+            <!-- ============ OFFLINE BANNER ============ -->
+            <div v-if="!online" class="offline-banner">📡 Offline — data akan dimuat ulang saat online</div>
+
             <!-- ============ PIN LOCK SCREEN ============ -->
             <div v-if="token && view === 'lock'" class="lock-screen">
                 <div class="lock-logo-wrap">
@@ -1538,6 +1665,9 @@
 
                     <!-- ========== HOME VIEW ========== -->
                     <div v-if="view === 'home'">
+                        <div class="ptr-indicator" :class="{ active: pullDistance > 0, refreshing: refreshing }">
+                            <span>{{ refreshing ? 'Memuat…' : (pullDistance >= 70 ? 'Lepaskan untuk muat ulang' : 'Tarik untuk muat ulang') }}</span>
+                        </div>
                         <div class="app-header">
                             <div class="app-header-inner">
                                 <div class="logo-chip">
@@ -1631,6 +1761,21 @@
 
                             <!-- TAB: RIWAYAT -->
                             <div v-if="activeTab === 'history'" class="section">
+                                <div class="search-bar">
+                                    <span class="search-ico">🔍</span>
+                                    <input type="text" v-model.trim="searchQuery" placeholder="Cari SPK / customer..."
+                                        autocomplete="off">
+                                    <button v-if="searchQuery" type="button" class="search-clear"
+                                        @click="searchQuery = ''">✕</button>
+                                </div>
+                                <div class="scroll-x-bar" style="margin-top:-4px;">
+                                    <button class="filter-chip" :class="{ active: historyRange === '7' }"
+                                        @click="historyRange = '7'">7 Hari</button>
+                                    <button class="filter-chip" :class="{ active: historyRange === '30' }"
+                                        @click="historyRange = '30'">30 Hari</button>
+                                    <button class="filter-chip" :class="{ active: historyRange === 'all' }"
+                                        @click="historyRange = 'all'">Semua</button>
+                                </div>
                                 <div v-if="filteredHistoryOrders.length === 0" class="empty">
                                     <span class="big">📂</span>
                                     Belum ada riwayat pekerjaan.
@@ -1900,6 +2045,8 @@
                             : (localStorage.getItem('fsm_tech_token') ? 'home' : 'login'),
                         activeTab: 'processing',
                         subFilter: 'all',
+                        searchQuery: '',
+                        historyRange: '7',
                         loginForm: {
                             email: '',
                             password: ''
@@ -1930,6 +2077,13 @@
                             error: ''
                         },
                         biometricAvailable: false,
+                        online: navigator.onLine,
+                        installEvent: null,
+                        installVisible: false,
+                        iosInstallHint: false,
+                        pullDistance: 0,
+                        refreshing: false,
+                        pullStartY: null,
                         pinChange: {
                             stage: 'old',
                             old: '',
@@ -2026,9 +2180,18 @@
                         }.bind(this));
                     },
                     filteredHistoryOrders() {
-                        if (this.subFilter === 'all') return this.historyOrders;
+                        const q = this.searchQuery.trim().toLowerCase();
+                        const cutoff = this.historyRange === '7'
+                            ? Date.now() - 7 * 86400000
+                            : (this.historyRange === '30' ? Date.now() - 30 * 86400000 : null);
                         return this.historyOrders.filter(function(wo) {
-                            return this.historyStatus(wo) === this.subFilter;
+                            if (this.subFilter !== 'all' && this.historyStatus(wo) !== this.subFilter) return false;
+                            if (q && !this.matchSearch(wo, q)) return false;
+                            if (cutoff !== null) {
+                                const d = wo.scheduled_start_at ? new Date(wo.scheduled_start_at).getTime() : 0;
+                                if (d < cutoff) return false;
+                            }
+                            return true;
                         }.bind(this));
                     },
                     bannerStyle() {
@@ -2120,6 +2283,9 @@
                     this.checkAppVersion();
                     this.detectBiometric();
                     this.setupBackButton();
+                    this.setupInstallPrompt();
+                    this.setupConnectivity();
+                    this.setupPullToRefresh();
                     if (this.token && this.pinEnabled) {
                         this.view = 'lock';
                         if (this.biometricAvailable && this.bioEnabled) {
@@ -2400,6 +2566,76 @@
                             this.pollTimer = null;
                         }
                         this.view = 'login';
+                    },
+                    setupInstallPrompt() {
+                        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+                        const standalone = window.navigator.standalone === true;
+                        if (isIos && !standalone) this.iosInstallHint = true;
+                        window.addEventListener('beforeinstallprompt', (e) => {
+                            e.preventDefault();
+                            this.installEvent = e;
+                            this.installVisible = true;
+                        });
+                        window.addEventListener('appinstalled', () => {
+                            this.installVisible = false;
+                            this.iosInstallHint = false;
+                            this.installEvent = null;
+                        });
+                    },
+                    async installApp() {
+                        if (!this.installEvent) return;
+                        this.installEvent.prompt();
+                        try {
+                            await this.installEvent.userChoice;
+                        } catch (_) {}
+                        this.installVisible = false;
+                        this.installEvent = null;
+                    },
+                    setupConnectivity() {
+                        window.addEventListener('online', () => {
+                            this.online = true;
+                            this.showToast('Koneksi kembali ✓', 'success');
+                        });
+                        window.addEventListener('offline', () => {
+                            this.online = false;
+                        });
+                    },
+                    setupPullToRefresh() {
+                        window.addEventListener('touchstart', (e) => {
+                            if (this.view !== 'home' || this.refreshing) {
+                                this.pullStartY = null;
+                                return;
+                            }
+                            if (window.scrollY > 0) {
+                                this.pullStartY = null;
+                                return;
+                            }
+                            this.pullStartY = e.touches[0].clientY;
+                        }, { passive: true });
+                        window.addEventListener('touchmove', (e) => {
+                            if (this.pullStartY === null) return;
+                            const dy = e.touches[0].clientY - this.pullStartY;
+                            this.pullDistance = dy > 0 ? Math.min(dy * 0.5, 110) : 0;
+                        }, { passive: true });
+                        window.addEventListener('touchend', () => {
+                            if (this.pullStartY === null) return;
+                            if (this.pullDistance >= 70 && !this.refreshing) {
+                                this.refreshing = true;
+                                this.loadOrders().finally(() => {
+                                    this.refreshing = false;
+                                    this.pullDistance = 0;
+                                    this.showToast('Data terbaru dimuat ✓', 'success');
+                                });
+                            } else {
+                                this.pullDistance = 0;
+                            }
+                            this.pullStartY = null;
+                        }, { passive: true });
+                    },
+                    matchSearch(wo, q) {
+                        const number = String(wo.number || '').toLowerCase();
+                        const cust = String(wo.customer && wo.customer.name || '').toLowerCase();
+                        return number.includes(q) || cust.includes(q);
                     },
                     currentEmail() {
                         return String((this.user && this.user.email) || this.loginForm.email || '').trim().toLowerCase();
