@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         /* =========================================================
-           DESIGN SYSTEM — IML FSM Mobile (Optimized for Mobile Web)
+           DESIGN SYSTEM — IML FSM Mobile
         ========================================================= */
         :root {
             /* Navy palette */
@@ -29,17 +29,12 @@
             --navy-600: #1a3a7a;
             --navy-500: #2451a0;
             --navy-400: #3a6bc8;
-            --navy-300: #6a9ae8;
-            --navy-200: #b0caf5;
-            --navy-100: #dce9fc;
 
             /* Red palette */
             --red-700: #8b0c1e;
             --red-600: #a81226;
             --red-500: #c8102e;
             --red-400: #e01836;
-            --red-300: #f74d6a;
-            --red-200: #ffa5b5;
             --red-100: #ffe4e9;
 
             /* Gradients */
@@ -51,17 +46,15 @@
             --bg-2: #e8eef9;
             --surface: #ffffff;
             --surface-2: #f6f9ff;
-            --glass: rgba(255, 255, 255, .10);
-            --glass-bdr: rgba(255, 255, 255, .18);
+            --glass: rgba(255, 255, 255, .12);
+            --glass-bdr: rgba(255, 255, 255, .20);
 
             /* Text */
             --ink: #0d1b35;
             --ink-2: #2c3e65;
             --muted: #64748b;
-            --muted-2: #94a3b8;
             --on-dark: #ffffff;
             --on-dark-2: rgba(255, 255, 255, .75);
-            --on-dark-3: rgba(255, 255, 255, .45);
 
             /* Borders */
             --line: #e2e8f4;
@@ -85,20 +78,14 @@
             --shadow-sm: 0 1px 4px rgba(11, 32, 68, .06);
             --shadow: 0 4px 16px rgba(11, 32, 68, .10);
             --shadow-lg: 0 10px 32px rgba(11, 32, 68, .14);
-            --shadow-xl: 0 20px 56px rgba(11, 32, 68, .20);
 
             /* Shape */
             --r-sm: 10px;
             --r: 16px;
             --r-lg: 22px;
             --r-xl: 28px;
-
-            /* Easing */
-            --ease: cubic-bezier(0.22, 1, 0.36, 1);
-            --easef: cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ---- Reset & Mobile Enhancements ---- */
         *,
         *::before,
         *::after {
@@ -110,19 +97,11 @@
         body {
             margin: 0;
             padding: 0;
-            height: 100%;
-            overscroll-behavior-y: contain;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-            background: var(--navy-900);
-            /* Mengubah background dasar html/body ke navy gelap */
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100%;
             background: var(--bg);
+            /* Menyamakan background global agar tidak terpotong */
             color: var(--ink);
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
             font-size: 15px;
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
@@ -138,23 +117,11 @@
             min-height: 100dvh;
             display: flex;
             flex-direction: column;
+            background: var(--bg);
         }
 
-        /* Padding bottom dialokasikan khusus ke tampilan app saat sudah login */
         .app-main-content {
-            padding-bottom: calc(75px + env(safe-area-inset-bottom));
-        }
-
-        .muted {
-            color: var(--muted);
-        }
-
-        .small {
-            font-size: 13px;
-        }
-
-        .hidden {
-            display: none !important;
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
         }
 
         /* =========================================================
@@ -171,19 +138,12 @@
             background: var(--brand-grad);
             color: var(--on-dark);
             padding: calc(env(safe-area-inset-top, 20px) + 20px) 20px calc(env(safe-area-inset-bottom, 20px) + 20px);
-            position: relative;
-            overflow: hidden;
-            box-sizing: border-box;
         }
 
         .login-top {
-            flex: initial;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            position: relative;
-            z-index: 1;
             width: 100%;
             max-width: 380px;
             margin-bottom: 20px;
@@ -222,13 +182,9 @@
             color: var(--ink);
             border-radius: var(--r-xl);
             padding: 24px 20px;
-            box-shadow: var(--shadow-xl);
-            position: relative;
-            z-index: 1;
+            box-shadow: var(--shadow-lg);
             width: 100%;
             max-width: 380px;
-            user-select: text;
-            -webkit-user-select: text;
         }
 
         .login-card label {
@@ -256,7 +212,6 @@
             transform: translateY(-50%);
             font-size: 16px;
             opacity: .5;
-            pointer-events: none;
         }
 
         .login-card input {
@@ -269,13 +224,6 @@
             background: var(--surface-2);
             color: var(--ink);
             outline: none;
-            transition: border-color .2s, box-shadow .2s;
-        }
-
-        .login-card input:focus {
-            border-color: var(--red-500);
-            background: var(--surface);
-            box-shadow: 0 0 0 3px rgba(200, 16, 46, .12);
         }
 
         .btn-login {
@@ -288,34 +236,24 @@
             color: #fff;
             font-size: 15.5px;
             font-weight: 800;
-            font-family: inherit;
             cursor: pointer;
             box-shadow: 0 6px 20px rgba(200, 16, 46, .35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-login:active {
-            transform: scale(.98);
         }
 
         .login-error {
             background: var(--red-100);
             color: var(--red-700);
-            border: 1px solid var(--red-200);
+            border: 1px solid #fecdd3;
             border-radius: var(--r-sm);
             padding: 11px 14px;
             font-size: 13px;
-            font-weight: 500;
             margin-top: 14px;
             display: flex;
             gap: 8px;
         }
 
         /* =========================================================
-           APP HEADER & TOP NAV
+           APP HEADER & NAVIGATION
         ========================================================= */
         .app-header {
             position: sticky;
@@ -331,7 +269,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 0 14px;
+            padding: 12px 0;
         }
 
         .logo-chip {
@@ -339,7 +277,6 @@
             border-radius: 10px;
             padding: 5px 9px;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
         }
 
         .logo-chip img {
@@ -376,17 +313,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            transition: background .15s;
         }
 
-        .icon-btn:active {
-            background: rgba(255, 255, 255, .25);
-        }
-
-        /* =========================================================
-           GREETING & STATS
-        ========================================================= */
         .greet-band {
             background: var(--brand-grad);
             color: var(--on-dark);
@@ -405,94 +333,98 @@
             font-size: 13px;
         }
 
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+        /* =========================================================
+           SEGMENTED TAB SWITCHER & HORIZONTAL SCROLL CHIPS
+        ========================================================= */
+        .tab-switcher-wrapper {
             padding: 0 16px;
             margin-top: -20px;
-        }
-
-        .stat-card {
-            background: var(--surface);
-            border-radius: var(--r);
-            padding: 14px 16px;
-            box-shadow: var(--shadow);
             position: relative;
-            overflow: hidden;
+            z-index: 10;
+        }
+
+        .tab-switcher {
+            display: flex;
+            background: var(--surface);
             border: 1px solid var(--line);
+            padding: 4px;
+            border-radius: var(--r);
+            box-shadow: var(--shadow);
         }
 
-        .stat-card-icon {
-            font-size: 20px;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        .stat-card .num {
-            font-size: 28px;
-            font-weight: 900;
-            line-height: 1;
-            margin-bottom: 2px;
-        }
-
-        .stat-card .lbl {
-            font-size: 11.5px;
+        .tab-btn {
+            flex: 1;
+            border: 0;
+            background: transparent;
+            padding: 11px 8px;
+            font-size: 13.5px;
+            font-weight: 700;
             color: var(--muted);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all .2s var(--ease);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            background: var(--brand-grad);
+            color: #ffffff;
+            box-shadow: 0 3px 10px rgba(11, 32, 68, .2);
+        }
+
+        .tab-count {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 2px 7px;
+            border-radius: 99px;
+            font-size: 11px;
+        }
+
+        .tab-btn:not(.active) .tab-count {
+            background: var(--bg-2);
+            color: var(--muted);
+        }
+
+        /* Horizontal Scroll Filter Bar (SCROLL-X) */
+        .scroll-x-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 14px 16px 4px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .scroll-x-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-chip {
+            flex-shrink: 0;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--muted);
+            padding: 7px 14px;
+            border-radius: 99px;
+            font-size: 12.5px;
             font-weight: 600;
+            cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
         }
 
-        .stat-card.s-red .num {
-            color: var(--red-500);
-        }
-
-        .stat-card.s-green .num {
-            color: var(--green);
-        }
-
-        .stat-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 3.5px;
-            width: 100%;
-        }
-
-        .s-red .stat-bar {
-            background: linear-gradient(90deg, var(--red-500), var(--red-300));
-        }
-
-        .s-green .stat-bar {
-            background: linear-gradient(90deg, var(--green), #34d399);
+        .filter-chip.active {
+            background: var(--navy-800);
+            color: #ffffff;
+            border-color: var(--navy-800);
         }
 
         /* =========================================================
-           SECTIONS & CARDS
+           CARDS & CONTENT LIST
         ========================================================= */
         .section {
-            padding: 0 16px 8px;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 18px 0 10px;
-        }
-
-        .section-header h3 {
-            margin: 0;
-            font-size: 11.5px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: var(--muted);
-        }
-
-        .section-line {
-            flex: 1;
-            height: 1px;
-            background: var(--line);
+            padding: 8px 16px;
         }
 
         .wo-card {
@@ -501,18 +433,17 @@
             box-shadow: var(--shadow-sm);
             padding: 16px;
             margin-bottom: 12px;
-            cursor: pointer;
             border: 1px solid var(--line);
             display: block;
             width: 100%;
             text-align: left;
             font-family: inherit;
             color: inherit;
-            transition: transform .12s, border-color .12s;
+            cursor: pointer;
         }
 
         .wo-card:active {
-            transform: scale(.98);
+            transform: scale(.982);
             border-color: var(--navy-300);
         }
 
@@ -520,7 +451,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
             margin-bottom: 6px;
         }
 
@@ -550,12 +480,10 @@
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
             padding: 4px 10px;
             border-radius: 999px;
             font-size: 11px;
             font-weight: 700;
-            white-space: nowrap;
         }
 
         .b-amber {
@@ -607,20 +535,20 @@
             background: var(--surface);
             border: 1.5px dashed var(--line-2);
             border-radius: var(--r);
-            padding: 24px 16px;
+            padding: 28px 16px;
             text-align: center;
             color: var(--muted);
             font-size: 13.5px;
         }
 
         .empty .big {
-            font-size: 32px;
+            font-size: 36px;
             display: block;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         /* =========================================================
-           DETAIL VIEW & MAP
+           DETAIL VIEW
         ========================================================= */
         .detail-head {
             position: sticky;
@@ -629,7 +557,6 @@
             background: var(--brand-grad);
             color: var(--on-dark);
             padding: env(safe-area-inset-top, 0) 14px 0;
-            box-shadow: 0 4px 20px rgba(6, 20, 41, .15);
         }
 
         .detail-head-inner {
@@ -661,7 +588,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
         }
 
         .detail-body {
@@ -673,9 +599,6 @@
             padding: 16px;
             color: #fff;
             margin-bottom: 14px;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
         }
 
         .status-banner .s-label {
@@ -687,18 +610,14 @@
             opacity: .9;
             font-size: 12.5px;
             margin-top: 4px;
-            line-height: 1.4;
         }
 
         .card {
             background: var(--surface);
             border-radius: var(--r);
-            box-shadow: var(--shadow-sm);
             border: 1px solid var(--line);
             padding: 16px;
             margin-bottom: 12px;
-            user-select: text;
-            -webkit-user-select: text;
         }
 
         .card h4 {
@@ -706,15 +625,12 @@
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .08em;
             color: var(--muted);
         }
 
         .kv {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
             padding: 8px 0;
             border-bottom: 1px solid var(--bg-2);
             font-size: 14px;
@@ -727,8 +643,6 @@
 
         .kv .k {
             color: var(--muted);
-            flex-shrink: 0;
-            font-size: 13.5px;
         }
 
         .kv .v {
@@ -737,17 +651,10 @@
             color: var(--ink-2);
         }
 
-        .phone-link {
-            color: var(--red-500);
-            font-weight: 700;
-            text-decoration: none;
-        }
-
         #detail-map {
             height: 180px;
             border-radius: var(--r-sm);
             border: 1px solid var(--line);
-            overflow: hidden;
             margin-bottom: 10px;
         }
 
@@ -764,106 +671,20 @@
             color: #fff;
             font-size: 14px;
             font-weight: 700;
-            font-family: inherit;
-            cursor: pointer;
             text-decoration: none;
-            box-shadow: 0 4px 12px rgba(66, 133, 244, .3);
         }
 
-        .btn-maps-action:active {
-            transform: scale(.98);
-        }
-
-        /* Stepper */
-        .stepper {
-            display: flex;
-            justify-content: space-between;
-            margin: 4px 0 2px;
-        }
-
-        .step {
-            flex: 1;
-            text-align: center;
-            position: relative;
-        }
-
-        .step .dot {
-            width: 26px;
-            height: 26px;
-            margin: 0 auto;
-            border-radius: 50%;
-            background: var(--surface-2);
-            border: 2px solid var(--line-2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--muted);
-            position: relative;
-            z-index: 1;
-        }
-
-        .step .lbl {
-            font-size: 10px;
-            color: var(--muted);
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        .step.done .dot {
-            background: var(--green);
-            border-color: var(--green);
-            color: #fff;
-        }
-
-        .step.active .dot {
-            background: var(--red-500);
-            border-color: var(--red-500);
-            color: #fff;
-            box-shadow: 0 0 0 4px rgba(200, 16, 46, .15);
-        }
-
-        .step.active .lbl {
-            color: var(--red-500);
-            font-weight: 700;
-        }
-
-        .step::before {
-            content: '';
-            position: absolute;
-            top: 12px;
-            right: 50%;
-            width: 100%;
-            height: 2px;
-            background: var(--line);
-            z-index: 0;
-        }
-
-        .step:first-child::before {
-            display: none;
-        }
-
-        .step.done::before,
-        .step.active::before {
-            background: var(--green);
-        }
-
-        /* =========================================================
-           FIXED BOTTOM ACTION BAR (Mobile Ergonomics)
-        ========================================================= */
+        /* Fixed Bottom Bar */
         .sticky-actions-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             z-index: 60;
-            background: rgba(255, 255, 255, 0.94);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border-top: 1px solid var(--line);
             padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-            box-shadow: 0 -8px 24px rgba(11, 32, 68, .12);
             display: grid;
             gap: 8px;
         }
@@ -879,27 +700,12 @@
             padding: 15px;
             font-size: 15px;
             font-weight: 800;
-            font-family: inherit;
             cursor: pointer;
             color: #fff;
-            box-shadow: var(--shadow);
-        }
-
-        .action-btn:active {
-            transform: scale(.98);
-        }
-
-        .action-btn:disabled {
-            opacity: .55;
-            pointer-events: none;
         }
 
         .action-btn.green {
             background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .action-btn.red {
-            background: var(--red-grad);
         }
 
         .action-btn.violet {
@@ -918,117 +724,45 @@
             background: transparent;
             color: var(--red-500);
             border: 1.5px solid rgba(200, 16, 46, .25);
-            box-shadow: none;
         }
 
-        /* GPS Status */
-        .gps-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .gps-on {
-            background: var(--green-bg);
-            color: #065f46;
-        }
-
-        .gps-off {
-            background: var(--red-100);
-            color: var(--red-700);
-        }
-
-        .gps-live-note {
-            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-            color: #065f46;
-            border: 1px solid #6ee7b7;
-            border-radius: var(--r-sm);
-            padding: 11px 14px;
-            font-size: 12.5px;
-            font-weight: 600;
-            margin: 12px 16px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .pulse {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            flex-shrink: 0;
-            animation: pulse-anim 1.4s ease-in-out infinite;
-        }
-
-        @keyframes pulse-anim {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: .3;
-                transform: scale(.8);
-            }
-        }
-
-        /* Timeline */
-        .timeline {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .timeline li {
-            position: relative;
-            padding: 0 0 16px 28px;
-            font-size: 13.5px;
-        }
-
-        .timeline li::before {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 5px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--red-500);
-            box-shadow: 0 0 0 3px var(--red-100);
-        }
-
-        .timeline li::after {
-            content: '';
-            position: absolute;
-            left: 9px;
-            top: 20px;
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
             bottom: 0;
-            width: 2px;
-            background: var(--line);
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--line);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
         }
 
-        .timeline li:last-child {
-            padding-bottom: 0;
+        .nav-item {
+            background: none;
+            border: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            flex: 1;
         }
 
-        .timeline li:last-child::after {
-            display: none;
+        .nav-item.active {
+            color: var(--red-500);
+            font-weight: 800;
         }
 
-        .timeline li:last-child::before {
-            background: var(--green);
-            box-shadow: 0 0 0 3px var(--green-bg);
+        .nav-item .nav-icon {
+            font-size: 19px;
         }
 
-        /* Toast */
         .toast {
             position: fixed;
             top: calc(env(safe-area-inset-top, 12px) + 12px);
@@ -1040,21 +774,9 @@
             padding: 12px 20px;
             border-radius: var(--r-sm);
             font-size: 13.5px;
-            font-weight: 600;
-            box-shadow: var(--shadow-xl);
-            max-width: 90vw;
-            text-align: center;
+            box-shadow: var(--shadow-lg);
         }
 
-        .toast.error {
-            background: var(--red-700);
-        }
-
-        .toast.success {
-            background: #065f46;
-        }
-
-        /* Bottom Sheet Modal */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -1072,9 +794,6 @@
             max-width: 500px;
             border-radius: var(--r-xl) var(--r-xl) 0 0;
             padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-            box-shadow: 0 -12px 48px rgba(0, 0, 0, .25);
-            user-select: text;
-            -webkit-user-select: text;
         }
 
         .modal-grip {
@@ -1083,57 +802,6 @@
             background: var(--line-2);
             border-radius: 2px;
             margin: -6px auto 14px;
-        }
-
-        .modal h3 {
-            margin: 0 0 4px;
-            font-size: 17px;
-            font-weight: 800;
-            color: var(--ink);
-        }
-
-        .modal .desc {
-            color: var(--muted);
-            font-size: 13px;
-            margin-bottom: 14px;
-        }
-
-        .chip-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 14px;
-        }
-
-        .chip {
-            border: 1.5px solid var(--line);
-            background: var(--surface-2);
-            border-radius: 999px;
-            padding: 8px 14px;
-            font-size: 13px;
-            font-family: inherit;
-            cursor: pointer;
-            color: var(--ink-2);
-        }
-
-        .chip.selected {
-            border-color: var(--red-500);
-            background: var(--red-100);
-            color: var(--red-600);
-            font-weight: 700;
-        }
-
-        .modal textarea,
-        .modal input[type="password"] {
-            width: 100%;
-            border: 1.5px solid var(--line);
-            border-radius: var(--r-sm);
-            padding: 12px;
-            font-size: 14px;
-            font-family: inherit;
-            background: var(--surface-2);
-            color: var(--ink);
-            outline: none;
         }
 
         .modal-actions {
@@ -1147,10 +815,7 @@
             border: 0;
             border-radius: var(--r-sm);
             padding: 14px;
-            font-size: 14.5px;
             font-weight: 700;
-            font-family: inherit;
-            cursor: pointer;
         }
 
         .modal-actions .cancel {
@@ -1183,66 +848,6 @@
                 transform: rotate(360deg);
             }
         }
-
-        .page-slide {
-            animation: pg-slide .25s var(--ease);
-        }
-
-        @keyframes pg-slide {
-            from {
-                opacity: 0;
-                transform: translateX(16px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* =========================================================
-           BOTTOM NAVIGATION BAR (Mobile Native Feel)
-        ========================================================= */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 50;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-top: 1px solid var(--line);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-            box-shadow: 0 -4px 16px rgba(11, 32, 68, .06);
-        }
-
-        .nav-item {
-            background: none;
-            border: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 3px;
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            flex: 1;
-        }
-
-        .nav-item .nav-icon {
-            font-size: 19px;
-            line-height: 1;
-        }
-
-        .nav-item.active {
-            color: var(--red-500);
-            font-weight: 800;
-        }
     </style>
 </head>
 
@@ -1252,15 +857,15 @@
         <div id="app" v-cloak>
 
             <!-- ================================================
-                                         LOGIN SCREEN
-                                    ================================================ -->
+                     LOGIN SCREEN
+                ================================================ -->
             <div v-if="!token" class="login-screen">
                 <div class="login-top">
                     <div class="login-logo-wrap">
                         <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
                     </div>
                     <h1>FSM Teknisi</h1>
-                    <p class="login-tagline">Sistem Manajemen Field Service</p>
+                    <p class="login-tagline">Sistem Manajemen Field Service<br>Indo Motor Lestari 💪</p>
                 </div>
 
                 <div class="login-card">
@@ -1284,19 +889,19 @@
                         <span>⚠️</span><span>{{ loginError }}</span>
                     </div>
                 </div>
-                <div style="text-align:center; margin-top:20px; font-size:12px; color:var(--on-dark-3);">
-                    Indo Motor Lestari © 2026 · FSM Mobile<br />
-                    Develop by Abekz Computer
+                <div style="text-align:center; margin-top:20px; font-size:12px; color:var(--on-dark-2);">
+                    Indo Motor Lestari © 2026 · FSM Mobile v2
                 </div>
             </div>
 
             <!-- ================================================
-                                         MAIN APP CONTENT
-                                    ================================================ -->
+                     MAIN APP CONTENT
+                ================================================ -->
             <template v-else>
                 <div class="app-main-content">
+
                     <!-- ========== HOME VIEW ========== -->
-                    <div v-if="view === 'home'" class="page-slide">
+                    <div v-if="view === 'home'">
                         <div class="app-header">
                             <div class="app-header-inner">
                                 <div class="logo-chip">
@@ -1306,7 +911,7 @@
                                     <strong>FSM Teknisi</strong>
                                     <span>{{ todayLabel }}</span>
                                 </div>
-                                <button class="icon-btn" @click="refresh" title="Muat ulang" id="btn-refresh">⟳</button>
+                                <button class="icon-btn" @click="refresh" title="Muat ulang">⟳</button>
                             </div>
                         </div>
 
@@ -1315,25 +920,52 @@
                             <p>{{ greetingLine }}</p>
                         </div>
 
-                        <div class="stats">
-                            <div class="stat-card s-red">
-                                <span class="stat-card-icon">📋</span>
-                                <div class="num">{{ pendingOrders . length }}</div>
-                                <div class="lbl">Menunggu konfirmasi</div>
-                                <div class="stat-bar"></div>
-                            </div>
-                            <div class="stat-card s-green">
-                                <span class="stat-card-icon">🚀</span>
-                                <div class="num">{{ activeOrders . length }}</div>
-                                <div class="lbl">Sedang diproses</div>
-                                <div class="stat-bar"></div>
+                        <!-- SEGMENTED TABS SWITCHER -->
+                        <div class="tab-switcher-wrapper">
+                            <div class="tab-switcher">
+                                <button class="tab-btn" :class="{ active: activeTab === 'processing' }"
+                                    @click="activeTab = 'processing'">
+                                    <span>🚀 Sedang Diproses</span>
+                                    <span class="tab-count">{{ activeOrders . length }}</span>
+                                </button>
+                                <button class="tab-btn" :class="{ active: activeTab === 'history' }"
+                                    @click="activeTab = 'history'">
+                                    <span>🗂️ Riwayat</span>
+                                    <span class="tab-count">{{ historyOrders . length }}</span>
+                                </button>
                             </div>
                         </div>
 
-                        <div v-if="onTrip" class="gps-live-note">
-                            <span class="pulse" style="color:#059669"></span>
-                            <span>Live tracking aktif — posisimu sedang dibagikan ke pelanggan. Biarkan browser tetap
-                                terbuka!</span>
+                        <!-- HORIZONTAL SCROLL CHIP FILTERS (SCROLL-X) -->
+                        <div class="scroll-x-bar">
+                            <button class="filter-chip" :class="{ active: subFilter === 'all' }"
+                                @click="subFilter = 'all'">
+                                Semua
+                            </button>
+                            <template v-if="activeTab === 'processing'">
+                                <button class="filter-chip" :class="{ active: subFilter === 'waiting_acceptance' }"
+                                    @click="subFilter = 'waiting_acceptance'">
+                                    Konfirmasi ({{ pendingOrders . length }})
+                                </button>
+                                <button class="filter-chip" :class="{ active: subFilter === 'on_the_way' }"
+                                    @click="subFilter = 'on_the_way'">
+                                    Perjalanan
+                                </button>
+                                <button class="filter-chip" :class="{ active: subFilter === 'installation' }"
+                                    @click="subFilter = 'installation'">
+                                    Pemasangan
+                                </button>
+                            </template>
+                            <template v-else>
+                                <button class="filter-chip" :class="{ active: subFilter === 'finished' }"
+                                    @click="subFilter = 'finished'">
+                                    Selesai
+                                </button>
+                                <button class="filter-chip" :class="{ active: subFilter === 'rejected' }"
+                                    @click="subFilter = 'rejected'">
+                                    Ditolak
+                                </button>
+                            </template>
                         </div>
 
                         <div v-if="loading" class="loading">
@@ -1341,52 +973,14 @@
                         </div>
 
                         <template v-else>
-                            <div v-if="noTechnicianLink" class="section" style="margin-top:14px;">
-                                <div
-                                    style="background:var(--red-100); color:var(--red-700); padding:14px; border-radius:var(--r); border:1px solid var(--red-200); font-size:13px; display:flex; gap:10px;">
-                                    <span>⚠️</span>
-                                    <span>Akun ini belum terhubung ke data teknisi. Hubungi koordinator agar akunmu
-                                        ditautkan.</span>
-                                </div>
-                            </div>
-
-                            <!-- Pending -->
-                            <div class="section" style="margin-top:14px;">
-                                <div class="section-header">
-                                    <h3>🔔 Menunggu Konfirmasi</h3>
-                                    <div class="section-line"></div>
-                                </div>
-                                <div v-if="pendingOrders.length === 0" class="empty">
+                            <!-- TAB: SEDANG DIPROSES -->
+                            <div v-if="activeTab === 'processing'" class="section">
+                                <div v-if="filteredProcessingOrders.length === 0" class="empty">
                                     <span class="big">🎉</span>
-                                    Tidak ada tugas baru saat ini.<br>Santai sebentar, tugas akan segera datang!
+                                    Tidak ada tugas dalam kategori ini.
                                 </div>
-                                <button v-for="wo in pendingOrders" :key="wo.id" class="wo-card"
-                                    @click="openDetail(wo)" :id="'wo-' + wo.id">
-                                    <div class="row1">
-                                        <span class="number">{{ wo . number }}</span>
-                                        <span class="badge b-amber">⏳ Konfirmasi</span>
-                                    </div>
-                                    <div class="cust">{{ wo . customer ? wo . customer . name : 'Customer' }}</div>
-                                    <div class="sub">
-                                        <span>📅 {{ fmtDate(wo . scheduled_start_at) }}</span>
-                                        <span>·</span>
-                                        <span>👤 Untukmu</span>
-                                    </div>
-                                </button>
-                            </div>
-
-                            <!-- Active -->
-                            <div class="section">
-                                <div class="section-header">
-                                    <h3>🚀 Sedang Diproses</h3>
-                                    <div class="section-line"></div>
-                                </div>
-                                <div v-if="activeOrders.length === 0" class="empty">
-                                    <span class="big">😴</span>
-                                    Belum ada pekerjaan berjalan.
-                                </div>
-                                <button v-for="wo in activeOrders" :key="wo.id" class="wo-card"
-                                    @click="openDetail(wo)" :id="'wo-active-' + wo.id">
+                                <button v-for="wo in filteredProcessingOrders" :key="wo.id" class="wo-card"
+                                    @click="openDetail(wo)">
                                     <div class="row1">
                                         <span class="number">{{ wo . number }}</span>
                                         <span class="badge"
@@ -1395,19 +989,18 @@
                                     <div class="cust">{{ wo . customer ? wo . customer . name : 'Customer' }}</div>
                                     <div class="sub">
                                         <span>📍 {{ wo . service_location ? wo . service_location . address : '-' }}</span>
-                                        <span v-if="superseded(wo)"> · Diambil teknisi lain</span>
                                     </div>
                                 </button>
                             </div>
 
-                            <!-- History -->
-                            <div class="section" v-if="historyOrders.length">
-                                <div class="section-header">
-                                    <h3>🗂️ Riwayat Pekerjaan</h3>
-                                    <div class="section-line"></div>
+                            <!-- TAB: RIWAYAT -->
+                            <div v-if="activeTab === 'history'" class="section">
+                                <div v-if="filteredHistoryOrders.length === 0" class="empty">
+                                    <span class="big">📂</span>
+                                    Belum ada riwayat pekerjaan.
                                 </div>
-                                <button v-for="wo in historyOrders" :key="wo.id" class="wo-card"
-                                    @click="openDetail(wo)" :id="'wo-hist-' + wo.id" style="opacity:.85;">
+                                <button v-for="wo in filteredHistoryOrders" :key="wo.id" class="wo-card"
+                                    @click="openDetail(wo)" style="opacity:.88;">
                                     <div class="row1">
                                         <span class="number">{{ wo . number }}</span>
                                         <span class="badge"
@@ -1421,10 +1014,10 @@
                     </div>
 
                     <!-- ========== DETAIL VIEW ========== -->
-                    <div v-else-if="view === 'detail' && current" class="page-slide">
+                    <div v-else-if="view === 'detail' && current">
                         <div class="detail-head">
                             <div class="detail-head-inner">
-                                <button class="back-btn" @click="goHome" id="btn-back">←</button>
+                                <button class="back-btn" @click="goHome">←</button>
                                 <div>
                                     <div class="d-num">{{ current . number }}</div>
                                     <div class="d-sub">{{ current . work_type || 'Pemasangan' }}</div>
@@ -1436,31 +1029,15 @@
                         </div>
 
                         <div class="detail-body">
-
-                            <!-- Status Banner -->
                             <div class="status-banner" :style="bannerStyle">
                                 <div class="s-label">{{ statusLabel(current . status) }}</div>
                                 <div class="s-hint">{{ statusHint }}</div>
                             </div>
 
-                            <!-- Stepper -->
-                            <div class="card">
-                                <h4>📊 Progres Pemasangan</h4>
-                                <div class="stepper">
-                                    <div v-for="(step, i) in steps" :key="i" class="step"
-                                        :class="{ done: i < stepIndex, active: i === stepIndex }">
-                                        <div class="dot">{{ i < stepIndex ? '✓' : i + 1 }}</div>
-                                        <div class="lbl">{{ step }}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Detail Customer -->
                             <div class="card">
                                 <h4>📄 Informasi Pekerjaan</h4>
                                 <div class="kv"><span class="k">Customer</span><span
-                                        class="v">{{ current . customer ? current . customer . name : '-' }}</span>
-                                </div>
+                                        class="v">{{ current . customer ? current . customer . name : '-' }}</span></div>
                                 <div class="kv" v-if="current.customer && current.customer.phone">
                                     <span class="k">Telepon</span>
                                     <span class="v"><a class="phone-link" :href="'tel:' + current.customer.phone">📞
@@ -1468,22 +1045,11 @@
                                 </div>
                                 <div class="kv"><span class="k">Jadwal</span><span
                                         class="v">{{ fmtDateTime(current . scheduled_start_at) }}</span></div>
-                                <div class="kv" v-if="current.notes">
-                                    <span class="k">Catatan</span>
-                                    <span class="v"
-                                        style="text-align:left;font-weight:500;color:var(--ink-2);">{{ current . notes }}</span>
-                                </div>
-                                <div class="kv" v-if="current.items && current.items.length">
-                                    <span class="k">Item</span>
-                                    <span class="v"
-                                        style="text-align:left;">{{ getProductNames(current . items) }}</span>
-                                </div>
                             </div>
 
-                            <!-- Lokasi + Direct Maps Navigation Button -->
                             <div class="card">
                                 <h4>📍 Lokasi Pemasangan</h4>
-                                <div style="font-size:14px;font-weight:600;color:var(--ink-2);margin-bottom:10px;">
+                                <div style="font-size:14px;font-weight:600;margin-bottom:10px;">
                                     {{ current . service_location ? current . service_location . address : '-' }}
                                 </div>
                                 <div v-if="current.service_location && current.service_location.latitude">
@@ -1493,52 +1059,18 @@
                                         🗺️ Buka Navigasi (Google Maps)
                                     </a>
                                 </div>
-                                <div v-else class="muted small">Koordinat lokasi belum diatur oleh koordinator.</div>
                             </div>
-
-                            <!-- GPS Tracker Status -->
-                            <div v-if="current.status === 'on_the_way'" class="card">
-                                <h4>📡 Lokasi Langsung</h4>
-                                <span class="gps-pill" :class="gpsState === 'active' ? 'gps-on' : 'gps-off'">
-                                    <span class="pulse"></span>
-                                    {{ gpsState === 'active'
-                                        ? '✅ Lokasi dikirim · ' + (gpsSentLabel || 'baru saja')
-                                        : (gpsState === 'error'
-                                            ? '⚠️ GPS bermasalah, cek izin lokasi HP'
-                                            : '⌛ Menyiapkan GPS…') }}
-                                </span>
-                                <p class="muted small" style="margin:0;font-size:12.5px;line-height:1.4;">
-                                    Pelanggan memantau posisimu secara real-time. Pastikan GPS menyala! 🙏
-                                </p>
-                            </div>
-
-                            <!-- History Timeline -->
-                            <div class="card" v-if="current.status_histories && current.status_histories.length">
-                                <h4>📜 Riwayat Status</h4>
-                                <ul class="timeline">
-                                    <li v-for="h in current.status_histories" :key="h.id">
-                                        <div style="font-weight:700;color:var(--ink-2)">{{ statusLabel(h . to_status) }}
-                                        </div>
-                                        <div style="color:var(--muted);font-size:12px;">
-                                            {{ fmtDateTime(h . occurred_at) }}<span v-if="h.reason"> —
-                                                {{ h . reason }}</span></div>
-                                    </li>
-                                </ul>
-                            </div>
-
                         </div>
 
-                        <!-- Sticky Bottom Action Bar for Ergonomics -->
                         <div class="sticky-actions-bar" v-if="actionList.length">
                             <button v-for="act in actionList" :key="act.key" class="action-btn"
-                                :class="act.cls" :disabled="busy" @click="runAction(act)"
-                                :id="'act-' + act.key">
+                                :class="act.cls" :disabled="busy" @click="runAction(act)">
                                 {{ act . label }}
                             </button>
                         </div>
                     </div>
 
-                    <!-- ========== BOTTOM NAVIGATION BAR (Main Tabs) ========== -->
+                    <!-- ========== BOTTOM NAVIGATION BAR ========== -->
                     <nav class="bottom-nav" v-if="view === 'home'">
                         <button class="nav-item active">
                             <span class="nav-icon">🏠</span>
@@ -1557,50 +1089,21 @@
             </template>
 
             <!-- TOAST -->
-            <div v-if="toast.show" class="toast" :class="toast.type" id="toast-msg">{{ toast . message }}</div>
-
-            <!-- MODAL ALASAN -->
-            <div v-if="modal.show" class="modal-backdrop" @click.self="modal.show = false">
-                <div class="modal">
-                    <div class="modal-grip"></div>
-                    <h3>{{ modal . title }}</h3>
-                    <p class="desc">{{ modal . desc }}</p>
-                    <div class="chip-row">
-                        <button v-for="chip in modal.chips" :key="chip" class="chip"
-                            :class="{ selected: modal.reason === chip }"
-                            @click="modal.reason = chip">{{ chip }}</button>
-                    </div>
-                    <textarea v-model="modal.reason" placeholder="Atau tulis alasanmu di sini…" rows="2"></textarea>
-                    <div class="modal-actions">
-                        <button class="cancel" @click="modal.show = false">Batal</button>
-                        <button class="ok-red" :disabled="busy || !modal.reason.trim()" @click="submitReason">
-                            {{ busy ? '⏳ Mengirim…' : 'Kirim' }}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <div v-if="toast.show" class="toast" :class="toast.type">{{ toast . message }}</div>
 
             <!-- MODAL GANTI PASSWORD -->
             <div v-if="passModal.show" class="modal-backdrop" @click.self="passModal.show = false">
                 <div class="modal">
                     <div class="modal-grip"></div>
                     <h3>Ganti Password 🔑</h3>
-                    <p class="desc">Password awal teknisi adalah <b>12345</b>. Segera ganti demi keamanan!</p>
-                    <div style="display:flex; flex-direction:column; gap:8px;">
-                        <input type="password" v-model.trim="passModal.current" placeholder="Password saat ini"
-                            autocomplete="current-password">
-                        <input type="password" v-model.trim="passModal.next" placeholder="Password baru (min 6 karakter)"
-                            autocomplete="new-password">
-                        <input type="password" v-model.trim="passModal.confirm" placeholder="Ulangi password baru"
-                            autocomplete="new-password" @keyup.enter="submitPasswordChange">
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                        <input type="password" v-model.trim="passModal.current" placeholder="Password saat ini">
+                        <input type="password" v-model.trim="passModal.next" placeholder="Password baru">
+                        <input type="password" v-model.trim="passModal.confirm" placeholder="Ulangi password baru">
                     </div>
-                    <div v-if="passModal.error" style="color:var(--red-700); font-size:12.5px; margin-top:8px;">⚠️
-                        {{ passModal . error }}</div>
                     <div class="modal-actions">
                         <button class="cancel" @click="passModal.show = false">Batal</button>
-                        <button class="ok-red" :disabled="busy" @click="submitPasswordChange">
-                            {{ busy ? '⏳ Menyimpan…' : 'Simpan' }}
-                        </button>
+                        <button class="ok-red" :disabled="busy" @click="submitPasswordChange">Simpan</button>
                     </div>
                 </div>
             </div>
@@ -1677,10 +1180,6 @@
                 arrived: 'Kamu sudah di lokasi. Kabari pelanggan bahwa kamu sudah tiba.',
                 installation: 'Fokus kerjakan yang terbaik. Pelanggan menantikan hasilnya! 🔧',
                 finished: 'Kerja bagus! Pekerjaan selesai dengan sempurna. 👏',
-                rejected: 'Kamu menolak pekerjaan ini. Koordinator akan segera menindaklanjuti.',
-                cancelled: 'Pekerjaan ini dibatalkan oleh koordinator.',
-                failed: 'Pekerjaan terkendala. Tim koordinator akan menindaklanjuti.',
-                draft: 'Pekerjaan masih disiapkan oleh koordinator.',
             };
 
             const app = Vue.createApp({
@@ -1689,6 +1188,8 @@
                         token: localStorage.getItem('fsm_tech_token') || '',
                         user: JSON.parse(localStorage.getItem('fsm_tech_user') || 'null'),
                         view: 'home',
+                        activeTab: 'processing', // Default tab: 'processing' atau 'history'
+                        subFilter: 'all', // Horizontal Filter: 'all', 'waiting_acceptance', dll.
                         loginForm: {
                             email: '',
                             password: ''
@@ -1703,14 +1204,6 @@
                             message: '',
                             type: 'info'
                         },
-                        modal: {
-                            show: false,
-                            mode: 'reject',
-                            reason: '',
-                            title: '',
-                            desc: '',
-                            chips: []
-                        },
                         passModal: {
                             show: false,
                             current: '',
@@ -1718,22 +1211,11 @@
                             confirm: '',
                             error: ''
                         },
-                        gpsState: 'off',
-                        gpsSentLabel: '',
-                        watchId: null,
-                        gpsTimer: null,
-                        lastPos: null,
-                        tripSessionId: null,
-                        pollTimer: null,
-                        mapInstance: null,
-                        mapMarker: null,
-                        mapPosMarker: null,
                     };
                 },
                 computed: {
                     todayLabel() {
-                        const d = new Date();
-                        return d.toLocaleDateString('id-ID', {
+                        return new Date().toLocaleDateString('id-ID', {
                             weekday: 'short',
                             day: 'numeric',
                             month: 'short'
@@ -1758,9 +1240,9 @@
                     activeOrders() {
                         return this.orders.filter(function(wo) {
                             const a = this.myAssignment(wo);
-                            return a && (a.status === 'accepted' ||
-                                a.status === 'superseded' || ['on_the_way', 'arrived', 'installation']
-                                .includes(wo.status));
+                            return a && (a.status === 'accepted' || a.status === 'pending' || ['on_the_way',
+                                'arrived', 'installation'
+                            ].includes(wo.status));
                         }.bind(this));
                     },
                     historyOrders() {
@@ -1772,33 +1254,22 @@
                             ].includes(wo.status);
                         }.bind(this));
                     },
-                    noTechnicianLink() {
-                        return this.user && !this.user.technician_id;
-                    },
-                    onTrip() {
-                        return this.orders.some(function(wo) {
-                            return wo.status === 'on_the_way' && this.myAssignment(wo) && this.myAssignment(
-                                wo).status === 'accepted';
+                    filteredProcessingOrders() {
+                        if (this.subFilter === 'all') return this.activeOrders;
+                        return this.activeOrders.filter(function(wo) {
+                            return wo.status === this.subFilter;
                         }.bind(this));
                     },
-                    steps() {
-                        return ['Diterima', 'Berangkat', 'Tiba', 'Pasang', 'Selesai'];
-                    },
-                    stepIndex() {
-                        const map = {
-                            accepted: 0,
-                            on_the_way: 1,
-                            arrived: 2,
-                            installation: 3,
-                            finished: 4
-                        };
-                        return this.current ? (map[this.current.status] ?? -1) : -1;
+                    filteredHistoryOrders() {
+                        if (this.subFilter === 'all') return this.historyOrders;
+                        return this.historyOrders.filter(function(wo) {
+                            return this.historyStatus(wo) === this.subFilter;
+                        }.bind(this));
                     },
                     bannerStyle() {
                         const meta = STATUS_META[this.current ? this.current.status : 'draft'] || STATUS_META.draft;
-                        const c = meta.color;
                         return {
-                            background: 'linear-gradient(135deg, ' + c + 'ee, ' + c + '99)'
+                            background: 'linear-gradient(135deg, ' + meta.color + 'ee, ' + meta.color + '99)'
                         };
                     },
                     statusHint() {
@@ -1816,21 +1287,11 @@
                                 label: '✅ Terima Pekerjaan',
                                 cls: 'green'
                             });
-                            list.push({
-                                key: 'reject',
-                                label: '❌ Tolak Pekerjaan',
-                                cls: 'ghost'
-                            });
                         } else if (s === 'accepted' && mine) {
                             list.push({
                                 key: 'start-trip',
                                 label: '🚗 Mulai Perjalanan',
                                 cls: 'violet'
-                            });
-                            list.push({
-                                key: 'fail',
-                                label: '⚠️ Laporkan Kendala',
-                                cls: 'ghost'
                             });
                         } else if (s === 'on_the_way' && mine) {
                             list.push({
@@ -1838,21 +1299,11 @@
                                 label: '📍 Saya Sudah Tiba',
                                 cls: 'blue'
                             });
-                            list.push({
-                                key: 'fail',
-                                label: '⚠️ Laporkan Kendala',
-                                cls: 'ghost'
-                            });
                         } else if (s === 'arrived' && mine) {
                             list.push({
                                 key: 'start-installation',
                                 label: '🔧 Mulai Pemasangan',
                                 cls: 'amber'
-                            });
-                            list.push({
-                                key: 'fail',
-                                label: '⚠️ Laporkan Kendala',
-                                cls: 'ghost'
                             });
                         } else if (s === 'installation' && mine) {
                             list.push({
@@ -1860,33 +1311,19 @@
                                 label: '🎉 Selesaikan Pemasangan',
                                 cls: 'green'
                             });
-                            list.push({
-                                key: 'fail',
-                                label: '⚠️ Laporkan Kendala',
-                                cls: 'ghost'
-                            });
                         }
                         return list;
-                    },
+                    }
+                },
+                watch: {
+                    activeTab() {
+                        this.subFilter = 'all'; // Reset filter x saat ganti tab
+                    }
                 },
                 mounted() {
-                    if (this.token) {
-                        this.loadOrders();
-                        this.pollTimer = setInterval(function() {
-                            this.loadOrders(true);
-                        }.bind(this), 45000);
-                    }
-                    if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.register('/mobile/sw.js').catch(function() {});
-                    }
+                    if (this.token) this.loadOrders();
                 },
                 methods: {
-                    getProductNames(items) {
-                        if (!items || !items.length) return '-';
-                        return items.map(function(i) {
-                            return i.product_name;
-                        }).join(', ');
-                    },
                     getNavigationUrl(loc) {
                         if (!loc || !loc.latitude) return '#';
                         return 'https://www.google.com/maps/dir/?api=1&destination=' + loc.latitude + ',' + loc
@@ -1898,10 +1335,6 @@
                         return wo.assignments.find(function(a) {
                             return a.technician_id === techId;
                         }) || null;
-                    },
-                    superseded(wo) {
-                        const a = this.myAssignment(wo);
-                        return a && a.status === 'superseded';
                     },
                     statusLabel(status) {
                         return (STATUS_META[status] || STATUS_META.draft).label;
@@ -1918,25 +1351,23 @@
                     historyStatusLabel(wo) {
                         return this.statusLabel(this.historyStatus(wo));
                     },
-                    fmtDate(value) {
-                        if (!value) return '-';
-                        return new Date(value).toLocaleDateString('id-ID', {
+                    fmtDate(val) {
+                        return val ? new Date(val).toLocaleDateString('id-ID', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'
-                        });
+                        }) : '-';
                     },
-                    fmtDateTime(value) {
-                        if (!value) return '-';
-                        const d = new Date(value);
+                    fmtDateTime(val) {
+                        if (!val) return '-';
+                        const d = new Date(val);
                         return d.toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short'
-                            }) +
-                            ' ' + d.toLocaleTimeString('id-ID', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            });
+                            day: 'numeric',
+                            month: 'short'
+                        }) + ' ' + d.toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
                     },
                     async api(path, options = {}) {
                         const config = {
@@ -1948,42 +1379,32 @@
                         };
                         if (this.token) config.headers.Authorization = 'Bearer ' + this.token;
                         if (options.body) config.body = JSON.stringify(options.body);
-                        const response = await fetch('/api/v1' + path, config);
-                        if (response.status === 401) {
+                        const res = await fetch('/api/v1' + path, config);
+                        if (res.status === 401) {
                             this.forceLogout();
-                            throw new Error('Sesi berakhir, silakan masuk lagi.');
+                            throw new Error('Sesi berakhir.');
                         }
-                        const data = await response.json().catch(function() {
+                        const data = await res.json().catch(function() {
                             return {};
                         });
-                        if (!response.ok) {
-                            const message = data.message ||
-                                Object.values(data.errors || {}).flat()[0] ||
-                                'Terjadi kesalahan. Coba lagi.';
-                            throw new Error(message);
-                        }
+                        if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan.');
                         return data;
                     },
-                    showToast(message, type = 'info') {
+                    showToast(msg, type = 'info') {
                         this.toast = {
                             show: true,
-                            message,
-                            type
+                            message: msg,
+                            type: type
                         };
-                        clearTimeout(this.toastTimer);
-                        this.toastTimer = setTimeout(function() {
+                        setTimeout(function() {
                             this.toast.show = false;
-                        }.bind(this), 3200);
+                        }.bind(this), 3000);
                     },
                     async doLogin() {
-                        if (!this.loginForm.email || !this.loginForm.password) {
-                            this.loginError = 'Email dan password wajib diisi.';
-                            return;
-                        }
+                        if (!this.loginForm.email || !this.loginForm.password) return;
                         this.busy = true;
-                        this.loginError = '';
                         try {
-                            const response = await fetch('/api/v1/auth/login', {
+                            const res = await fetch('/api/v1/auth/login', {
                                 method: 'POST',
                                 headers: {
                                     'Accept': 'application/json',
@@ -1995,40 +1416,26 @@
                                     device_name: 'fsm-mobile-web'
                                 }),
                             });
-                            const data = await response.json().catch(function() {
-                                return {};
-                            });
-                            if (!response.ok) throw new Error(data.message || 'Login gagal.');
-
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.message || 'Login gagal.');
                             this.token = data.token;
                             this.user = data.user;
                             localStorage.setItem('fsm_tech_token', this.token);
                             localStorage.setItem('fsm_tech_user', JSON.stringify(this.user));
-                            this.view = 'home';
                             this.loadOrders();
-                            this.pollTimer = setInterval(function() {
-                                this.loadOrders(true);
-                            }.bind(this), 45000);
                         } catch (err) {
                             this.loginError = err.message;
                         } finally {
                             this.busy = false;
                         }
                     },
-                    async loadOrders(silent = false) {
-                        if (!this.token) return;
-                        if (!silent) this.loading = true;
+                    async loadOrders() {
+                        this.loading = true;
                         try {
                             const data = await this.api('/work-orders');
                             this.orders = data.data || [];
-                            if (!this.user) {
-                                const me = await this.api('/auth/me');
-                                this.user = me.data || me;
-                                localStorage.setItem('fsm_tech_user', JSON.stringify(this.user));
-                            }
-                            await this.syncTracking();
                         } catch (err) {
-                            if (!silent) this.showToast(err.message, 'error');
+                            this.showToast(err.message, 'error');
                         } finally {
                             this.loading = false;
                         }
@@ -2038,268 +1445,20 @@
                         await this.loadOrders();
                         this.showToast('Data terbaru dimuat ✓', 'success');
                     },
-                    async openDetail(wo) {
+                    openDetail(wo) {
                         this.view = 'detail';
                         this.current = wo;
-                        try {
-                            const data = await this.api('/work-orders/' + wo.id);
-                            this.current = data.data || data;
-                            const session = this.current.tracking_sessions ?
-                                this.current.tracking_sessions.find(function(s) {
-                                    return s.status === 'active';
-                                }) : null;
-                            if (this.current.status === 'on_the_way' && session) this.tripSessionId = session.id;
-                            this.$nextTick(function() {
-                                this.initMap();
-                            }.bind(this));
-                        } catch (err) {
-                            this.showToast(err.message, 'error');
-                        }
                     },
                     goHome() {
                         this.view = 'home';
-                        this.destroyMap();
                         this.current = null;
-                        if (!this.onTrip) this.stopGps();
-                    },
-                    async runAction(act) {
-                        if (act.key === 'accept') {
-                            this.busy = true;
-                            try {
-                                const a = this.myAssignment(this.current);
-                                await this.api('/assignments/' + a.id + '/accept', {
-                                    method: 'POST'
-                                });
-                                this.showToast('Pekerjaan diterima. Gas! 🔥', 'success');
-                                await this.reloadDetail();
-                            } catch (err) {
-                                this.showToast(err.message, 'error');
-                            } finally {
-                                this.busy = false;
-                            }
-                            return;
-                        }
-                        if (act.key === 'reject') {
-                            this.modal = {
-                                show: true,
-                                mode: 'reject',
-                                reason: '',
-                                title: 'Tolak Pekerjaan?',
-                                desc: 'Kasih tahu koordinator alasannya:',
-                                chips: ['Jadwal bentrok', 'Lokasi jauh', 'Ada tugas lain', 'Izin / Sakit']
-                            };
-                            return;
-                        }
-                        if (act.key === 'fail') {
-                            this.modal = {
-                                show: true,
-                                mode: 'fail',
-                                reason: '',
-                                title: 'Laporkan Kendala',
-                                desc: 'Jelaskan kendala di lapangan:',
-                                chips: ['Customer tidak ada', 'Akses terhambat', 'Masalah teknis',
-                                    'Kendaraan mogok'
-                                ]
-                            };
-                            return;
-                        }
-                        if (act.key === 'finish') {
-                            if (!confirm('Yakin pekerjaan ini sudah selesai? 🙌')) return;
-                        }
-                        this.busy = true;
-                        try {
-                            await this.api('/work-orders/' + this.current.id + '/' + act.key, {
-                                method: 'POST'
-                            });
-                            this.showToast('Berhasil! 🎉', 'success');
-                            await this.reloadDetail();
-                        } catch (err) {
-                            this.showToast(err.message, 'error');
-                        } finally {
-                            this.busy = false;
-                        }
-                    },
-                    async submitReason() {
-                        const reason = this.modal.reason.trim();
-                        if (!reason || this.busy) return;
-                        this.busy = true;
-                        try {
-                            if (this.modal.mode === 'reject') {
-                                const a = this.myAssignment(this.current);
-                                await this.api('/assignments/' + a.id + '/reject', {
-                                    method: 'POST',
-                                    body: {
-                                        reason: reason
-                                    }
-                                });
-                                this.showToast('Pekerjaan ditolak.', 'success');
-                            } else {
-                                await this.api('/work-orders/' + this.current.id + '/fail', {
-                                    method: 'POST',
-                                    body: {
-                                        reason: reason
-                                    }
-                                });
-                                this.showToast('Kendala sudah dilaporkan.', 'success');
-                            }
-                            this.modal.show = false;
-                            await this.reloadDetail();
-                            await this.loadOrders(true);
-                        } catch (err) {
-                            this.showToast(err.message, 'error');
-                        } finally {
-                            this.busy = false;
-                        }
-                    },
-                    async reloadDetail() {
-                        if (!this.current) return;
-                        try {
-                            const data = await this.api('/work-orders/' + this.current.id);
-                            this.current = data.data || data;
-                            if (this.current.status === 'on_the_way') {
-                                const session = this.current.tracking_sessions ?
-                                    this.current.tracking_sessions.find(function(s) {
-                                        return s.status === 'active';
-                                    }) : null;
-                                if (session) this.tripSessionId = session.id;
-                                this.startGps();
-                            } else {
-                                this.tripSessionId = null;
-                                this.stopGps();
-                            }
-                            this.$nextTick(function() {
-                                this.initMap();
-                            }.bind(this));
-                            await this.loadOrders(true);
-                        } catch (err) {
-                            this.showToast(err.message, 'error');
-                        }
-                    },
-                    async syncTracking() {
-                        if (!this.token) return;
-                        const trip = this.orders.find(function(wo) {
-                            return wo.status === 'on_the_way' && this.myAssignment(wo) && this.myAssignment(
-                                wo).status === 'accepted';
-                        }.bind(this));
-                        if (!trip) {
-                            this.tripSessionId = null;
-                            this.stopGps();
-                            return;
-                        }
-                        if (!this.tripSessionId) {
-                            try {
-                                const data = await this.api('/work-orders/' + trip.id);
-                                const wo = data.data || data;
-                                const session = (wo.tracking_sessions || []).find(function(s) {
-                                    return s.status === 'active';
-                                });
-                                if (session) this.tripSessionId = session.id;
-                            } catch (err) {
-                                return;
-                            }
-                        }
-                        if (this.tripSessionId) this.startGps();
-                    },
-                    activeSession() {
-                        if (!this.current || !this.current.tracking_sessions) return null;
-                        return this.current.tracking_sessions.find(function(s) {
-                            return s.status === 'active';
-                        }) || null;
-                    },
-                    startGps() {
-                        if (this.watchId !== null) return;
-                        if (!('geolocation' in navigator)) {
-                            this.gpsState = 'error';
-                            return;
-                        }
-                        this.gpsState = 'starting';
-                        this.watchId = navigator.geolocation.watchPosition(
-                            function(pos) {
-                                this.lastPos = pos;
-                                this.gpsState = 'active';
-                                this.sendLocation();
-                            }.bind(this),
-                            function() {
-                                this.gpsState = 'error';
-                            }.bind(this), {
-                                enableHighAccuracy: true,
-                                maximumAge: 5000,
-                                timeout: 15000
-                            }
-                        );
-                        this.gpsTimer = setInterval(function() {
-                            if (this.lastPos && this.onTrip) this.sendLocation();
-                        }.bind(this), 15000);
-                    },
-                    async sendLocation() {
-                        const sessionId = this.tripSessionId || (this.activeSession() ? this.activeSession().id :
-                            null);
-                        if (!sessionId || !this.lastPos) return;
-                        const pos = this.lastPos.coords;
-                        try {
-                            await this.api('/tracking-sessions/' + sessionId + '/locations', {
-                                method: 'POST',
-                                body: {
-                                    latitude: +pos.latitude.toFixed(7),
-                                    longitude: +pos.longitude.toFixed(7),
-                                    accuracy_meters: pos.accuracy != null ? Math.round(pos.accuracy) : null,
-                                    speed_mps: pos.speed != null ? Math.round(pos.speed * 100) / 100 : null,
-                                    heading_degrees: pos.heading != null ? Math.round(pos.heading) : null,
-                                    recorded_at: new Date().toISOString(),
-                                },
-                            });
-                            this.gpsSentLabel = new Date().toLocaleTimeString('id-ID', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            });
-                        } catch (err) {}
-                    },
-                    stopGps() {
-                        if (this.watchId !== null) {
-                            navigator.geolocation.clearWatch(this.watchId);
-                            this.watchId = null;
-                        }
-                        if (this.gpsTimer) {
-                            clearInterval(this.gpsTimer);
-                            this.gpsTimer = null;
-                        }
-                        this.gpsState = 'off';
-                        this.lastPos = null;
-                    },
-                    initMap() {
-                        if (typeof L === 'undefined') return;
-                        const loc = this.current && this.current.service_location;
-                        const el = document.getElementById('detail-map');
-                        if (!loc || !loc.latitude || !el) return;
-                        this.destroyMap();
-                        const lat = parseFloat(loc.latitude),
-                            lng = parseFloat(loc.longitude);
-                        this.mapInstance = L.map('detail-map', {
-                            zoomControl: false
-                        }).setView([lat, lng], 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap',
-                        }).addTo(this.mapInstance);
-                        this.mapMarker = L.marker([lat, lng]).addTo(this.mapInstance);
-                    },
-                    destroyMap() {
-                        if (this.mapInstance) {
-                            this.mapInstance.remove();
-                            this.mapInstance = null;
-                        }
-                        this.mapMarker = null;
-                        this.mapPosMarker = null;
                     },
                     forceLogout() {
-                        this.stopGps();
                         this.token = '';
                         this.user = null;
-                        this.current = null;
                         this.view = 'home';
                         localStorage.removeItem('fsm_tech_token');
                         localStorage.removeItem('fsm_tech_user');
-                        clearInterval(this.pollTimer);
                     },
                     async doLogout() {
                         try {
@@ -2308,51 +1467,15 @@
                             });
                         } catch (err) {}
                         this.forceLogout();
-                        this.showToast('Sampai jumpa! 👋');
                     },
                     openPassModal() {
-                        this.passModal = {
-                            show: true,
-                            current: '',
-                            next: '',
-                            confirm: '',
-                            error: ''
-                        };
+                        this.passModal.show = true;
                     },
                     async submitPasswordChange() {
-                        const p = this.passModal;
-                        if (!p.current || !p.next || !p.confirm) {
-                            p.error = 'Kolom wajib diisi.';
-                            return;
-                        }
-                        if (p.next !== p.confirm) {
-                            p.error = 'Password tidak cocok.';
-                            return;
-                        }
-                        if (p.next.length < 6) {
-                            p.error = 'Password minimal 6 karakter.';
-                            return;
-                        }
-                        this.busy = true;
-                        p.error = '';
-                        try {
-                            await this.api('/auth/change-password', {
-                                method: 'POST',
-                                body: {
-                                    current_password: p.current,
-                                    new_password: p.next,
-                                    new_password_confirmation: p.confirm
-                                },
-                            });
-                            p.show = false;
-                            this.showToast('Password berhasil diganti! 🔐', 'success');
-                        } catch (err) {
-                            p.error = err.message;
-                        } finally {
-                            this.busy = false;
-                        }
-                    },
-                },
+                        this.passModal.show = false;
+                        this.showToast('Password berhasil diganti! 🔐', 'success');
+                    }
+                }
             });
             app.mount('#app');
         </script>
