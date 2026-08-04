@@ -46,6 +46,7 @@ class TrackingLocationUpdated implements ShouldBroadcast
             'latitude' => $this->location['latitude'],
             'longitude' => $this->location['longitude'],
             'accuracy_meters' => $this->location['accuracy_meters'] ?? null,
+            'speed_mps' => $this->location['speed_mps'] ?? null,
             'recorded_at' => $this->location['recorded_at'],
         ];
     }

@@ -276,6 +276,33 @@
             gap: 6px;
         }
 
+        .eta-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(5, 150, 105, .08);
+            border: 1px solid rgba(5, 150, 105, .25);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-top: 10px;
+        }
+
+        .eta-icon {
+            font-size: 18px;
+        }
+
+        .eta-line {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .eta-sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
         /* =========================================================
            STEPPER
         ========================================================= */
@@ -571,6 +598,13 @@
                 <div class="card">
                     <h4>📍 Lokasi Teknisi</h4>
                     <div id="track-map"></div>
+                    <div class="eta-bar">
+                        <span class="eta-icon">🛵</span>
+                        <div>
+                            <div class="eta-line" id="eta-line">Menghitung perkiraan tiba...</div>
+                            <div class="eta-sub" id="eta-sub"></div>
+                        </div>
+                    </div>
                     <div class="map-note" id="map-note">
                         <span class="pulse" style="color:var(--red-500)"></span>
                         <span>Posisi diperbarui otomatis &nbsp;<span id="last-updated"
@@ -666,7 +700,13 @@
             posAccuracy = null,
             pollTimer = null,
             subscribed = false,
-            lastRealtime = 0;
+            lastRealtime = 0,
+            destLatLng = null,
+            routeLayer = null,
+            lastRouteFetch = 0,
+            routeDistanceM = null,
+            routeDurationS = null,
+            lastSpeedMps = null;
 
         function initTrackingRealtime(data) {
             if (subscribed || !data.realtime_channel || typeof Echo === 'undefined') return;
@@ -693,6 +733,87 @@
             } catch (err) {
                 console.error('Tracking realtime gagal:', err);
             }
+        }
+
+        function haversineM(lat1, lng1, lat2, lng2) {
+            const R = 6371000;
+            const toRad = d => d * Math.PI / 180;
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+            const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+            return 2 * R * Math.asin(Math.sqrt(a));
+        }
+
+        async function fetchRoute(lat, lng) {
+            if (!destLatLng || !lat || !lng) return;
+            const now = Date.now();
+            if (now - lastRouteFetch < 60000) return;
+            lastRouteFetch = now;
+            try {
+                const url = 'https://router.project-osrm.org/route/v1/driving/' +
+                    lng + ',' + lat + ';' + destLatLng.lng + ',' + destLatLng.lat +
+                    '?overview=full&geometries=geojson&steps=false';
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (data.code !== 'Ok' || !data.routes || !data.routes.length) throw new Error('no route');
+                const route = data.routes[0];
+                routeDistanceM = route.distance;
+                routeDurationS = route.duration;
+                drawRoute(route.geometry.coordinates);
+                renderEta();
+            } catch (_) {
+                if (routeDistanceM === null) {
+                    routeDistanceM = haversineM(lat, lng, destLatLng.lat, destLatLng.lng);
+                    routeDurationS = routeDistanceM / (30 * 1000 / 3600);
+                }
+                renderEta();
+            }
+        }
+
+        function drawRoute(coords) {
+            if (!map || !coords || !coords.length) return;
+            if (routeLayer) map.removeLayer(routeLayer);
+            routeLayer = L.polyline(coords.map(c => [c[1], c[0]]), {
+                color: '#2563eb',
+                weight: 4,
+                opacity: .75,
+            }).addTo(map);
+        }
+
+        function renderEta() {
+            const line = document.getElementById('eta-line');
+            const sub = document.getElementById('eta-sub');
+            if (!line) return;
+            if (routeDurationS === null) {
+                line.textContent = 'Menghitung perkiraan tiba...';
+                sub.textContent = '';
+                return;
+            }
+            const eta = new Date(Date.now() + routeDurationS * 1000);
+            const mins = Math.max(1, Math.round(routeDurationS / 60));
+            line.textContent = 'Perkiraan tiba ' +
+                eta.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
+                ' WIB (± ' + mins + ' mnt)';
+            const parts = [];
+            if (routeDistanceM !== null) {
+                parts.push(routeDistanceM >= 1000 ?
+                    'Jarak ± ' + (routeDistanceM / 1000).toFixed(1) + ' km' :
+                    'Jarak ± ' + Math.round(routeDistanceM) + ' m');
+            }
+            if (lastSpeedMps && lastSpeedMps > 0) {
+                parts.push('Kecepatan ' + Math.round(lastSpeedMps * 3.6) + ' km/jam');
+                if (routeDurationS > 0 && routeDistanceM > 0) {
+                    const expected = routeDistanceM / routeDurationS;
+                    const ratio = lastSpeedMps / expected;
+                    const condition = ratio < 0.35 ?
+                        'terlihat macet' :
+                        (ratio < 0.75 ? 'lalu lintas padat' : 'lalu lintas lancar');
+                    parts.push('Kondisi: ' + condition);
+                }
+            }
+            sub.textContent = parts.join(' · ');
         }
 
         function showLoading() {
@@ -817,6 +938,10 @@
             }).addTo(map);
             if (hasDest) {
                 destMarker = L.marker([parseFloat(dest.latitude), parseFloat(dest.longitude)]).addTo(map);
+                destLatLng = {
+                    lat: parseFloat(dest.latitude),
+                    lng: parseFloat(dest.longitude),
+                };
             }
             if (finalize) {
                 document.getElementById('map-note').innerHTML =
@@ -873,6 +998,12 @@
                 '-';
             note.innerHTML = `<span class="pulse" style="color:var(--red-500)"></span>
             <span>Posisi diperbarui otomatis &nbsp;<strong>${timeStr}</strong></span>`;
+
+            lastSpeedMps = location.speed_mps || null;
+            if (destLatLng) {
+                fetchRoute(lat, lng);
+                renderEta();
+            }
         }
 
         function stopPolling() {
