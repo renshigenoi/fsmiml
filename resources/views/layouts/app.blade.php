@@ -1136,8 +1136,8 @@
         <button type="button" class="rt-refresh" onclick="window.location.reload()">Muat Ulang</button>
     </div>
 
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
+    <script src="{{ asset('assets/vendor/pusher.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/echo.iife.js') }}"></script>
     <script>
         (function () {
             const cfg = window.FSM_REALTIME || null;
@@ -1159,29 +1159,34 @@
 
             setLive('connecting');
 
-            window.Echo = new Echo({
-                broadcaster: 'pusher',
-                key: cfg.key,
-                wsHost: cfg.host,
-                wsPort: cfg.port,
-                forceTLS: cfg.scheme === 'https',
-                encrypted: cfg.scheme === 'https',
-                disableStats: true,
-                enabledTransports: ['ws', 'wss'],
-            });
-
-            window.Echo.private('dashboard')
-                .listen('.work-order.status.changed', (payload) => {
-                    if (typeof window.onFsmWorkOrderChanged === 'function') {
-                        window.onFsmWorkOrderChanged(payload);
-                    }
-                    showRealtimeToast(payload);
+            try {
+                window.Echo = new Echo({
+                    broadcaster: 'pusher',
+                    key: cfg.key,
+                    wsHost: cfg.host,
+                    wsPort: cfg.port,
+                    forceTLS: cfg.scheme === 'https',
+                    encrypted: cfg.scheme === 'https',
+                    disableStats: true,
+                    enabledTransports: ['ws', 'wss'],
                 });
 
-            const pusher = window.Echo.connector.pusher;
-            pusher.connection.bind('connected', () => setLive('connected'));
-            pusher.connection.bind('disconnected', () => setLive('off'));
-            pusher.connection.bind('error', () => setLive('off'));
+                window.Echo.private('dashboard')
+                    .listen('.work-order.status.changed', (payload) => {
+                        if (typeof window.onFsmWorkOrderChanged === 'function') {
+                            window.onFsmWorkOrderChanged(payload);
+                        }
+                        showRealtimeToast(payload);
+                    });
+
+                const pusher = window.Echo.connector.pusher;
+                pusher.connection.bind('connected', () => setLive('connected'));
+                pusher.connection.bind('disconnected', () => setLive('off'));
+                pusher.connection.bind('error', () => setLive('off'));
+            } catch (err) {
+                console.error('FSM Realtime init gagal:', err);
+                setLive('off');
+            }
 
             function statusLabel(s) {
                 return ({
