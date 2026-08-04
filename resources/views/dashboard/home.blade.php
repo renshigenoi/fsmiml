@@ -4,6 +4,57 @@
 
 @section('content')
 <style>
+    /* ---- Hero welcome banner ---- */
+    .dash-hero {
+        background: linear-gradient(135deg, var(--navy-900,#061429) 0%, var(--navy-700,#112b5c) 60%, var(--navy-600,#1a3a7a) 100%);
+        border-radius: 20px;
+        padding: 28px 32px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(11,32,68,.22);
+    }
+    .dash-hero::before {
+        content: '';
+        position: absolute;
+        width: 300px; height: 300px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(200,16,46,.18) 0%, transparent 70%);
+        top: -120px; right: 0;
+        pointer-events: none;
+    }
+    .dash-hero::after {
+        content: '';
+        position: absolute;
+        width: 180px; height: 180px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(58,107,200,.14) 0%, transparent 70%);
+        bottom: -60px; left: 40px;
+        pointer-events: none;
+    }
+    .dash-hero-text { position: relative; z-index: 1; }
+    .dash-hero-text h2 { margin: 0 0 6px; font-size: 22px; font-weight: 900; letter-spacing: -.4px; }
+    .dash-hero-text p  { margin: 0; color: rgba(255,255,255,.65); font-size: 14px; }
+    .dash-hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(200,16,46,.22);
+        border: 1px solid rgba(200,16,46,.35);
+        border-radius: 999px;
+        padding: 5px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #ffb3bc;
+        margin-top: 12px;
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #ff6b7a; animation: dot-pulse 1.4s ease-in-out infinite; }
+    @keyframes dot-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.8)} }
+
     /* ---- Stat grid ---- */
     .stat-grid {
         display: grid;
@@ -120,6 +171,18 @@
     }
     .qa-btn.secondary:hover { background: var(--navy-100,#dce9fc); border-color: var(--navy-300,#6a9ae8); }
 </style>
+
+{{-- ===== Hero Banner ===== --}}
+<div class="dash-hero">
+    <div class="dash-hero-text">
+        <h2>Selamat datang, {{ auth()->user()->name }}! 👋</h2>
+        <p>Pantau progres pekerjaan lapangan Indo Motor Lestari hari ini.</p>
+        <div class="dash-hero-badge">
+            <div class="live-dot"></div>
+            Data diperbarui secara real-time
+        </div>
+    </div>
+</div>
 
 {{-- ===== Stats ===== --}}
 <div class="stat-grid">
