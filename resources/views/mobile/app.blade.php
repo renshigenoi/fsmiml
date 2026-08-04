@@ -1460,8 +1460,7 @@
                 <span v-if="installVisible">📲 Pasang FSM Teknisi</span>
                 <span v-else>📲 Pasang: Safari → Bagikan → Tambahkan ke Layar Utama</span>
                 <button v-if="installVisible" type="button" class="ib-btn" @click="installApp">Pasang</button>
-                <button type="button" class="ub-close"
-                    @click="installVisible = false; iosInstallHint = false">✕</button>
+                <button type="button" class="ub-close" @click="dismissInstall">✕</button>
             </div>
 
             <!-- ============ OFFLINE BANNER ============ -->
@@ -2085,6 +2084,8 @@
                         pullDistance: 0,
                         refreshing: false,
                         pullStartY: null,
+                        locked: localStorage.getItem('fsm_locked') === '1',
+                        installTimer: null,
                         pinChange: {
                             stage: 'old',
                             old: '',
@@ -2288,9 +2289,13 @@
                     this.setupConnectivity();
                     this.setupPullToRefresh();
                     if (this.token) {
-                        this.view = 'home';
-                        this.loadOrders();
-                        this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                        if (this.locked) {
+                            this.view = 'lock';
+                        } else {
+                            this.view = 'home';
+                            this.loadOrders();
+                            this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                        }
                     } else {
                         this.view = 'login';
                     }
@@ -2358,6 +2363,8 @@
                         if (res.status === 401) {
                             if (this.pinEnabled) {
                                 this.pendingRelogin = true;
+                                this.locked = true;
+                                localStorage.setItem('fsm_locked', '1');
                                 this.view = 'lock';
                                 this.pinEntry = '';
                                 this.pinError = '';
@@ -2468,6 +2475,8 @@
                         this.user = null;
                         this.view = 'login';
                         this.current = null;
+                        this.locked = false;
+                        localStorage.removeItem('fsm_locked');
                         localStorage.removeItem('fsm_tech_token');
                         localStorage.removeItem('fsm_tech_user');
                         if (this.pollTimer) {
@@ -2507,6 +2516,8 @@
                     doLoginWithPin() {
                         if (!this.token) return;
                         this.pendingRelogin = true;
+                        this.locked = true;
+                        localStorage.setItem('fsm_locked', '1');
                         this.view = 'lock';
                         this.pinEntry = '';
                         this.pinError = '';
@@ -2527,6 +2538,8 @@
                             this.pollTimer = null;
                         }
                         this.pendingRelogin = false;
+                        this.locked = true;
+                        localStorage.setItem('fsm_locked', '1');
                         this.view = 'lock';
                         this.pinEntry = '';
                         this.pinError = '';
@@ -2574,26 +2587,44 @@
                     setupInstallPrompt() {
                         const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
                         const standalone = window.navigator.standalone === true;
-                        if (isIos && !standalone) this.iosInstallHint = true;
+                        const scheduleHide = () => {
+                            clearTimeout(this.installTimer);
+                            this.installTimer = setTimeout(() => {
+                                this.installVisible = false;
+                                this.iosInstallHint = false;
+                            }, 10000);
+                        };
+                        if (isIos && !standalone) {
+                            this.iosInstallHint = true;
+                            scheduleHide();
+                        }
                         window.addEventListener('beforeinstallprompt', (e) => {
                             e.preventDefault();
                             this.installEvent = e;
                             this.installVisible = true;
+                            scheduleHide();
                         });
                         window.addEventListener('appinstalled', () => {
                             this.installVisible = false;
                             this.iosInstallHint = false;
                             this.installEvent = null;
+                            clearTimeout(this.installTimer);
                         });
                     },
                     async installApp() {
                         if (!this.installEvent) return;
+                        clearTimeout(this.installTimer);
                         this.installEvent.prompt();
                         try {
                             await this.installEvent.userChoice;
                         } catch (_) {}
                         this.installVisible = false;
                         this.installEvent = null;
+                    },
+                    dismissInstall() {
+                        clearTimeout(this.installTimer);
+                        this.installVisible = false;
+                        this.iosInstallHint = false;
                     },
                     setupConnectivity() {
                         window.addEventListener('online', () => {
@@ -2842,6 +2873,8 @@
                     unlock() {
                         this.pinEntry = '';
                         this.pinError = '';
+                        this.locked = false;
+                        localStorage.removeItem('fsm_locked');
                         this.view = 'home';
                         if (!this.pollTimer) {
                             this.loadOrders();
