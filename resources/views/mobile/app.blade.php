@@ -1858,6 +1858,21 @@
                 return 'fsm_pin_' + prefix + (email ? '_' + email : '');
             }
 
+            // Migrasi PIN lama (kunci tanpa email) ke kunci per-akun, lalu bersihkan kunci lama.
+            (function migratePinKeys() {
+                try {
+                    const oldSalt = localStorage.getItem('fsm_pin_salt');
+                    const oldHash = localStorage.getItem('fsm_pin_hash');
+                    const email = fsmCurrentEmail();
+                    if (email && oldSalt && oldHash && !localStorage.getItem('fsm_pin_salt_' + email)) {
+                        localStorage.setItem('fsm_pin_salt_' + email, oldSalt);
+                        localStorage.setItem('fsm_pin_hash_' + email, oldHash);
+                    }
+                    localStorage.removeItem('fsm_pin_salt');
+                    localStorage.removeItem('fsm_pin_hash');
+                } catch (_) {}
+            })();
+
             const app = Vue.createApp({
                 data() {
                     return {
