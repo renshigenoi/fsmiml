@@ -1232,6 +1232,26 @@
         .pass-input:focus {
             border-color: var(--red-500);
         }
+
+        .pin-pad-modal {
+            grid-template-columns: repeat(3, 64px);
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+
+        .pin-key-modal {
+            width: 64px;
+            height: 52px;
+            font-size: 20px;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            color: var(--ink);
+        }
+
+        .pin-key-modal:active {
+            background: var(--navy-100);
+        }
     </style>
 </head>
 
@@ -1255,7 +1275,7 @@
                 <div class="lock-title">Masukkan PIN</div>
                 <div class="lock-sub">Buka aplikasi FSM Teknisi</div>
                 <div class="pin-dots">
-                    <span v-for="i in 4" :key="i" class="pin-dot"
+                    <span v-for="i in 6" :key="i" class="pin-dot"
                         :class="{ filled: i <= pinEntry.length }"></span>
                 </div>
                 <div class="pin-error">{{ pinError }}</div>
@@ -1648,21 +1668,26 @@
                         <div class="modal-icon-badge">🔐</div>
                         <div>
                             <h3>Buat PIN Keamanan</h3>
-                            <p class="desc">Login berikutnya cukup pakai PIN 4 digit (opsional)</p>
+                            <p class="desc">Login berikutnya cukup pakai PIN 6 digit (opsional)</p>
                         </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">PIN Baru (4 digit)</label>
-                    <input class="pass-input" type="password" inputmode="numeric" maxlength="4"
-                        v-model.trim="pinSetup.first"
-                        @input="pinSetup.first = pinSetup.first.replace(/\D/g,'')">
+                <div style="text-align:center;margin-bottom:12px;">
+                    <div class="form-label" style="text-align:center;">
+                        {{ pinSetup.stage === 'confirm' ? 'Ulangi PIN Baru' : 'Masukkan PIN Baru (6 digit)' }}
+                    </div>
+                    <div class="pin-dots" style="justify-content:center;margin-bottom:14px;">
+                        <span v-for="i in 6" :key="i" class="pin-dot"
+                            :class="{ filled: i <= (pinSetup.stage === 'confirm' ? pinSetup.confirm.length : pinSetup.first.length) }"></span>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Ulangi PIN</label>
-                    <input class="pass-input" type="password" inputmode="numeric" maxlength="4"
-                        v-model.trim="pinSetup.confirm"
-                        @input="pinSetup.confirm = pinSetup.confirm.replace(/\D/g,'')">
+                <div class="pin-pad pin-pad-modal">
+                    <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key pin-key-modal"
+                        @click="pinSetupKey(String(n))">{{ n }}</button>
+                    <button type="button" class="pin-key pin-key-modal"
+                        style="background:transparent;border-color:transparent;"></button>
+                    <button type="button" class="pin-key pin-key-modal" @click="pinSetupKey('0')">0</button>
+                    <button type="button" class="pin-key pin-key-modal pin-key-back" @click="pinSetupBack">⌫</button>
                 </div>
                 <div v-if="pinSetup.error"
                     style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
@@ -1670,7 +1695,6 @@
                 </div>
                 <div class="modal-actions">
                     <button class="cancel" type="button" @click="skipPinSetup">Lewati</button>
-                    <button class="ok-red" type="button" :disabled="busy" @click="submitPinSetup">Simpan PIN</button>
                 </div>
             </div>
         </div>
@@ -1776,6 +1800,7 @@
                         pinError: '',
                         pinSetup: {
                             show: false,
+                            stage: 'first',
                             first: '',
                             confirm: '',
                             error: ''
@@ -2162,20 +2187,51 @@
                         }
                     },
                     promptPinSetup() {
-                        this.pinSetup = { show: true, first: '', confirm: '', error: '' };
+                        this.pinSetup = { show: true, stage: 'first', first: '', confirm: '', error: '' };
                     },
                     skipPinSetup() {
                         this.pinSetup.show = false;
                     },
+                    pinSetupKey(digit) {
+                        if (this.busy) return;
+                        if (this.pinSetup.stage === 'first') {
+                            if (this.pinSetup.first.length >= 6) return;
+                            this.pinSetup.first += digit;
+                            this.pinSetup.error = '';
+                            if (this.pinSetup.first.length === 6) {
+                                this.pinSetup.stage = 'confirm';
+                            }
+                        } else {
+                            if (this.pinSetup.confirm.length >= 6) return;
+                            this.pinSetup.confirm += digit;
+                            this.pinSetup.error = '';
+                            if (this.pinSetup.confirm.length === 6) {
+                                this.submitPinSetup();
+                            }
+                        }
+                    },
+                    pinSetupBack() {
+                        if (this.busy) return;
+                        if (this.pinSetup.stage === 'confirm') {
+                            this.pinSetup.confirm = this.pinSetup.confirm.slice(0, -1);
+                        } else {
+                            this.pinSetup.first = this.pinSetup.first.slice(0, -1);
+                        }
+                        this.pinSetup.error = '';
+                    },
                     async submitPinSetup() {
                         const first = this.pinSetup.first;
                         const confirm = this.pinSetup.confirm;
-                        if (!/^\d{4}$/.test(first)) {
-                            this.pinSetup.error = 'PIN harus 4 digit angka.';
+                        if (!/^\d{6}$/.test(first)) {
+                            this.pinSetup.error = 'PIN harus 6 digit angka.';
+                            this.pinSetup.stage = 'first';
+                            this.pinSetup.first = '';
                             return;
                         }
                         if (first !== confirm) {
-                            this.pinSetup.error = 'PIN tidak sama, coba lagi.';
+                            this.pinSetup.error = 'PIN tidak sama, ulangi PIN.';
+                            this.pinSetup.confirm = '';
+                            this.pinSetup.stage = 'confirm';
                             return;
                         }
                         this.busy = true;
@@ -2193,10 +2249,10 @@
                         }
                     },
                     async pinKey(digit) {
-                        if (this.pinEntry.length >= 4) return;
+                        if (this.pinEntry.length >= 6) return;
                         this.pinEntry += digit;
                         this.pinError = '';
-                        if (this.pinEntry.length === 4) await this.verifyPin();
+                        if (this.pinEntry.length === 6) await this.verifyPin();
                     },
                     pinBack() {
                         this.pinEntry = this.pinEntry.slice(0, -1);
