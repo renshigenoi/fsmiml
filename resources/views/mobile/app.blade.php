@@ -1324,6 +1324,33 @@
                 </div>
             </div>
 
+            <!-- ============ FULLSCREEN BUAT PIN ============ -->
+            <div v-if="view === 'setup-pin'" class="lock-screen">
+                <div class="lock-logo-wrap">
+                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                </div>
+                <div class="lock-title">Buat PIN Keamanan</div>
+                <div class="lock-sub">
+                    {{ pinSetup.stage === 'confirm' ? 'Ulangi PIN Baru (6 digit)' : 'Masukkan PIN Baru (6 digit)' }}
+                </div>
+                <div class="pin-dots">
+                    <span v-for="i in 6" :key="i" class="pin-dot"
+                        :class="{ filled: i <= (pinSetup.stage === 'confirm' ? pinSetup.confirm.length : pinSetup.first.length) }"></span>
+                </div>
+                <div class="pin-error">{{ pinSetup.error }}</div>
+                <div class="pin-pad">
+                    <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key"
+                        @click="pinSetupKey(String(n))">{{ n }}</button>
+                    <button type="button" class="pin-key"
+                        style="background:transparent;border-color:transparent;"></button>
+                    <button type="button" class="pin-key" @click="pinSetupKey('0')">0</button>
+                    <button type="button" class="pin-key pin-key-back" @click="pinSetupBack">⌫</button>
+                </div>
+                <div class="lock-actions">
+                    <button type="button" class="lock-link" @click="softLogout">Keluar</button>
+                </div>
+            </div>
+
             <!-- ================================================
                      LOGIN SCREEN
                 ================================================ -->
@@ -1693,84 +1720,6 @@
                 </div>
             </div>
 
-        <!-- ============ MODAL BUAT PIN ============ -->
-        <div v-if="pinSetup.show" class="modal-backdrop">
-            <div class="modal">
-                <div class="modal-grip"></div>
-                <div class="modal-head">
-                    <div class="modal-title-box">
-                        <div class="modal-icon-badge">🔐</div>
-                        <div>
-                            <h3>Buat PIN Keamanan</h3>
-                            <p class="desc">Login berikutnya cukup pakai PIN 6 digit (opsional)</p>
-                        </div>
-                    </div>
-                </div>
-                <div style="text-align:center;margin-bottom:12px;">
-                    <div class="form-label" style="text-align:center;">
-                        {{ pinSetup.stage === 'confirm' ? 'Ulangi PIN Baru' : 'Masukkan PIN Baru (6 digit)' }}
-                    </div>
-                    <div class="pin-dots" style="justify-content:center;margin-bottom:14px;">
-                        <span v-for="i in 6" :key="i" class="pin-dot"
-                            :class="{ filled: i <= (pinSetup.stage === 'confirm' ? pinSetup.confirm.length : pinSetup.first.length) }"></span>
-                    </div>
-                </div>
-                <div class="pin-pad pin-pad-modal">
-                    <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key pin-key-modal"
-                        @click="pinSetupKey(String(n))">{{ n }}</button>
-                    <button type="button" class="pin-key pin-key-modal"
-                        style="background:transparent;border-color:transparent;"></button>
-                    <button type="button" class="pin-key pin-key-modal" @click="pinSetupKey('0')">0</button>
-                    <button type="button" class="pin-key pin-key-modal pin-key-back" @click="pinSetupBack">⌫</button>
-                </div>
-                <div v-if="pinSetup.error"
-                    style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
-                    ⚠️ {{ pinSetup.error }}
-                </div>
-                <p style="text-align:center;font-size:12px;color:var(--muted);margin:0;">
-                    PIN wajib dibuat untuk masuk aplikasi.
-                </p>
-            </div>
-        </div>
-
-        <!-- ============ MODAL KONFIRMASI PIN ============ -->
-        <div v-if="pinConfirm.show" class="modal-backdrop">
-            <div class="modal">
-                <div class="modal-grip"></div>
-                <div class="modal-head">
-                    <div class="modal-title-box">
-                        <div class="modal-icon-badge">🔐</div>
-                        <div>
-                            <h3>Konfirmasi PIN</h3>
-                            <p class="desc">Masukkan PIN untuk verifikasi</p>
-                        </div>
-                    </div>
-                </div>
-                <div style="text-align:center;margin-bottom:12px;">
-                    <div class="pin-dots" style="justify-content:center;margin-bottom:14px;">
-                        <span v-for="i in 6" :key="i" class="pin-dot"
-                            :class="{ filled: i <= pinConfirm.entry.length }"></span>
-                    </div>
-                </div>
-                <div class="pin-pad pin-pad-modal">
-                    <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key pin-key-modal"
-                        @click="pinConfirmKey(String(n))">{{ n }}</button>
-                    <button type="button" class="pin-key pin-key-modal"
-                        style="background:transparent;border-color:transparent;"></button>
-                    <button type="button" class="pin-key pin-key-modal" @click="pinConfirmKey('0')">0</button>
-                    <button type="button" class="pin-key pin-key-modal pin-key-back" @click="pinConfirmBack">⌫</button>
-                </div>
-                <div v-if="pinConfirm.error"
-                    style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
-                    ⚠️ {{ pinConfirm.error }}
-                </div>
-                <div class="modal-actions">
-                    <button class="cancel" type="button" @click="forgotPin">Lupa PIN?</button>
-                    <button class="ok-red" type="button" :disabled="busy" @click="verifyPinConfirm">Verifikasi</button>
-                </div>
-            </div>
-        </div>
-
         </div>
 
         <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -1898,18 +1847,12 @@
                         pinEntry: '',
                         pinError: '',
                         pinSetup: {
-                            show: false,
                             stage: 'first',
                             first: '',
                             confirm: '',
                             error: ''
                         },
                         biometricAvailable: false,
-                        pinConfirm: {
-                            show: false,
-                            entry: '',
-                            error: ''
-                        },
 
                         // Password Modal Data & Eye Toggles
                         passModal: {
@@ -2210,7 +2153,9 @@
                             const hasServerPin = !!(this.user && this.user.has_pin);
                             const hasLocalPin = !!this.localPin();
                             if (hasServerPin || hasLocalPin) {
-                                this.pinConfirm = { show: true, entry: '', error: '' };
+                                this.view = 'lock';
+                                this.pinEntry = '';
+                                this.pinError = '';
                             } else {
                                 this.promptPinSetup();
                             }
@@ -2328,39 +2273,6 @@
                         }
                         this.view = 'login';
                     },
-                    async pinConfirmKey(digit) {
-                        if (this.pinConfirm.entry.length >= 6) return;
-                        this.pinConfirm.entry += digit;
-                        this.pinConfirm.error = '';
-                        if (this.pinConfirm.entry.length === 6) await this.verifyPinConfirm();
-                    },
-                    pinConfirmBack() {
-                        this.pinConfirm.entry = this.pinConfirm.entry.slice(0, -1);
-                        this.pinConfirm.error = '';
-                    },
-                    async verifyPinConfirm() {
-                        const pin = this.pinConfirm.entry;
-                        const status = await this.serverPinCheck(pin);
-                        if (status === 'ok' || this.localPin() === pin) {
-                            if (status === 'ok') {
-                                localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
-                            } else if (this.user && !this.user.has_pin) {
-                                try { await this.api('/auth/pin', { method: 'POST', body: { pin } }); } catch (_) {}
-                                localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
-                            }
-                            this.pinConfirm.show = false;
-                            this.showToast('Verifikasi PIN berhasil ✅', 'success');
-                            return;
-                        }
-                        this.pinConfirm.entry = '';
-                        this.pinConfirm.error = status === 'wrong'
-                            ? 'PIN salah, coba lagi.'
-                            : 'Tidak dapat verifikasi — periksa koneksi.';
-                    },
-                    forgotPin() {
-                        this.pinConfirm.show = false;
-                        this.showToast('Hubungi tim IT untuk reset PIN.', 'info');
-                    },
                     currentEmail() {
                         return String((this.user && this.user.email) || this.loginForm.email || '').trim().toLowerCase();
                     },
@@ -2386,10 +2298,8 @@
                         }
                     },
                     promptPinSetup() {
-                        this.pinSetup = { show: true, stage: 'first', first: '', confirm: '', error: '' };
-                    },
-                    skipPinSetup() {
-                        this.pinSetup.show = false;
+                        this.pinSetup = { stage: 'first', first: '', confirm: '', error: '' };
+                        this.view = 'setup-pin';
                     },
                     pinSetupKey(digit) {
                         if (this.busy) return;
@@ -2437,7 +2347,7 @@
                         try {
                             await this.api('/auth/pin', { method: 'POST', body: { pin: first } });
                             localStorage.setItem(fsmLocalPinKey(this.currentEmail()), first);
-                            this.pinSetup.show = false;
+                            this.view = 'home';
                             this.showToast('PIN berhasil dibuat 🔐', 'success');
                         } catch (err) {
                             this.pinSetup.error = 'Gagal menyimpan PIN, coba lagi.';
