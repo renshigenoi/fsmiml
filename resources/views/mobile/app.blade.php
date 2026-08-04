@@ -253,6 +253,34 @@
             gap: 8px;
         }
 
+        .login-extra {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-pin-login {
+            width: 100%;
+            border: 1.5px solid var(--navy-300);
+            border-radius: var(--r-sm);
+            padding: 13px;
+            background: rgba(255, 255, 255, .06);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-pin-login:active {
+            background: rgba(255, 255, 255, .12);
+        }
+
+        .btn-pin-logout {
+            border-color: rgba(255, 255, 255, .28);
+            color: rgba(255, 255, 255, .75);
+        }
+
         /* =========================================================
            APP HEADER & NAVIGATION
         ========================================================= */
@@ -1292,14 +1320,14 @@
                     <button v-if="biometricAvailable" type="button" class="lock-link" @click="tryBiometric">
                         👆 Buka dengan Sidik Jari
                     </button>
-                    <button type="button" class="lock-link" @click="forceLogout">Keluar / Ganti Akun</button>
+                    <button type="button" class="lock-link" @click="softLogout">Ganti Akun / Keluar</button>
                 </div>
             </div>
 
             <!-- ================================================
                      LOGIN SCREEN
                 ================================================ -->
-            <div v-if="!token" class="login-screen">
+            <div v-if="view === 'login'" class="login-screen">
                 <div class="login-top">
                     <div class="login-logo-wrap">
                         <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
@@ -1328,6 +1356,12 @@
                     <div v-if="loginError" class="login-error">
                         <span>⚠️</span><span>{{ loginError }}</span>
                     </div>
+                </div>
+                <div v-if="pinEnabled && token" class="login-extra">
+                    <button type="button" class="btn-pin-login" @click="doLoginWithPin">🔐 Masuk dengan PIN</button>
+                    <button type="button" class="btn-pin-login btn-pin-logout" @click="doLogout">
+                        🚪 Logout Total (butuh email &amp; password)
+                    </button>
                 </div>
                 <div style="text-align:center; margin-top:20px; font-size:12px; color:var(--on-dark-2);">
                     Indo Motor Lestari © 2026 · FSM Mobile v2
@@ -1529,7 +1563,7 @@
                             <span class="nav-icon">🔑</span>
                             <span>Password</span>
                         </button>
-                        <button class="nav-item" @click="doLogout">
+                        <button class="nav-item" @click="softLogout">
                             <span class="nav-icon">🚪</span>
                             <span>Keluar</span>
                         </button>
@@ -1699,6 +1733,44 @@
             </div>
         </div>
 
+        <!-- ============ MODAL KONFIRMASI PIN ============ -->
+        <div v-if="pinConfirm.show" class="modal-backdrop">
+            <div class="modal">
+                <div class="modal-grip"></div>
+                <div class="modal-head">
+                    <div class="modal-title-box">
+                        <div class="modal-icon-badge">🔐</div>
+                        <div>
+                            <h3>Konfirmasi PIN</h3>
+                            <p class="desc">Masukkan PIN untuk verifikasi</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-bottom:12px;">
+                    <div class="pin-dots" style="justify-content:center;margin-bottom:14px;">
+                        <span v-for="i in 6" :key="i" class="pin-dot"
+                            :class="{ filled: i <= pinConfirm.entry.length }"></span>
+                    </div>
+                </div>
+                <div class="pin-pad pin-pad-modal">
+                    <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key pin-key-modal"
+                        @click="pinConfirmKey(String(n))">{{ n }}</button>
+                    <button type="button" class="pin-key pin-key-modal"
+                        style="background:transparent;border-color:transparent;"></button>
+                    <button type="button" class="pin-key pin-key-modal" @click="pinConfirmKey('0')">0</button>
+                    <button type="button" class="pin-key pin-key-modal pin-key-back" @click="pinConfirmBack">⌫</button>
+                </div>
+                <div v-if="pinConfirm.error"
+                    style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
+                    ⚠️ {{ pinConfirm.error }}
+                </div>
+                <div class="modal-actions">
+                    <button class="cancel" type="button" @click="forgotPin">Lupa PIN?</button>
+                    <button class="ok-red" type="button" :disabled="busy" @click="verifyPinConfirm">Verifikasi</button>
+                </div>
+            </div>
+        </div>
+
         </div>
 
         <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -1778,7 +1850,9 @@
                     return {
                         token: localStorage.getItem('fsm_tech_token') || '',
                         user: JSON.parse(localStorage.getItem('fsm_tech_user') || 'null'),
-                        view: 'home',
+                        view: (localStorage.getItem('fsm_tech_token') && localStorage.getItem('fsm_pin_salt'))
+                            ? 'lock'
+                            : (localStorage.getItem('fsm_tech_token') ? 'home' : 'login'),
                         activeTab: 'processing',
                         subFilter: 'all',
                         loginForm: {
@@ -1806,6 +1880,11 @@
                             error: ''
                         },
                         biometricAvailable: false,
+                        pinConfirm: {
+                            show: false,
+                            entry: '',
+                            error: ''
+                        },
 
                         // Password Modal Data & Eye Toggles
                         passModal: {
@@ -1990,8 +2069,11 @@
                         return;
                     }
                     if (this.token) {
+                        this.view = 'home';
                         this.loadOrders();
                         this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                    } else {
+                        this.view = 'login';
                     }
                     if ('serviceWorker' in navigator) {
                         navigator.serviceWorker.register('/mobile/sw.js').catch(() => {});
@@ -2097,9 +2179,14 @@
                             this.user = data.user;
                             localStorage.setItem('fsm_tech_token', this.token);
                             localStorage.setItem('fsm_tech_user', JSON.stringify(this.user));
+                            this.view = 'home';
                             this.loadOrders();
                             this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
-                            if (!this.pinEnabled) this.promptPinSetup();
+                            if (this.pinEnabled) {
+                                this.pinConfirm = { show: true, entry: '', error: '' };
+                            } else {
+                                this.promptPinSetup();
+                            }
                         } catch (err) {
                             this.loginError = err.message;
                         } finally {
@@ -2148,7 +2235,7 @@
                         this.stopGps();
                         this.token = '';
                         this.user = null;
-                        this.view = 'home';
+                        this.view = 'login';
                         this.current = null;
                         localStorage.removeItem('fsm_tech_token');
                         localStorage.removeItem('fsm_tech_user');
@@ -2185,6 +2272,54 @@
                         if (this.updateInfo && this.updateInfo.url) {
                             window.open(this.updateInfo.url, '_system');
                         }
+                    },
+                    doLoginWithPin() {
+                        if (!this.token) return;
+                        this.view = 'lock';
+                        this.pinEntry = '';
+                        this.pinError = '';
+                    },
+                    softLogout() {
+                        this.stopGps();
+                        this.current = null;
+                        this.orders = [];
+                        if (this.pollTimer) {
+                            clearInterval(this.pollTimer);
+                            this.pollTimer = null;
+                        }
+                        this.view = 'login';
+                    },
+                    async pinConfirmKey(digit) {
+                        if (this.pinConfirm.entry.length >= 6) return;
+                        this.pinConfirm.entry += digit;
+                        this.pinConfirm.error = '';
+                        if (this.pinConfirm.entry.length === 6) await this.verifyPinConfirm();
+                    },
+                    pinConfirmBack() {
+                        this.pinConfirm.entry = this.pinConfirm.entry.slice(0, -1);
+                        this.pinConfirm.error = '';
+                    },
+                    async verifyPinConfirm() {
+                        const salt = localStorage.getItem('fsm_pin_salt');
+                        const expected = localStorage.getItem('fsm_pin_hash');
+                        if (!salt || !expected) {
+                            this.pinConfirm.show = false;
+                            return;
+                        }
+                        const hash = await this.hashPin(this.pinConfirm.entry, salt);
+                        if (hash === expected) {
+                            this.pinConfirm.show = false;
+                            this.showToast('Verifikasi PIN berhasil ✅', 'success');
+                        } else {
+                            this.pinConfirm.entry = '';
+                            this.pinConfirm.error = 'PIN salah, coba lagi.';
+                        }
+                    },
+                    forgotPin() {
+                        localStorage.removeItem('fsm_pin_salt');
+                        localStorage.removeItem('fsm_pin_hash');
+                        this.pinConfirm.show = false;
+                        this.showToast('PIN dihapus. Bisa buat PIN baru nanti.', 'info');
                     },
                     promptPinSetup() {
                         this.pinSetup = { show: true, stage: 'first', first: '', confirm: '', error: '' };
