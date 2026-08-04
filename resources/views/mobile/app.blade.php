@@ -718,6 +718,89 @@
             background: linear-gradient(135deg, #f59e0b, #d97706);
         }
 
+        .action-btn.ghost {
+            background: var(--surface-2);
+            color: var(--ink-2);
+            border: 1.5px solid var(--line);
+        }
+
+        .gps-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            padding: 8px 12px;
+            border-radius: 99px;
+            background: rgba(16, 185, 129, .12);
+            border: 1px solid rgba(16, 185, 129, .35);
+            color: var(--green);
+            font-size: 12.5px;
+            font-weight: 700;
+        }
+
+        .gps-pill .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 1.4s infinite;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .3;
+            }
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .chip {
+            padding: 8px 12px;
+            border-radius: 99px;
+            background: var(--surface-2);
+            border: 1.5px solid var(--line);
+            color: var(--ink-2);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .chip.selected {
+            background: var(--red-100);
+            border-color: var(--red-500);
+            color: var(--red-500);
+        }
+
+        .reason-box textarea {
+            width: 100%;
+            border: 1.5px solid var(--line);
+            border-radius: var(--r-sm);
+            padding: 12px;
+            font-size: 14.5px;
+            font-family: inherit;
+            background: var(--surface-2);
+            color: var(--ink);
+            resize: none;
+            min-height: 96px;
+            outline: none;
+        }
+
+        .reason-box textarea:focus {
+            border-color: var(--red-500);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(200, 16, 46, .12);
+        }
+
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -1198,6 +1281,15 @@
                                 </div>
                                 <div v-if="current.service_location && current.service_location.latitude">
                                     <div id="detail-map"></div>
+                                    <div v-if="gpsState === 'active'" class="gps-pill">
+                                        <span class="live-dot"></span> GPS aktif · posisi terkirim {{ gpsSentLabel ||
+                                            'sebentar lagi' }}
+                                    </div>
+                                    <div v-else-if="gpsState === 'starting'" class="gps-pill">Menyiapkan GPS…</div>
+                                    <div v-else-if="gpsState === 'error'" class="gps-pill"
+                                        style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:var(--red-500);">
+                                        GPS terkendala — periksa izin lokasi browser
+                                    </div>
                                     <a class="btn-maps-action" :href="getNavigationUrl(current.service_location)"
                                         target="_blank" rel="noopener">
                                         🗺️ Buka Navigasi (Google Maps)
@@ -1234,6 +1326,40 @@
 
             <!-- TOAST -->
             <div v-if="toast.show" class="toast" :class="toast.type">{{ toast . message }}</div>
+
+            <!-- ========== MODAL ALASAN (TOLAK / KENDALA) ========== -->
+            <div v-if="modal.show" class="modal-backdrop" @click.self="modal.show = false">
+                <div class="modal">
+                    <div class="modal-grip"></div>
+                    <div class="modal-head">
+                        <div class="modal-title-box">
+                            <div class="modal-icon-badge">⚠️</div>
+                            <div>
+                                <h3>{{ modal . title }}</h3>
+                                <p class="desc">{{ modal . desc }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chip-row">
+                        <button v-for="c in modal.chips" :key="c" type="button" class="chip"
+                            :class="{ selected: modal.reason === c }" @click="modal.reason = c">{{ c }}</button>
+                    </div>
+                    <div class="reason-box">
+                        <textarea v-model.trim="modal.reason" rows="3"
+                            placeholder="Tulis alasan / kendala kamu di sini…"></textarea>
+                    </div>
+                    <div v-if="modal.error"
+                        style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
+                        ⚠️ {{ modal . error }}
+                    </div>
+                    <div class="modal-actions">
+                        <button class="cancel" type="button" @click="modal.show = false">Batal</button>
+                        <button class="ok-red" type="button" :disabled="busy || !modal.reason" @click="submitReason">
+                            {{ busy ? 'Mengirim…' : 'Kirim' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- ================================================
                      MODAL GANTI PASSWORD (ENHANCED FORM DESIGN)
@@ -1428,6 +1554,26 @@
                         showPassCurrent: false,
                         showPassNext: false,
                         showPassConfirm: false,
+                        toastTimer: null,
+                        modal: {
+                            show: false,
+                            mode: 'reject',
+                            reason: '',
+                            title: '',
+                            desc: '',
+                            chips: [],
+                            error: ''
+                        },
+                        gpsState: 'off',
+                        gpsSentLabel: '',
+                        watchId: null,
+                        gpsTimer: null,
+                        lastPos: null,
+                        tripSessionId: null,
+                        pollTimer: null,
+                        mapInstance: null,
+                        mapMarker: null,
+                        mapPosMarker: null,
                     };
                 },
                 computed: {
@@ -1492,6 +1638,12 @@
                     statusHint() {
                         return HINTS[this.current ? this.current.status : 'draft'] || '';
                     },
+                    onTrip() {
+                        return this.orders.some(function(wo) {
+                            const a = this.myAssignment(wo);
+                            return wo.status === 'on_the_way' && a && a.status === 'accepted';
+                        }.bind(this));
+                    },
                     actionList() {
                         if (!this.current) return [];
                         const s = this.current.status;
@@ -1504,11 +1656,21 @@
                                 label: '✅ Terima Pekerjaan',
                                 cls: 'green'
                             });
+                            list.push({
+                                key: 'reject',
+                                label: 'Tolak Pekerjaan',
+                                cls: 'ghost'
+                            });
                         } else if (s === 'accepted' && mine) {
                             list.push({
                                 key: 'start-trip',
                                 label: '🚗 Mulai Perjalanan',
                                 cls: 'violet'
+                            });
+                            list.push({
+                                key: 'fail',
+                                label: 'Laporkan Kendala',
+                                cls: 'ghost'
                             });
                         } else if (s === 'on_the_way' && mine) {
                             list.push({
@@ -1516,17 +1678,32 @@
                                 label: '📍 Saya Sudah Tiba',
                                 cls: 'blue'
                             });
+                            list.push({
+                                key: 'fail',
+                                label: 'Laporkan Kendala',
+                                cls: 'ghost'
+                            });
                         } else if (s === 'arrived' && mine) {
                             list.push({
                                 key: 'start-installation',
                                 label: '🔧 Mulai Pemasangan',
                                 cls: 'amber'
                             });
+                            list.push({
+                                key: 'fail',
+                                label: 'Laporkan Kendala',
+                                cls: 'ghost'
+                            });
                         } else if (s === 'installation' && mine) {
                             list.push({
                                 key: 'finish',
                                 label: '🎉 Selesaikan Pemasangan',
                                 cls: 'green'
+                            });
+                            list.push({
+                                key: 'fail',
+                                label: 'Laporkan Kendala',
+                                cls: 'ghost'
                             });
                         }
                         return list;
@@ -1538,7 +1715,13 @@
                     }
                 },
                 mounted() {
-                    if (this.token) this.loadOrders();
+                    if (this.token) {
+                        this.loadOrders();
+                        this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                    }
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.register('/mobile/sw.js').catch(() => {});
+                    }
                 },
                 methods: {
                     getNavigationUrl(loc) {
@@ -1613,7 +1796,8 @@
                             message: msg,
                             type: type
                         };
-                        setTimeout(function() {
+                        clearTimeout(this.toastTimer);
+                        this.toastTimer = setTimeout(function() {
                             this.toast.show = false;
                         }.bind(this), 3000);
                     },
@@ -1640,19 +1824,22 @@
                             localStorage.setItem('fsm_tech_token', this.token);
                             localStorage.setItem('fsm_tech_user', JSON.stringify(this.user));
                             this.loadOrders();
+                            this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
                         } catch (err) {
                             this.loginError = err.message;
                         } finally {
                             this.busy = false;
                         }
                     },
-                    async loadOrders() {
-                        this.loading = true;
+                    async loadOrders(silent = false) {
+                        if (!this.token) return;
+                        if (!silent) this.loading = true;
                         try {
                             const data = await this.api('/work-orders');
                             this.orders = data.data || [];
+                            await this.syncTracking();
                         } catch (err) {
-                            this.showToast(err.message, 'error');
+                            if (!silent) this.showToast(err.message, 'error');
                         } finally {
                             this.loading = false;
                         }
@@ -1662,20 +1849,38 @@
                         await this.loadOrders();
                         this.showToast('Data terbaru dimuat ✓', 'success');
                     },
-                    openDetail(wo) {
+                    async openDetail(wo) {
                         this.view = 'detail';
                         this.current = wo;
+                        try {
+                            const data = await this.api('/work-orders/' + wo.id);
+                            this.current = data.data || data;
+                            const session = this.current.tracking_sessions
+                                ? this.current.tracking_sessions.find(s => s.status === 'active')
+                                : null;
+                            if (this.current.status === 'on_the_way' && session) this.tripSessionId = session.id;
+                            this.$nextTick(() => this.initMap());
+                            await this.syncTracking();
+                        } catch (err) {
+                            this.showToast(err.message, 'error');
+                        }
                     },
                     goHome() {
                         this.view = 'home';
                         this.current = null;
                     },
                     forceLogout() {
+                        this.stopGps();
                         this.token = '';
                         this.user = null;
                         this.view = 'home';
+                        this.current = null;
                         localStorage.removeItem('fsm_tech_token');
                         localStorage.removeItem('fsm_tech_user');
+                        if (this.pollTimer) {
+                            clearInterval(this.pollTimer);
+                            this.pollTimer = null;
+                        }
                     },
                     async doLogout() {
                         try {
@@ -1684,6 +1889,216 @@
                             });
                         } catch (err) {}
                         this.forceLogout();
+                    },
+                    async runAction(act) {
+                        if (act.key === 'accept') {
+                            this.busy = true;
+                            try {
+                                const a = this.myAssignment(this.current);
+                                await this.api('/assignments/' + a.id + '/accept', { method: 'POST' });
+                                this.showToast('Pekerjaan diterima. Gas! 🔥', 'success');
+                                await this.reloadDetail();
+                            } catch (err) {
+                                this.showToast(err.message, 'error');
+                            } finally {
+                                this.busy = false;
+                            }
+                            return;
+                        }
+                        if (act.key === 'reject') {
+                            this.modal = {
+                                show: true,
+                                mode: 'reject',
+                                reason: '',
+                                title: 'Tolak Pekerjaan?',
+                                desc: 'Kasih tahu koordinator alasannya, biar bisa dicarikan solusi.',
+                                chips: ['Jadwal bentrok', 'Lokasi terlalu jauh', 'Sedang ada pekerjaan lain', 'Sakit / izin'],
+                                error: ''
+                            };
+                            return;
+                        }
+                        if (act.key === 'fail') {
+                            this.modal = {
+                                show: true,
+                                mode: 'fail',
+                                reason: '',
+                                title: 'Laporkan Kendala',
+                                desc: 'Jelaskan kendalanya, tim koordinator akan segera tindak lanjut.',
+                                chips: ['Customer tidak di tempat', 'Akses lokasi terhambat', 'Kendala teknis', 'Kendaraan bermasalah'],
+                                error: ''
+                            };
+                            return;
+                        }
+                        if (act.key === 'finish') {
+                            if (!confirm('Yakin pekerjaan ini sudah selesai? 🙌')) return;
+                        }
+                        this.busy = true;
+                        try {
+                            await this.api('/work-orders/' + this.current.id + '/' + act.key, { method: 'POST' });
+                            this.showToast('Berhasil! 🎉', 'success');
+                            await this.reloadDetail();
+                        } catch (err) {
+                            this.showToast(err.message, 'error');
+                        } finally {
+                            this.busy = false;
+                        }
+                    },
+                    async submitReason() {
+                        const reason = this.modal.reason.trim();
+                        if (!reason || this.busy) return;
+                        this.busy = true;
+                        this.modal.error = '';
+                        try {
+                            if (this.modal.mode === 'reject') {
+                                const a = this.myAssignment(this.current);
+                                await this.api('/assignments/' + a.id + '/reject', { method: 'POST', body: { reason } });
+                                this.showToast('Pekerjaan ditolak. Terima kasih atas kejujurannya.', 'success');
+                            } else {
+                                await this.api('/work-orders/' + this.current.id + '/fail', { method: 'POST', body: { reason } });
+                                this.showToast('Kendala sudah dilaporkan ke koordinator.', 'success');
+                            }
+                            this.modal.show = false;
+                            await this.reloadDetail();
+                        } catch (err) {
+                            this.modal.error = err.message;
+                        } finally {
+                            this.busy = false;
+                        }
+                    },
+                    async reloadDetail() {
+                        if (!this.current) return;
+                        try {
+                            const data = await this.api('/work-orders/' + this.current.id);
+                            this.current = data.data || data;
+                            const session = this.current.tracking_sessions
+                                ? this.current.tracking_sessions.find(s => s.status === 'active')
+                                : null;
+                            if (this.current.status === 'on_the_way' && session) this.tripSessionId = session.id;
+                            if (this.current.status === 'on_the_way') {
+                                this.startGps();
+                            } else {
+                                this.tripSessionId = null;
+                                this.stopGps();
+                            }
+                            this.$nextTick(() => this.initMap());
+                            await this.loadOrders(true);
+                        } catch (err) {
+                            this.showToast(err.message, 'error');
+                        }
+                    },
+                    async syncTracking() {
+                        if (!this.token) return;
+                        const trip = this.orders.find(wo =>
+                            wo.status === 'on_the_way' && this.myAssignment(wo) && this.myAssignment(wo).status === 'accepted'
+                        );
+                        if (!trip) {
+                            this.tripSessionId = null;
+                            this.stopGps();
+                            return;
+                        }
+                        if (!this.tripSessionId) {
+                            try {
+                                const data = await this.api('/work-orders/' + trip.id);
+                                const wo = data.data || data;
+                                const session = (wo.tracking_sessions || []).find(s => s.status === 'active');
+                                if (session) this.tripSessionId = session.id;
+                            } catch (err) {
+                                return; // coba lagi di polling berikutnya
+                            }
+                        }
+                        if (this.tripSessionId) this.startGps();
+                    },
+                    activeSession() {
+                        if (!this.current || !this.current.tracking_sessions) return null;
+                        return this.current.tracking_sessions.find(s => s.status === 'active') || null;
+                    },
+                    startGps() {
+                        if (this.watchId !== null) return;
+                        if (!('geolocation' in navigator)) {
+                            this.gpsState = 'error';
+                            return;
+                        }
+                        this.gpsState = 'starting';
+                        this.watchId = navigator.geolocation.watchPosition(
+                            (pos) => {
+                                this.lastPos = pos;
+                                this.gpsState = 'active';
+                                this.sendLocation();
+                            },
+                            () => {
+                                this.gpsState = 'error';
+                            },
+                            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+                        );
+                        this.gpsTimer = setInterval(() => {
+                            if (this.lastPos && this.onTrip) this.sendLocation();
+                        }, 15000);
+                    },
+                    async sendLocation() {
+                        const sessionId = this.tripSessionId || (this.activeSession() ? this.activeSession().id : null);
+                        if (!sessionId || !this.lastPos) return;
+                        const pos = this.lastPos.coords;
+                        try {
+                            await this.api('/tracking-sessions/' + sessionId + '/locations', {
+                                method: 'POST',
+                                body: {
+                                    latitude: +pos.latitude.toFixed(7),
+                                    longitude: +pos.longitude.toFixed(7),
+                                    accuracy_meters: pos.accuracy != null ? Math.round(pos.accuracy) : null,
+                                    speed_mps: pos.speed != null ? Math.round(pos.speed * 100) / 100 : null,
+                                    heading_degrees: pos.heading != null ? Math.round(pos.heading) : null,
+                                    recorded_at: new Date().toISOString(),
+                                },
+                            });
+                            this.gpsSentLabel = new Date().toLocaleTimeString('id-ID', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        } catch (err) { /* dikirim ulang pada interval berikutnya */ }
+                    },
+                    stopGps() {
+                        if (this.watchId !== null) {
+                            navigator.geolocation.clearWatch(this.watchId);
+                            this.watchId = null;
+                        }
+                        if (this.gpsTimer) {
+                            clearInterval(this.gpsTimer);
+                            this.gpsTimer = null;
+                        }
+                        this.gpsState = 'off';
+                        this.lastPos = null;
+                    },
+                    initMap() {
+                        if (typeof L === 'undefined') return;
+                        const loc = this.current && this.current.service_location;
+                        const el = document.getElementById('detail-map');
+                        if (!loc || !loc.latitude || !el) return;
+                        this.destroyMap();
+                        const lat = parseFloat(loc.latitude),
+                            lng = parseFloat(loc.longitude);
+                        this.mapInstance = L.map('detail-map').setView([lat, lng], 15);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; OpenStreetMap',
+                        }).addTo(this.mapInstance);
+                        this.mapMarker = L.marker([lat, lng]).addTo(this.mapInstance);
+                        if (this.lastPos && this.lastPos.coords) {
+                            const c = this.lastPos.coords;
+                            this.mapPosMarker = L.circleMarker([c.latitude, c.longitude], {
+                                radius: 8,
+                                color: '#d00202',
+                                fillColor: '#d00202',
+                                fillOpacity: .35
+                            }).addTo(this.mapInstance);
+                        }
+                    },
+                    destroyMap() {
+                        if (this.mapInstance) {
+                            this.mapInstance.remove();
+                            this.mapInstance = null;
+                        }
+                        this.mapMarker = null;
+                        this.mapPosMarker = null;
                     },
                     openPassModal() {
                         this.passModal = {
