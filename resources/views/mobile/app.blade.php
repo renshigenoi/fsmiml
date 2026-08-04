@@ -1259,6 +1259,53 @@
             border-color: var(--red-500);
         }
 
+        .bio-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+
+        .bio-label {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .bio-switch {
+            width: 52px;
+            height: 30px;
+            border-radius: 99px;
+            border: 0;
+            background: rgba(255, 255, 255, .2);
+            position: relative;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+        .bio-switch.on {
+            background: #10b981;
+        }
+
+        .bio-knob {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform .2s;
+        }
+
+        .bio-switch.on .bio-knob {
+            transform: translateX(22px);
+        }
+
         .pin-pad-modal {
             grid-template-columns: repeat(3, 64px);
             gap: 10px;
@@ -1308,14 +1355,14 @@
                 <div class="pin-pad">
                     <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key"
                         @click="pinKey(String(n))">{{ n }}</button>
-                    <button v-if="biometricAvailable" type="button" class="pin-key" @click="tryBiometric">👆</button>
+                    <button v-if="biometricAvailable && bioEnabled" type="button" class="pin-key" @click="tryBiometric">👆</button>
                     <button v-else type="button" class="pin-key"
                         style="background:transparent;border-color:transparent;"></button>
                     <button type="button" class="pin-key" @click="pinKey('0')">0</button>
                     <button type="button" class="pin-key pin-key-back" @click="pinBack">⌫</button>
                 </div>
                 <div class="lock-actions">
-                    <button v-if="biometricAvailable" type="button" class="lock-link" @click="tryBiometric">
+                    <button v-if="biometricAvailable && bioEnabled" type="button" class="lock-link" @click="tryBiometric">
                         👆 Buka dengan Sidik Jari
                     </button>
                     <button type="button" class="lock-link" @click="softLogout">Ganti Akun / Keluar</button>
@@ -1346,6 +1393,56 @@
                 </div>
                 <div class="lock-actions">
                     <button type="button" class="lock-link" @click="softLogout">Keluar</button>
+                </div>
+            </div>
+
+            <!-- ============ FULLSCREEN KEAMANAN ============ -->
+            <div v-if="view === 'security'" class="lock-screen">
+                <div class="lock-logo-wrap">
+                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                </div>
+                <div class="lock-title">Keamanan</div>
+                <div class="lock-sub">Atur PIN &amp; biometrik</div>
+                <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;">
+                    <button type="button" class="pin-key" style="width:100%;font-size:16px;" @click="openChangePin">
+                        🔢 Ganti PIN
+                    </button>
+                    <div v-if="biometricAvailable" class="bio-row">
+                        <span class="bio-label">👆 Buka dengan Sidik Jari</span>
+                        <button type="button" class="bio-switch" :class="{ on: bioEnabled }" @click="toggleBio">
+                            <span class="bio-knob"></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="lock-actions">
+                    <button type="button" class="lock-link" @click="view = 'home'">Kembali</button>
+                </div>
+            </div>
+
+            <!-- ============ FULLSCREEN GANTI PIN ============ -->
+            <div v-if="view === 'change-pin'" class="lock-screen">
+                <div class="lock-logo-wrap">
+                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                </div>
+                <div class="lock-title">Ganti PIN</div>
+                <div class="lock-sub">
+                    {{ pinChange.stage === 'old' ? 'PIN Lama (6 digit)' : (pinChange.stage === 'new' ? 'PIN Baru (6 digit)' : 'Ulangi PIN Baru') }}
+                </div>
+                <div class="pin-dots">
+                    <span v-for="i in 6" :key="i" class="pin-dot"
+                        :class="{ filled: i <= pinChangeCurrent().length }"></span>
+                </div>
+                <div class="pin-error">{{ pinChange.error }}</div>
+                <div class="pin-pad">
+                    <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key"
+                        @click="pinChangeKey(String(n))">{{ n }}</button>
+                    <button type="button" class="pin-key"
+                        style="background:transparent;border-color:transparent;"></button>
+                    <button type="button" class="pin-key" @click="pinChangeKey('0')">0</button>
+                    <button type="button" class="pin-key pin-key-back" @click="pinChangeBack">⌫</button>
+                </div>
+                <div class="lock-actions">
+                    <button type="button" class="lock-link" @click="view = 'security'">Kembali</button>
                 </div>
             </div>
 
@@ -1382,7 +1479,7 @@
                         <button v-if="pinEnabled && token" type="button" class="btn-pin-quick" :disabled="busy"
                             :title="biometricAvailable ? 'Buka dengan sidik jari' : 'Masuk dengan PIN'"
                             @click="quickUnlock">
-                            <span v-if="biometricAvailable">👆</span>
+                            <span v-if="biometricAvailable && bioEnabled">👆</span>
                             <span v-else>🔐</span>
                         </button>
                     </div>
@@ -1589,6 +1686,10 @@
                         <button class="nav-item" @click="openPassModal">
                             <span class="nav-icon">🔑</span>
                             <span>Password</span>
+                        </button>
+                        <button class="nav-item" @click="view = 'security'">
+                            <span class="nav-icon">🔐</span>
+                            <span>Keamanan</span>
                         </button>
                         <button class="nav-item" @click="lockApp">
                             <span class="nav-icon">🚪</span>
@@ -1853,6 +1954,13 @@
                             error: ''
                         },
                         biometricAvailable: false,
+                        pinChange: {
+                            stage: 'old',
+                            old: '',
+                            new: '',
+                            confirm: '',
+                            error: ''
+                        },
 
                         // Password Modal Data & Eye Toggles
                         passModal: {
@@ -1897,6 +2005,9 @@
                     },
                     pinEnabled() {
                         return !!(this.user && this.user.has_pin) || !!this.localPin();
+                    },
+                    bioEnabled() {
+                        return localStorage.getItem('fsm_bio_' + this.currentEmail()) === '1';
                     },
                     firstName() {
                         return this.user ? (this.user.name || 'Teknisi').split(' ')[0] : 'Teknisi';
@@ -2252,7 +2363,7 @@
                         this.pinError = '';
                     },
                     quickUnlock() {
-                        if (this.biometricAvailable) {
+                        if (this.biometricAvailable && this.bioEnabled) {
                             this.tryBiometric();
                         } else {
                             this.doLoginWithPin();
@@ -2285,6 +2396,68 @@
                     },
                     localPin() {
                         return localStorage.getItem(fsmLocalPinKey(this.currentEmail()));
+                    },
+                    openChangePin() {
+                        this.pinChange = { stage: 'old', old: '', new: '', confirm: '', error: '' };
+                        this.view = 'change-pin';
+                    },
+                    pinChangeCurrent() {
+                        return this.pinChange[this.pinChange.stage] || '';
+                    },
+                    pinChangeKey(digit) {
+                        const field = this.pinChange.stage;
+                        if (this.pinChange[field].length >= 6) return;
+                        this.pinChange[field] += digit;
+                        this.pinChange.error = '';
+                        if (this.pinChange[field].length === 6) {
+                            if (this.pinChange.stage === 'old') this.pinChange.stage = 'new';
+                            else if (this.pinChange.stage === 'new') this.pinChange.stage = 'confirm';
+                            else this.submitChangePin();
+                        }
+                    },
+                    pinChangeBack() {
+                        const field = this.pinChange.stage;
+                        this.pinChange[field] = this.pinChange[field].slice(0, -1);
+                        this.pinChange.error = '';
+                    },
+                    async submitChangePin() {
+                        const oldPin = this.pinChange.old;
+                        const newPin = this.pinChange.new;
+                        const confirm = this.pinChange.confirm;
+                        if (!/^\d{6}$/.test(oldPin) || !/^\d{6}$/.test(newPin) || newPin !== confirm) {
+                            this.pinChange.error = 'PIN tidak valid atau tidak sama.';
+                            this.pinChange.stage = 'confirm';
+                            this.pinChange.confirm = '';
+                            return;
+                        }
+                        const status = await this.serverPinCheck(oldPin);
+                        if (status !== 'ok' && this.localPin() !== oldPin) {
+                            this.pinChange.error = status === 'wrong'
+                                ? 'PIN lama salah.'
+                                : 'Tidak dapat verifikasi — periksa koneksi.';
+                            this.pinChange.stage = 'old';
+                            this.pinChange.old = '';
+                            return;
+                        }
+                        try {
+                            await this.api('/auth/pin', { method: 'POST', body: { pin: newPin } });
+                            localStorage.setItem(fsmLocalPinKey(this.currentEmail()), newPin);
+                            this.showToast('PIN berhasil diganti ✅', 'success');
+                            this.view = 'home';
+                        } catch (err) {
+                            this.pinChange.error = 'Gagal menyimpan PIN baru.';
+                            this.pinChange.stage = 'new';
+                            this.pinChange.new = '';
+                            this.pinChange.confirm = '';
+                        }
+                    },
+                    toggleBio() {
+                        const key = 'fsm_bio_' + this.currentEmail();
+                        if (localStorage.getItem(key) === '1') {
+                            localStorage.removeItem(key);
+                        } else {
+                            localStorage.setItem(key, '1');
+                        }
                     },
                     async serverPinCheck(pin) {
                         if (!this.token) return 'error';
