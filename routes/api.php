@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AssignmentController;
+use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeviceTokenController;
 use App\Http\Controllers\Api\V1\LegacyController;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::get('app/version', [AppVersionController::class, 'show']);
     Route::get('public/tracking/{token}', [TrackingTokenController::class, 'show'])->middleware('throttle:public-tracking');
 
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {

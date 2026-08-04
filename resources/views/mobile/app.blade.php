@@ -851,6 +851,38 @@
             box-shadow: var(--shadow-lg);
         }
 
+        .update-banner {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 12px) + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 95;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #c8102e, #8b0c1e);
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(200, 16, 46, .35);
+            max-width: calc(100vw - 32px);
+            cursor: pointer;
+        }
+
+        .update-banner .ub-close {
+            background: rgba(255, 255, 255, .18);
+            border: 0;
+            color: #fff;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
         /* =========================================================
            MODAL & BOTTOM SHEET (ENHANCED FORM DESIGN)
         ========================================================= */
@@ -1082,6 +1114,13 @@
 
     @verbatim
         <div id="app" v-cloak>
+
+            <!-- ============ UPDATE BANNER (hanya muncul di dalam APK) ============ -->
+            <div v-if="updateInfo" class="update-banner" @click="downloadUpdate">
+                <span>🔄 Versi baru {{ updateInfo.version }} tersedia — ketuk untuk unduh</span>
+                <button v-if="!updateInfo.required" type="button" class="ub-close"
+                    @click.stop="updateInfo = null">✕</button>
+            </div>
 
             <!-- ================================================
                      LOGIN SCREEN
@@ -1542,6 +1581,7 @@
                             message: '',
                             type: 'info'
                         },
+                        updateInfo: null,
 
                         // Password Modal Data & Eye Toggles
                         passModal: {
@@ -1716,6 +1756,7 @@
                     }
                 },
                 mounted() {
+                    this.checkAppVersion();
                     if (this.token) {
                         this.loadOrders();
                         this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
@@ -1890,6 +1931,25 @@
                             });
                         } catch (err) {}
                         this.forceLogout();
+                    },
+                    async checkAppVersion() {
+                        try {
+                            if (!window.Capacitor) return; // hanya berjalan di dalam APK
+                            const native = await window.Capacitor.Plugins.App.getInfo();
+                            const res = await fetch('/api/v1/app/version');
+                            const data = await res.json();
+                            if (!data.version || data.version === native.version) return;
+                            this.updateInfo = {
+                                version: data.version,
+                                url: data.download_url || '',
+                                required: !!data.update_required,
+                            };
+                        } catch (err) { /* bukan APK atau jaringan bermasalah — abaikan */ }
+                    },
+                    downloadUpdate() {
+                        if (this.updateInfo && this.updateInfo.url) {
+                            window.open(this.updateInfo.url, '_system');
+                        }
                     },
                     async runAction(act) {
                         if (act.key === 'accept') {
