@@ -285,7 +285,7 @@
     .tp-done { background: linear-gradient(135deg,#c8102e,#a30d24); color: #fff; }
 
     /* ---- Date picker popup ---- */
-    .date-picker-popup { width: 300px; }
+    .date-picker-popup { width: 300px; left: 0; right: auto; }
     .dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .dp-nav {
         border: 1px solid var(--line,#e2e8f4);
@@ -477,7 +477,8 @@
                     <div>
                         <label for="customer-phone">No. WhatsApp</label>
                         <input type="tel" name="customer_phone" id="customer-phone"
-                               placeholder="08xxxxxxxxxx" autocomplete="off">
+                               placeholder="08xxxxxxxxxx" autocomplete="off"
+                               inputmode="numeric" maxlength="15">
                     </div>
                     <div>
                         <label for="customer-email">Email</label>
@@ -623,7 +624,7 @@
             document.getElementById('s-car').textContent = [data.car_brand, data.car_model].filter(Boolean).join(' ') || '-';
             document.getElementById('s-date').textContent = data.installation_date || '-';
             document.getElementById('s-film').textContent = data.window_film_desc || '-';
-            document.getElementById('customer-phone').value = data.cell_phone || '';
+            document.getElementById('customer-phone').value = normalizePhoneInput(data.cell_phone);
             document.getElementById('customer-email').value = data.customer_email || '';
             document.getElementById('legacy-sales-serial').value = data.serial || '';
             const dateInput = document.getElementById('scheduled-start-at');
@@ -833,6 +834,23 @@
 
     document.getElementById('tech-filter').addEventListener('input', e => {
         renderTechnicians(e.target.value.trim());
+    });
+
+    /* =====================================================
+       NO. WHATSAPP — DIGITS ONLY + FORMAT 08XX
+    ===================================================== */
+    const phoneInput = document.getElementById('customer-phone');
+
+    function normalizePhoneInput(value) {
+        let digits = String(value || '').replace(/\D/g, '');
+        if (digits.length > 15) digits = digits.slice(0, 15);
+        if (digits.startsWith('62') && digits.length > 2) digits = '0' + digits.slice(2);
+        return digits;
+    }
+
+    phoneInput.addEventListener('input', () => {
+        const normalized = normalizePhoneInput(phoneInput.value);
+        if (phoneInput.value !== normalized) phoneInput.value = normalized;
     });
 
     /* =====================================================
