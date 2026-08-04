@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ChangePasswordRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
+use App\Http\Requests\Api\V1\SetPinRequest;
+use App\Http\Requests\Api\V1\VerifyPinRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -60,5 +62,25 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => 'Password berhasil diubah.']);
+    }
+
+    public function setPin(SetPinRequest $request): JsonResponse
+    {
+        $request->user()->update([
+            'pin_hash' => Hash::make($request->validated('pin')),
+        ]);
+
+        return response()->json(['message' => 'PIN berhasil disimpan.']);
+    }
+
+    public function verifyPin(VerifyPinRequest $request): JsonResponse
+    {
+        $valid = Hash::check($request->validated('pin'), (string) $request->user()->pin_hash);
+
+        if (! $valid) {
+            return response()->json(['message' => 'PIN tidak sesuai.'], 422);
+        }
+
+        return response()->json(['valid' => true]);
     }
 }

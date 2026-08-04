@@ -1565,7 +1565,7 @@
                         </button>
                         <button class="nav-item" @click="lockApp">
                             <span class="nav-icon">🚪</span>
-                            <span>Keluar</span>
+                            <span>Kunci Layar</span>
                         </button>
                     </nav>
                 </div>
@@ -1727,9 +1727,9 @@
                     style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
                     ⚠️ {{ pinSetup.error }}
                 </div>
-                <div class="modal-actions">
-                    <button class="cancel" type="button" @click="skipPinSetup">Lewati</button>
-                </div>
+                <p style="text-align:center;font-size:12px;color:var(--muted);margin:0;">
+                    PIN wajib dibuat untuk masuk aplikasi.
+                </p>
             </div>
         </div>
 
@@ -1853,27 +1853,20 @@
                 return '';
             }
 
-            function fsmPinKeyFor(prefix, email) {
+            function fsmLocalPinKey(email) {
                 const e = String(email || '').trim().toLowerCase();
-                return 'fsm_pin_' + prefix + (e ? '_' + e : '');
+                return 'fsm_pin' + (e ? '_' + e : '');
             }
 
-            function fsmPinKey(prefix) {
-                return fsmPinKeyFor(prefix, fsmCurrentEmail());
-            }
-
-            // Migrasi PIN lama (kunci tanpa email) ke kunci per-akun, lalu bersihkan kunci lama.
-            (function migratePinKeys() {
+            // Bersihkan kunci PIN lama (salt/hash) yang tidak terpakai lagi.
+            (function cleanupOldPinKeys() {
                 try {
-                    const oldSalt = localStorage.getItem('fsm_pin_salt');
-                    const oldHash = localStorage.getItem('fsm_pin_hash');
-                    const email = fsmCurrentEmail();
-                    if (email && oldSalt && oldHash && !localStorage.getItem('fsm_pin_salt_' + email)) {
-                        localStorage.setItem('fsm_pin_salt_' + email, oldSalt);
-                        localStorage.setItem('fsm_pin_hash_' + email, oldHash);
-                    }
-                    localStorage.removeItem('fsm_pin_salt');
-                    localStorage.removeItem('fsm_pin_hash');
+                    Object.keys(localStorage).forEach(function (k) {
+                        if (k === 'fsm_pin_salt' || k === 'fsm_pin_hash' ||
+                            k.startsWith('fsm_pin_salt_') || k.startsWith('fsm_pin_hash_')) {
+                            localStorage.removeItem(k);
+                        }
+                    });
                 } catch (_) {}
             })();
 
@@ -1882,7 +1875,7 @@
                     return {
                         token: localStorage.getItem('fsm_tech_token') || '',
                         user: JSON.parse(localStorage.getItem('fsm_tech_user') || 'null'),
-                        view: (localStorage.getItem('fsm_tech_token') && localStorage.getItem(fsmPinKey('salt')))
+                        view: (localStorage.getItem('fsm_tech_token') && localStorage.getItem(fsmLocalPinKey(fsmCurrentEmail())))
                             ? 'lock'
                             : (localStorage.getItem('fsm_tech_token') ? 'home' : 'login'),
                         activeTab: 'processing',
@@ -1960,7 +1953,7 @@
                         });
                     },
                     pinEnabled() {
-                        return !!localStorage.getItem(this.pinKey('salt'));
+                        return !!(this.user && this.user.has_pin) || !!this.localPin();
                     },
                     firstName() {
                         return this.user ? (this.user.name || 'Teknisi').split(' ')[0] : 'Teknisi';
@@ -2214,7 +2207,9 @@
                             this.view = 'home';
                             this.loadOrders();
                             this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
-                            if (this.pinEnabled) {
+                            const hasServerPin = !!(this.user && this.user.has_pin);
+                            const hasLocalPin = !!this.localPin();
+                            if (hasServerPin || hasLocalPin) {
                                 this.pinConfirm = { show: true, entry: '', error: '' };
                             } else {
                                 this.promptPinSetup();
@@ -2344,30 +2339,46 @@
                         this.pinConfirm.error = '';
                     },
                     async verifyPinConfirm() {
-                        const salt = localStorage.getItem(this.pinKey('salt'));
-                        const expected = localStorage.getItem(this.pinKey('hash'));
-                        if (!salt || !expected) {
-                            this.pinConfirm.show = false;
-                            return;
-                        }
-                        const hash = await this.hashPin(this.pinConfirm.entry, salt);
-                        if (hash === expected) {
+                        const pin = this.pinConfirm.entry;
+                        const status = await this.serverPinCheck(pin);
+                        if (status === 'ok' || this.localPin() === pin) {
+                            if (status === 'ok') localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
                             this.pinConfirm.show = false;
                             this.showToast('Verifikasi PIN berhasil ✅', 'success');
-                        } else {
-                            this.pinConfirm.entry = '';
-                            this.pinConfirm.error = 'PIN salah, coba lagi.';
+                            return;
                         }
+                        this.pinConfirm.entry = '';
+                        this.pinConfirm.error = status === 'wrong'
+                            ? 'PIN salah, coba lagi.'
+                            : 'Tidak dapat verifikasi — periksa koneksi.';
                     },
                     forgotPin() {
-                        localStorage.removeItem(this.pinKey('salt'));
-                        localStorage.removeItem(this.pinKey('hash'));
                         this.pinConfirm.show = false;
-                        this.showToast('PIN dihapus. Bisa buat PIN baru nanti.', 'info');
+                        this.showToast('Hubungi tim IT untuk reset PIN.', 'info');
                     },
-                    pinKey(prefix) {
-                        const email = (this.user && this.user.email) || this.loginForm.email || '';
-                        return fsmPinKeyFor(prefix, email);
+                    currentEmail() {
+                        return String((this.user && this.user.email) || this.loginForm.email || '').trim().toLowerCase();
+                    },
+                    localPin() {
+                        return localStorage.getItem(fsmLocalPinKey(this.currentEmail()));
+                    },
+                    async serverPinCheck(pin) {
+                        if (!this.token) return 'error';
+                        try {
+                            const res = await fetch('/api/v1/auth/pin/verify', {
+                                method: 'POST',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer ' + this.token
+                                },
+                                body: JSON.stringify({ pin }),
+                            });
+                            if (res.ok) return 'ok';
+                            return res.status === 422 ? 'wrong' : 'error';
+                        } catch (_) {
+                            return 'error';
+                        }
                     },
                     promptPinSetup() {
                         this.pinSetup = { show: true, stage: 'first', first: '', confirm: '', error: '' };
@@ -2419,14 +2430,12 @@
                         }
                         this.busy = true;
                         try {
-                            const salt = this.randomSalt();
-                            const hash = await this.hashPin(first, salt);
-                            localStorage.setItem(this.pinKey('salt'), salt);
-                            localStorage.setItem(this.pinKey('hash'), hash);
+                            await this.api('/auth/pin', { method: 'POST', body: { pin: first } });
+                            localStorage.setItem(fsmLocalPinKey(this.currentEmail()), first);
                             this.pinSetup.show = false;
                             this.showToast('PIN berhasil dibuat 🔐', 'success');
                         } catch (err) {
-                            this.pinSetup.error = 'Gagal menyimpan PIN.';
+                            this.pinSetup.error = 'Gagal menyimpan PIN, coba lagi.';
                         } finally {
                             this.busy = false;
                         }
@@ -2442,19 +2451,21 @@
                         this.pinError = '';
                     },
                     async verifyPin() {
-                        const salt = localStorage.getItem(this.pinKey('salt'));
-                        const expected = localStorage.getItem(this.pinKey('hash'));
-                        if (!salt || !expected) {
-                            this.forceLogout();
+                        const pin = this.pinEntry;
+                        const status = await this.serverPinCheck(pin);
+                        if (status === 'ok') {
+                            localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
+                            this.unlock();
                             return;
                         }
-                        const hash = await this.hashPin(this.pinEntry, salt);
-                        if (hash === expected) {
+                        if (this.localPin() === pin) {
                             this.unlock();
-                        } else {
-                            this.pinEntry = '';
-                            this.pinError = 'PIN salah, coba lagi.';
+                            return;
                         }
+                        this.pinEntry = '';
+                        this.pinError = status === 'wrong'
+                            ? 'PIN salah, coba lagi.'
+                            : 'Tidak dapat verifikasi — periksa koneksi.';
                     },
                     unlock() {
                         this.pinEntry = '';

@@ -26,6 +26,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('dashboard/input', [DashboardController::class, 'input'])->name('dashboard.input');
     Route::get('dashboard/work-orders', [DashboardController::class, 'workOrders'])->name('dashboard.work-orders');
     Route::get('dashboard/technicians', [DashboardController::class, 'technicians'])->name('dashboard.technicians');
+    Route::get('dashboard/reset-pin', [DashboardController::class, 'resetPinForm'])->name('dashboard.reset-pin');
+    Route::post('dashboard/reset-pin', [DashboardController::class, 'resetPin']);
     Route::get('dashboard/api/sales', [DashboardController::class, 'searchSales']);
     Route::get('dashboard/api/technicians', [DashboardController::class, 'techniciansJson']);
     Route::get('dashboard/api/overview', [DashboardController::class, 'overviewJson']);

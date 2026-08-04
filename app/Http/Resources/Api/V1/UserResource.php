@@ -16,6 +16,7 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'role' => $this->role?->value,
             'technician_id' => $this->technician?->getKey(),
+            'has_pin' => ! is_null($this->pin_hash),
         ];
     }
 }

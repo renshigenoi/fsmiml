@@ -1021,6 +1021,11 @@
                     <span class="nav-ico">👷</span>
                     Teknisi
                 </a>
+                <a href="{{ route('dashboard.reset-pin') }}"
+                    class="{{ request()->routeIs('dashboard.reset-pin') ? 'active' : '' }}" id="nav-reset-pin">
+                    <span class="nav-ico">🔑</span>
+                    Reset PIN
+                </a>
                 <div class="nav-section">Akun</div>
                 <a href="{{ route('dashboard.profile') }}"
                     class="{{ request()->routeIs('dashboard.profile') ? 'active' : '' }}" id="nav-profile">

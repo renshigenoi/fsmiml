@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ResetPinRequest;
 use App\Http\Requests\Api\V1\StoreLegacyWorkOrderRequest;
+use App\Models\User;
 use App\Modules\Assignment\Exceptions\InvalidAssignment;
+use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Legacy\Services\LegacyDataSourceService;
 use App\Modules\Legacy\Services\LegacyWorkOrderService;
 use App\Modules\Legacy\Support\LegacyRowFormatter;
@@ -15,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -189,5 +193,37 @@ class DashboardController extends Controller
             'workOrder' => $workOrder,
             'currentLocation' => $currentLocation,
         ]);
+    }
+
+    public function resetPinForm(): View
+    {
+        $this->ensureResetPinAccess();
+
+        $users = User::query()->orderBy('email')->get(['id', 'name', 'email']);
+
+        return view('dashboard.reset-pin', ['users' => $users]);
+    }
+
+    public function resetPin(ResetPinRequest $request): RedirectResponse
+    {
+        $this->ensureResetPinAccess();
+
+        $user = User::query()->where('email', $request->validated('email'))->first();
+
+        if ($user === null) {
+            return back()->with('error', 'Email tidak ditemukan.')->withInput();
+        }
+
+        $user->update(['pin_hash' => Hash::make($request->validated('pin'))]);
+
+        return back()->with('success', "PIN akun {$user->email} berhasil direset.");
+    }
+
+    private function ensureResetPinAccess(): void
+    {
+        abort_unless(
+            in_array(auth()->user()->role, [UserRole::Administrator, UserRole::Coordinator], true),
+            403,
+        );
     }
 }
