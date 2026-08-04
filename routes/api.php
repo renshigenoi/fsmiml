@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('auth/pin/login', [AuthController::class, 'pinLogin'])->middleware('throttle:login');
     Route::get('app/version', [AppVersionController::class, 'show']);
     Route::get('public/tracking/{token}', [TrackingTokenController::class, 'show'])->middleware('throttle:public-tracking');
 

@@ -2070,6 +2070,7 @@
                         },
                         pinEntry: '',
                         pinError: '',
+                        pendingRelogin: false,
                         pinSetup: {
                             stage: 'first',
                             first: '',
@@ -2286,13 +2287,6 @@
                     this.setupInstallPrompt();
                     this.setupConnectivity();
                     this.setupPullToRefresh();
-                    if (this.token && this.pinEnabled) {
-                        this.view = 'lock';
-                        if (this.biometricAvailable && this.bioEnabled) {
-                            setTimeout(() => this.tryBiometric(), 400);
-                        }
-                        return;
-                    }
                     if (this.token) {
                         this.view = 'home';
                         this.loadOrders();
@@ -2362,7 +2356,15 @@
                         if (options.body) config.body = JSON.stringify(options.body);
                         const res = await fetch('/api/v1' + path, config);
                         if (res.status === 401) {
-                            this.forceLogout();
+                            if (this.pinEnabled) {
+                                this.pendingRelogin = true;
+                                this.view = 'lock';
+                                this.pinEntry = '';
+                                this.pinError = '';
+                                this.showToast('Sesi berakhir — masukkan PIN.', 'info');
+                            } else {
+                                this.forceLogout();
+                            }
                             throw new Error('Sesi berakhir.');
                         }
                         const data = await res.json().catch(function() {
@@ -2504,6 +2506,7 @@
                     },
                     doLoginWithPin() {
                         if (!this.token) return;
+                        this.pendingRelogin = true;
                         this.view = 'lock';
                         this.pinEntry = '';
                         this.pinError = '';
@@ -2523,6 +2526,7 @@
                             clearInterval(this.pollTimer);
                             this.pollTimer = null;
                         }
+                        this.pendingRelogin = false;
                         this.view = 'lock';
                         this.pinEntry = '';
                         this.pinError = '';
@@ -2794,22 +2798,46 @@
                     async verifyPin() {
                         const pin = this.pinEntry;
                         const status = await this.serverPinCheck(pin);
-                        if (status === 'ok') {
-                            localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
-                            this.unlock();
+                        const ok = status === 'ok' || this.localPin() === pin;
+                        if (!ok) {
+                            this.pinEntry = '';
+                            this.pinError = status === 'wrong'
+                                ? 'PIN salah, coba lagi.'
+                                : 'Tidak dapat verifikasi — periksa koneksi.';
                             return;
                         }
-                        if (this.localPin() === pin) {
-                            if (this.user && !this.user.has_pin) {
-                                try { await this.api('/auth/pin', { method: 'POST', body: { pin } }); } catch (_) {}
+                        if (status === 'ok') localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
+                        if (this.pendingRelogin) {
+                            const relogged = await this.pinLogin(pin);
+                            if (!relogged) {
+                                this.pinEntry = '';
+                                this.pinError = 'Gagal memperbarui sesi — coba lagi.';
+                                return;
                             }
-                            this.unlock();
-                            return;
                         }
-                        this.pinEntry = '';
-                        this.pinError = status === 'wrong'
-                            ? 'PIN salah, coba lagi.'
-                            : 'Tidak dapat verifikasi — periksa koneksi.';
+                        this.pendingRelogin = false;
+                        this.unlock();
+                    },
+                    async pinLogin(pin) {
+                        try {
+                            const res = await fetch('/api/v1/auth/pin/login', {
+                                method: 'POST',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ email: this.currentEmail(), pin }),
+                            });
+                            const data = await res.json();
+                            if (!res.ok) return false;
+                            this.token = data.token;
+                            this.user = data.user;
+                            localStorage.setItem('fsm_tech_token', this.token);
+                            localStorage.setItem('fsm_tech_user', JSON.stringify(this.user));
+                            return true;
+                        } catch (_) {
+                            return false;
+                        }
                     },
                     unlock() {
                         this.pinEntry = '';

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ChangePasswordRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
+use App\Http\Requests\Api\V1\PinLoginRequest;
 use App\Http\Requests\Api\V1\SetPinRequest;
 use App\Http\Requests\Api\V1\VerifyPinRequest;
 use App\Http\Resources\Api\V1\UserResource;
@@ -82,5 +83,22 @@ class AuthController extends Controller
         }
 
         return response()->json(['valid' => true]);
+    }
+
+    public function pinLogin(PinLoginRequest $request): JsonResponse
+    {
+        $user = User::query()->where('email', $request->validated('email'))->first();
+
+        if ($user === null || blank($user->pin_hash) || ! Hash::check($request->validated('pin'), (string) $user->pin_hash)) {
+            return response()->json(['message' => 'PIN tidak sesuai.'], 422);
+        }
+
+        $token = $user->createToken('fsm-api');
+
+        return response()->json([
+            'token' => $token->plainTextToken,
+            'token_type' => 'Bearer',
+            'user' => new UserResource($user),
+        ]);
     }
 }
