@@ -1407,6 +1407,10 @@
                     <button type="button" class="pin-key" style="width:100%;font-size:16px;" @click="openChangePin">
                         🔢 Ganti PIN
                     </button>
+                    <button type="button" class="pin-key" style="width:100%;font-size:16px;margin-top:4px;"
+                        @click="openChangePass">
+                        🔑 Ganti Password
+                    </button>
                     <div v-if="biometricAvailable" class="bio-row">
                         <span class="bio-label">👆 Buka dengan Sidik Jari</span>
                         <button type="button" class="bio-switch" :class="{ on: bioEnabled }" @click="toggleBio">
@@ -1440,6 +1444,40 @@
                         style="background:transparent;border-color:transparent;"></button>
                     <button type="button" class="pin-key" @click="pinChangeKey('0')">0</button>
                     <button type="button" class="pin-key pin-key-back" @click="pinChangeBack">⌫</button>
+                </div>
+                <div class="lock-actions">
+                    <button type="button" class="lock-link" @click="view = 'security'">Kembali</button>
+                </div>
+            </div>
+
+            <!-- ============ FULLSCREEN GANTI PASSWORD ============ -->
+            <div v-if="view === 'change-pass'" class="lock-screen">
+                <div class="lock-logo-wrap">
+                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                </div>
+                <div class="lock-title">Ganti Password</div>
+                <div class="lock-sub">Password minimal 6 karakter</div>
+                <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" style="color:rgba(255,255,255,.7);">Password Saat Ini</label>
+                        <input class="pass-input" type="password" v-model.trim="passModal.current"
+                            style="letter-spacing:2px;text-align:left;" placeholder="Password lama">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" style="color:rgba(255,255,255,.7);">Password Baru</label>
+                        <input class="pass-input" type="password" v-model.trim="passModal.next"
+                            style="letter-spacing:2px;text-align:left;" placeholder="Minimal 6 karakter">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" style="color:rgba(255,255,255,.7);">Ulangi Password Baru</label>
+                        <input class="pass-input" type="password" v-model.trim="passModal.confirm"
+                            style="letter-spacing:2px;text-align:left;" placeholder="Ketik ulang">
+                    </div>
+                    <div v-if="passModal.error" class="pin-error">{{ passModal.error }}</div>
+                    <button class="btn-login" style="margin-top:8px;" :disabled="busy" @click="submitPasswordChange">
+                        <span v-if="busy">⏳ Menyimpan…</span>
+                        <span v-else>Simpan Password</span>
+                    </button>
                 </div>
                 <div class="lock-actions">
                     <button type="button" class="lock-link" @click="view = 'security'">Kembali</button>
@@ -1683,10 +1721,6 @@
                             <span class="nav-icon">🏠</span>
                             <span>Beranda</span>
                         </button>
-                        <button class="nav-item" @click="openPassModal">
-                            <span class="nav-icon">🔑</span>
-                            <span>Password</span>
-                        </button>
                         <button class="nav-item" @click="view = 'security'">
                             <span class="nav-icon">🔐</span>
                             <span>Keamanan</span>
@@ -1736,91 +1770,7 @@
                 </div>
             </div>
 
-            <!-- ================================================
-                     MODAL GANTI PASSWORD (ENHANCED FORM DESIGN)
-                ================================================ -->
-            <div v-if="passModal.show" class="modal-backdrop" @click.self="passModal.show = false">
-                <div class="modal">
-                    <div class="modal-grip"></div>
-
-                    <div class="modal-head">
-                        <div class="modal-title-box">
-                            <div class="modal-icon-badge">🔐</div>
-                            <div>
-                                <h3>Ganti Password</h3>
-                                <p class="desc">Perbarui password akun teknisimu</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Input Password Lama -->
-                    <div class="form-group">
-                        <label class="form-label">Password Saat Ini</label>
-                        <div class="pass-input-box">
-                            <span class="field-ico">🔒</span>
-                            <input :type="showPassCurrent ? 'text' : 'password'" v-model.trim="passModal.current"
-                                placeholder="Masukkan password lama">
-                            <button class="eye-toggle" type="button" @click="showPassCurrent = !showPassCurrent">
-                                {{ showPassCurrent ? '🙈' : '👁️' }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Input Password Baru -->
-                    <div class="form-group">
-                        <label class="form-label">Password Baru</label>
-                        <div class="pass-input-box">
-                            <span class="field-ico">🔑</span>
-                            <input :type="showPassNext ? 'text' : 'password'" v-model.trim="passModal.next"
-                                placeholder="Minimal 6 karakter">
-                            <button class="eye-toggle" type="button" @click="showPassNext = !showPassNext">
-                                {{ showPassNext ? '🙈' : '👁️' }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Konfirmasi Password Baru -->
-                    <div class="form-group">
-                        <label class="form-label">Ulangi Password Baru</label>
-                        <div class="pass-input-box">
-                            <span class="field-ico">✨</span>
-                            <input :type="showPassConfirm ? 'text' : 'password'" v-model.trim="passModal.confirm"
-                                placeholder="Ketik ulang password baru">
-                            <button class="eye-toggle" type="button" @click="showPassConfirm = !showPassConfirm">
-                                {{ showPassConfirm ? '🙈' : '👁️' }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Realtime Indicator Checklist -->
-                    <div class="pass-checklist">
-                        <div class="chk-item" :class="{ valid: passModal.next.length >= 6 }">
-                            <span>{{ passModal . next . length >= 6 ? '✅' : '⚪' }}</span>
-                            <span>Minimal 6 karakter</span>
-                        </div>
-                        <div class="chk-item" :class="{ valid: passModal.next && passModal.next === passModal.confirm }">
-                            <span>{{ passModal . next && passModal . next === passModal . confirm ? '✅' : '⚪' }}</span>
-                            <span>Konfirmasi password baru cocok</span>
-                        </div>
-                    </div>
-
-                    <div v-if="passModal.error"
-                        style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
-                        ⚠️ {{ passModal . error }}
-                    </div>
-
-                    <div class="modal-actions">
-                        <button class="cancel" type="button" @click="passModal.show = false">Batal</button>
-                        <button class="ok-red" type="button"
-                            :disabled="busy || passModal.next.length < 6 || passModal.next !== passModal.confirm || !passModal
-                                .current"
-                            @click="submitPasswordChange">
-                            {{ busy ? '⏳ Menyimpan…' : 'Simpan Password' }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
+            
         </div>
 
         <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -2826,17 +2776,15 @@
                         this.mapMarker = null;
                         this.mapPosMarker = null;
                     },
-                    openPassModal() {
+                    openChangePass() {
                         this.passModal = {
-                            show: true,
+                            show: false,
                             current: '',
                             next: '',
                             confirm: '',
                             error: ''
                         };
-                        this.showPassCurrent = false;
-                        this.showPassNext = false;
-                        this.showPassConfirm = false;
+                        this.view = 'change-pass';
                     },
                     async submitPasswordChange() {
                         const p = this.passModal;
@@ -2851,7 +2799,7 @@
                                     new_password_confirmation: p.confirm
                                 },
                             });
-                            p.show = false;
+                            this.view = 'home';
                             this.showToast('Password berhasil diganti! 🔐', 'success');
                         } catch (err) {
                             p.error = err.message;
