@@ -39,6 +39,8 @@ class LegacyWorkOrderService
         ?string $locationAddress = null,
         ?float $latitude = null,
         ?float $longitude = null,
+        ?string $customerPhone = null,
+        ?string $customerEmail = null,
     ): WorkOrder {
         $row = $this->legacy->salesBySerial($salesSerial);
 
@@ -57,8 +59,10 @@ class LegacyWorkOrderService
             $locationAddress,
             $latitude,
             $longitude,
+            $customerPhone,
+            $customerEmail,
         ): WorkOrder {
-            $customer = $this->upsertCustomer($row);
+            $customer = $this->upsertCustomer($row, $customerPhone, $customerEmail);
             $location = $this->upsertServiceLocation($customer, $row, $locationAddress, $latitude, $longitude);
             $salesOrder = $this->upsertSalesOrder($customer, $row);
             $workOrder = $this->createWorkOrder($salesOrder, $customer, $location, $row, $scheduledStartAt, $notes, $actor);
@@ -79,7 +83,11 @@ class LegacyWorkOrderService
         });
     }
 
-    private function upsertCustomer(object $row): Customer
+    private function upsertCustomer(
+        object $row,
+        ?string $phoneOverride = null,
+        ?string $emailOverride = null,
+    ): Customer
     {
         $externalId = filled($row->user_serial) ? (string) $row->user_serial : 'sales-'.$row->serial;
 
@@ -87,8 +95,8 @@ class LegacyWorkOrderService
             ['external_id' => $externalId],
             [
                 'name' => $row->customer_name ?? 'Customer '.$row->serial,
-                'phone' => $row->cell_phone ?? null,
-                'email' => $row->customer_email ?? null,
+                'phone' => filled($phoneOverride) ? $phoneOverride : ($row->cell_phone ?? null),
+                'email' => filled($emailOverride) ? $emailOverride : ($row->customer_email ?? null),
             ],
         );
     }

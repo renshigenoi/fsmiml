@@ -378,7 +378,7 @@
 
         /* Content */
         .content {
-            max-width: 1200px;
+            max-width: 1600px;
             width: 100%;
             margin: 0 auto;
             padding: 28px;

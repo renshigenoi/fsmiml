@@ -38,6 +38,7 @@ final class LegacyRowFormatter
             'sales_invoice_no_materials' => $row->sales_invoice_no_materials ?? null,
             'sales_order_no_materials' => $row->sales_order_no_materials ?? null,
             'customer_name' => $row->customer_name ?? null,
+            'customer_email' => $row->customer_email ?? null,
             'address' => $row->address ?? null,
             'city' => $row->city ?? null,
             'state' => $row->state ?? null,
@@ -48,6 +49,7 @@ final class LegacyRowFormatter
             'car_model' => $row->car_model ?? null,
             'installation_date' => $row->sellingdate ?? $row->installation_date ?? null,
             'pairing_date' => $row->techniciandate ?? $row->pairing_date ?? null,
+            'window_film_desc' => $row->window_film_desc ?? null,
         ];
     }
 }

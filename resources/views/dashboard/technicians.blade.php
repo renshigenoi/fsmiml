@@ -357,6 +357,12 @@
                         </div>
                     </div>
                     <div class="tc-detail-row">
+                        <div class="tc-ico">✉️</div>
+                        <div class="tc-val {{ $technician->email ? '' : 'muted-val' }}">
+                            {{ $technician->email ?? 'Email tidak tersedia' }}
+                        </div>
+                    </div>
+                    <div class="tc-detail-row">
                         <div class="tc-ico">📍</div>
                         <div class="tc-val {{ $address ? '' : 'muted-val' }}" style="line-height:1.4;">
                             {{ $address ?: 'Alamat tidak tersedia' }}

@@ -265,6 +265,7 @@
                         <button type="button" class="sp-clear" id="btn-clear-spk">✕ Ganti SPK</button>
                     </div>
                     <div class="sp-grid">
+                        <div class="sp-field"><div class="sp-label">Jenis Film</div><div class="sp-val" id="s-film">—</div></div>
                         <div class="sp-field"><div class="sp-label">Customer</div><div class="sp-val" id="s-customer">—</div></div>
                         <div class="sp-field"><div class="sp-label">Kendaraan</div><div class="sp-val" id="s-car">—</div></div>
                         <div class="sp-field"><div class="sp-label">Tanggal Pasang (Sumber)</div><div class="sp-val" id="s-date">—</div></div>
@@ -318,6 +319,35 @@
             </div>
         </div>
 
+        {{-- Step 4: Kontak Customer --}}
+        <div class="sec-card">
+            <div class="sec-card-head">
+                <div class="sec-head-ico" style="background:linear-gradient(135deg,#0284c7,#0369a1);">✉️</div>
+                <div>
+                    <h3>Langkah 4 — Kontak Customer (Opsional)</h3>
+                    <p>Isi jika ingin memperbarui no. WA / email customer</p>
+                </div>
+            </div>
+            <div class="sec-card-body">
+                <div class="field-2col">
+                    <div>
+                        <label for="customer-phone">No. WhatsApp</label>
+                        <input type="tel" name="customer_phone" id="customer-phone"
+                               placeholder="08xxxxxxxxxx" autocomplete="off">
+                    </div>
+                    <div>
+                        <label for="customer-email">Email</label>
+                        <input type="email" name="customer_email" id="customer-email"
+                               placeholder="nama@email.com" autocomplete="off"
+                               pattern="[^@\s]+@[^@\s]+\.[^@\s]+" title="Format email tidak valid, contoh: nama@email.com">
+                    </div>
+                </div>
+                <div class="map-hint" style="margin-top:10px;">
+                    Kosongkan jika tidak ingin mengubah data customer.
+                </div>
+            </div>
+        </div>
+
     </div>{{-- /left --}}
 
     {{-- === RIGHT === --}}
@@ -335,16 +365,18 @@
             <div class="sec-card-body" style="padding-bottom:0;">
                 <div class="field-2col">
                     <div>
-                        <label for="scheduled-start-at">Tanggal Pemasangan</label>
-                        <input type="date" name="scheduled_start_at" id="scheduled-start-at">
+                        <label for="scheduled-start-at">Tanggal Pemasangan <span style="color:var(--red-500);">*</span></label>
+                        <input type="date" name="scheduled_start_at" id="scheduled-start-at" required>
                     </div>
                     <div>
-                        <label for="notes">Catatan</label>
-                        <textarea name="notes" id="notes" rows="1"
-                                  placeholder="Opsional..."
-                                  style="resize:vertical;"></textarea>
+                        <label for="scheduled-start-time">Jam Pemasangan</label>
+                        <input type="time" name="scheduled_start_time" id="scheduled-start-time">
                     </div>
                 </div>
+                <label for="notes" style="margin-top:14px;">Catatan</label>
+                <textarea name="notes" id="notes" rows="1"
+                          placeholder="Opsional..."
+                          style="resize:vertical;"></textarea>
 
                 <label for="tech-filter">Cari Teknisi</label>
                 <div class="tech-filter-wrap" style="position:relative;">
@@ -391,6 +423,9 @@
             document.getElementById('location-address').value = fullAddress;
             document.getElementById('s-car').textContent = [data.car_brand, data.car_model].filter(Boolean).join(' ') || '-';
             document.getElementById('s-date').textContent = data.installation_date || '-';
+            document.getElementById('s-film').textContent = data.window_film_desc || '-';
+            document.getElementById('customer-phone').value = data.cell_phone || '';
+            document.getElementById('customer-email').value = data.customer_email || '';
             document.getElementById('legacy-sales-serial').value = data.serial || '';
             const dateInput = document.getElementById('scheduled-start-at');
             if (!dateInput.value && data.installation_date) {
@@ -442,6 +477,7 @@
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div class="ss-number">${row.spk_no || ''}</div>
+                    <div class="ss-sub"><span>🪟 ${row.window_film_desc || '-'}</span></div>
                     <div class="ss-sub">
                         <span>👤 ${row.customer_name || '-'}</span>
                         <span>📅 ${row.installation_date || '-'}</span>
@@ -513,7 +549,7 @@
         try {
             const data = await nominatimGet('reverse', { format: 'jsonv2', lat, lon: lng, zoom: 16 });
             const input = document.getElementById('location-address');
-            if (data?.display_name && !input.value.trim()) input.value = data.display_name;
+            if (data?.display_name) input.value = data.display_name;
         } catch (_) {}
     }
 
@@ -605,10 +641,16 @@
     ===================================================== */
     document.getElementById('wo-form').addEventListener('submit', e => {
         const serial = document.getElementById('legacy-sales-serial').value;
+        const dateVal = document.getElementById('scheduled-start-at').value;
         const checks = document.querySelectorAll('.tech-check:checked');
         if (!serial) {
             e.preventDefault();
             alert('⚠️ Silakan pilih SPK terlebih dahulu.');
+            return;
+        }
+        if (!dateVal) {
+            e.preventDefault();
+            alert('⚠️ Tanggal pemasangan wajib diisi.');
             return;
         }
         if (!checks.length) {
