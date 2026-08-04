@@ -624,7 +624,8 @@
             document.getElementById('s-car').textContent = [data.car_brand, data.car_model].filter(Boolean).join(' ') || '-';
             document.getElementById('s-date').textContent = data.installation_date || '-';
             document.getElementById('s-film').textContent = data.window_film_desc || '-';
-            document.getElementById('customer-phone').value = normalizePhoneInput(data.cell_phone);
+            document.getElementById('customer-phone').value =
+                normalizePhoneInput(data.cell_phone || data.home_phone || data.office_phone);
             document.getElementById('customer-email').value = data.customer_email || '';
             document.getElementById('legacy-sales-serial').value = data.serial || '';
             const dateInput = document.getElementById('scheduled-start-at');

@@ -44,6 +44,8 @@ final class LegacyRowFormatter
             'state' => $row->state ?? null,
             'zip' => $row->zip ?? null,
             'cell_phone' => $row->cell_phone ?? null,
+            'home_phone' => $row->home_phone ?? null,
+            'office_phone' => $row->office_phone ?? null,
             'contact_person' => $row->contact_person ?? null,
             'car_brand' => $row->car_brand ?? null,
             'car_model' => $row->car_model ?? null,
