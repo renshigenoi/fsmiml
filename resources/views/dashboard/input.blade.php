@@ -206,10 +206,11 @@
         display: none;
         position: absolute;
         top: calc(100% + 6px);
-        left: 0;
+        right: 0;
+        left: auto;
         z-index: 60;
         width: 330px;
-        max-width: 90vw;
+        max-width: calc(100vw - 32px);
         background: #fff;
         border: 1px solid var(--line,#e2e8f4);
         border-radius: 14px;
@@ -282,6 +283,47 @@
     .tp-now { background: var(--surface-2,#f6f9ff); color: var(--ink-2,#2c3e65); }
     .tp-clear { background: var(--surface-2,#f6f9ff); color: var(--red-500,#c8102e); }
     .tp-done { background: linear-gradient(135deg,#c8102e,#a30d24); color: #fff; }
+
+    /* ---- Date picker popup ---- */
+    .date-picker-popup { width: 300px; }
+    .dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .dp-nav {
+        border: 1px solid var(--line,#e2e8f4);
+        background: var(--surface-2,#f6f9ff);
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        font-size: 16px;
+        color: var(--ink-2,#2c3e65);
+    }
+    .dp-nav:hover { border-color: var(--red-500,#c8102e); color: var(--red-500,#c8102e); }
+    .dp-title { font-weight: 800; font-size: 14px; color: var(--navy-700,#112b5c); }
+    .dp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px; }
+    .dp-weekdays span {
+        text-align: center;
+        font-size: 10.5px;
+        font-weight: 800;
+        color: var(--muted,#64748b);
+        text-transform: uppercase;
+    }
+    .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px; }
+    .dp-day {
+        border: 1px solid transparent;
+        background: transparent;
+        border-radius: 8px;
+        padding: 7px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-2,#2c3e65);
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+        font-family: inherit;
+    }
+    .dp-day:hover { background: var(--surface-2,#f6f9ff); border-color: var(--line,#e2e8f4); }
+    .dp-day.out { color: #c3cbe0; }
+    .dp-day.today { border-color: var(--red-500,#c8102e); color: var(--red-500,#c8102e); }
+    .dp-day.selected { background: var(--navy-700,#112b5c); border-color: var(--navy-700,#112b5c); color: #fff; }
 
     /* ---- Map ---- */
     #location-map { height: 320px; border-radius: 10px; border: 1.5px solid var(--line,#e2e8f4); z-index: 0; }
@@ -387,7 +429,7 @@
                 </div>
             </div>
             <div class="sec-card-body">
-                <div class="field-2col" style="margin-bottom:14px;">
+                <div class="field-2col" style="margin-bottom:14px;grid-template-columns:1fr auto;">
                     <div>
                         <label for="location-search">Cari Lokasi / Tempat</label>
                         <div style="position:relative;">
@@ -468,7 +510,30 @@
                 <div class="field-2col">
                     <div>
                         <label for="scheduled-start-at">Tanggal Pemasangan <span style="color:var(--red-500);">*</span></label>
-                        <input type="date" name="scheduled_start_at" id="scheduled-start-at" required>
+                        <div class="time-picker-wrap">
+                            <button type="button" id="date-picker-btn" class="time-picker-btn">
+                                <span class="tp-ico">📅</span>
+                                <span class="tp-display" id="date-picker-display">Pilih tanggal</span>
+                            </button>
+                            <input type="hidden" name="scheduled_start_at" id="scheduled-start-at" required>
+                            <div id="date-picker-popup" class="time-picker-popup date-picker-popup">
+                                <div class="dp-head">
+                                    <button type="button" class="dp-nav" id="dp-prev">‹</button>
+                                    <div class="dp-title" id="dp-title"></div>
+                                    <button type="button" class="dp-nav" id="dp-next">›</button>
+                                </div>
+                                <div class="dp-weekdays">
+                                    <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span>
+                                    <span>Jum</span><span>Sab</span><span>Min</span>
+                                </div>
+                                <div class="dp-grid" id="dp-grid"></div>
+                                <div class="tp-actions">
+                                    <button type="button" class="tp-now" id="dp-today">Hari Ini</button>
+                                    <button type="button" class="tp-clear" id="dp-clear">Hapus</button>
+                                    <button type="button" class="tp-done" id="dp-done">OK</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label for="time-picker-btn">Jam Pemasangan</label>
@@ -563,7 +628,7 @@
             document.getElementById('legacy-sales-serial').value = data.serial || '';
             const dateInput = document.getElementById('scheduled-start-at');
             if (!dateInput.value && data.installation_date) {
-                dateInput.value = data.installation_date.slice(0, 10);
+                setScheduledDate(data.installation_date.slice(0, 10));
             }
             preview.classList.add('visible');
             document.getElementById('spk-search').closest('.spk-search-wrap').style.display = 'none';
@@ -820,6 +885,7 @@
 
     timePickerBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        datePickerPopup.classList.remove('open');
         timePickerPopup.classList.toggle('open');
     });
 
@@ -850,13 +916,115 @@
         if (!timePickerBtn.contains(e.target) && !timePickerPopup.contains(e.target)) {
             timePickerPopup.classList.remove('open');
         }
+        if (!datePickerBtn.contains(e.target) && !datePickerPopup.contains(e.target)) {
+            datePickerPopup.classList.remove('open');
+        }
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') timePickerPopup.classList.remove('open');
+        if (e.key === 'Escape') {
+            timePickerPopup.classList.remove('open');
+            datePickerPopup.classList.remove('open');
+        }
     });
 
     buildTimeOptions();
+
+    /* =====================================================
+       DATE PICKER POPUP (TANGGAL PEMASANGAN)
+    ===================================================== */
+    const datePickerBtn = document.getElementById('date-picker-btn');
+    const datePickerPopup = document.getElementById('date-picker-popup');
+    const dateDisplay = document.getElementById('date-picker-display');
+    const dateInput = document.getElementById('scheduled-start-at');
+    let dpView = new Date();
+    let dpSelected = dateInput.value || null;
+
+    function setScheduledDate(value) {
+        dateInput.value = value || '';
+        if (value) {
+            const d = new Date(value + 'T00:00:00');
+            dateDisplay.textContent = d.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+            const parts = value.split('-');
+            dpView = new Date(+parts[0], +parts[1] - 1, 1);
+        } else {
+            dateDisplay.textContent = 'Pilih tanggal';
+        }
+        dpSelected = value || null;
+        if (datePickerPopup.classList.contains('open')) renderDatePicker();
+    }
+
+    function renderDatePicker() {
+        document.getElementById('dp-title').textContent = dpView.toLocaleDateString('id-ID', {
+            month: 'long',
+            year: 'numeric'
+        });
+        const grid = document.getElementById('dp-grid');
+        grid.innerHTML = '';
+        const y = dpView.getFullYear(),
+            m = dpView.getMonth();
+        const startDow = (new Date(y, m, 1).getDay() + 6) % 7;
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const prevDays = new Date(y, m, 0).getDate();
+        const now = new Date();
+        const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0');
+
+        for (let i = 0; i < startDow; i++) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'dp-day out';
+            b.textContent = prevDays - startDow + 1 + i;
+            b.disabled = true;
+            grid.appendChild(b);
+        }
+        for (let d = 1; d <= daysInMonth; d++) {
+            const ds = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'dp-day';
+            if (ds === todayStr) b.classList.add('today');
+            if (ds === dpSelected) b.classList.add('selected');
+            b.textContent = d;
+            b.addEventListener('click', () => setScheduledDate(ds));
+            grid.appendChild(b);
+        }
+    }
+
+    datePickerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !datePickerPopup.classList.contains('open');
+        timePickerPopup.classList.remove('open');
+        datePickerPopup.classList.toggle('open', open);
+        if (open) renderDatePicker();
+    });
+
+    document.getElementById('dp-prev').addEventListener('click', () => {
+        dpView = new Date(dpView.getFullYear(), dpView.getMonth() - 1, 1);
+        renderDatePicker();
+    });
+
+    document.getElementById('dp-next').addEventListener('click', () => {
+        dpView = new Date(dpView.getFullYear(), dpView.getMonth() + 1, 1);
+        renderDatePicker();
+    });
+
+    document.getElementById('dp-today').addEventListener('click', () => {
+        const t = new Date();
+        const ds = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' +
+            String(t.getDate()).padStart(2, '0');
+        setScheduledDate(ds);
+    });
+
+    document.getElementById('dp-clear').addEventListener('click', () => setScheduledDate(null));
+
+    document.getElementById('dp-done').addEventListener('click', () => {
+        datePickerPopup.classList.remove('open');
+    });
 
     /* =====================================================
        FORM SUBMIT VALIDATION
