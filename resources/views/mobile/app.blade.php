@@ -1107,6 +1107,131 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* ---- PIN Lock Screen ---- */
+        .lock-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            background: linear-gradient(160deg, #061429 0%, #0b2044 60%, #112b5c 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: #fff;
+        }
+
+        .lock-logo-wrap {
+            background: #fff;
+            border-radius: 16px;
+            padding: 12px 20px;
+            margin-bottom: 22px;
+        }
+
+        .lock-logo-wrap img {
+            height: 42px;
+            display: block;
+        }
+
+        .lock-title {
+            margin: 0 0 4px;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .lock-sub {
+            margin: 0 0 26px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, .6);
+        }
+
+        .pin-dots {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .pin-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, .45);
+        }
+
+        .pin-dot.filled {
+            background: #c8102e;
+            border-color: #c8102e;
+        }
+
+        .pin-error {
+            color: #ffb3bc;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            min-height: 18px;
+        }
+
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 76px);
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .pin-key {
+            width: 76px;
+            height: 64px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid rgba(255, 255, 255, .14);
+            color: #fff;
+            font-size: 22px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .pin-key:active {
+            background: rgba(255, 255, 255, .18);
+        }
+
+        .pin-key-back {
+            font-size: 18px;
+        }
+
+        .lock-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lock-link {
+            background: none;
+            border: 0;
+            color: rgba(255, 255, 255, .75);
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .pass-input {
+            width: 100%;
+            border: 1.5px solid var(--line);
+            border-radius: var(--r-sm);
+            padding: 12px 14px;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 8px;
+            background: var(--surface-2);
+            color: var(--ink);
+            outline: none;
+            font-family: inherit;
+        }
+
+        .pass-input:focus {
+            border-color: var(--red-500);
+        }
     </style>
 </head>
 
@@ -1120,6 +1245,35 @@
                 <span>🔄 Versi baru {{ updateInfo.version }} tersedia — ketuk untuk unduh</span>
                 <button v-if="!updateInfo.required" type="button" class="ub-close"
                     @click.stop="updateInfo = null">✕</button>
+            </div>
+
+            <!-- ============ PIN LOCK SCREEN ============ -->
+            <div v-if="token && view === 'lock'" class="lock-screen">
+                <div class="lock-logo-wrap">
+                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                </div>
+                <div class="lock-title">Masukkan PIN</div>
+                <div class="lock-sub">Buka aplikasi FSM Teknisi</div>
+                <div class="pin-dots">
+                    <span v-for="i in 4" :key="i" class="pin-dot"
+                        :class="{ filled: i <= pinEntry.length }"></span>
+                </div>
+                <div class="pin-error">{{ pinError }}</div>
+                <div class="pin-pad">
+                    <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key"
+                        @click="pinKey(String(n))">{{ n }}</button>
+                    <button v-if="biometricAvailable" type="button" class="pin-key" @click="tryBiometric">👆</button>
+                    <button v-else type="button" class="pin-key"
+                        style="background:transparent;border-color:transparent;"></button>
+                    <button type="button" class="pin-key" @click="pinKey('0')">0</button>
+                    <button type="button" class="pin-key pin-key-back" @click="pinBack">⌫</button>
+                </div>
+                <div class="lock-actions">
+                    <button v-if="biometricAvailable" type="button" class="lock-link" @click="tryBiometric">
+                        👆 Buka dengan Sidik Jari
+                    </button>
+                    <button type="button" class="lock-link" @click="forceLogout">Keluar / Ganti Akun</button>
+                </div>
             </div>
 
             <!-- ================================================
@@ -1485,6 +1639,42 @@
                 </div>
             </div>
 
+        <!-- ============ MODAL BUAT PIN ============ -->
+        <div v-if="pinSetup.show" class="modal-backdrop">
+            <div class="modal">
+                <div class="modal-grip"></div>
+                <div class="modal-head">
+                    <div class="modal-title-box">
+                        <div class="modal-icon-badge">🔐</div>
+                        <div>
+                            <h3>Buat PIN Keamanan</h3>
+                            <p class="desc">Login berikutnya cukup pakai PIN 4 digit (opsional)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">PIN Baru (4 digit)</label>
+                    <input class="pass-input" type="password" inputmode="numeric" maxlength="4"
+                        v-model.trim="pinSetup.first"
+                        @input="pinSetup.first = pinSetup.first.replace(/\D/g,'')">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ulangi PIN</label>
+                    <input class="pass-input" type="password" inputmode="numeric" maxlength="4"
+                        v-model.trim="pinSetup.confirm"
+                        @input="pinSetup.confirm = pinSetup.confirm.replace(/\D/g,'')">
+                </div>
+                <div v-if="pinSetup.error"
+                    style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
+                    ⚠️ {{ pinSetup.error }}
+                </div>
+                <div class="modal-actions">
+                    <button class="cancel" type="button" @click="skipPinSetup">Lewati</button>
+                    <button class="ok-red" type="button" :disabled="busy" @click="submitPinSetup">Simpan PIN</button>
+                </div>
+            </div>
+        </div>
+
         </div>
 
         <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -1582,6 +1772,15 @@
                             type: 'info'
                         },
                         updateInfo: null,
+                        pinEntry: '',
+                        pinError: '',
+                        pinSetup: {
+                            show: false,
+                            first: '',
+                            confirm: '',
+                            error: ''
+                        },
+                        biometricAvailable: false,
 
                         // Password Modal Data & Eye Toggles
                         passModal: {
@@ -1623,6 +1822,9 @@
                             day: 'numeric',
                             month: 'short'
                         });
+                    },
+                    pinEnabled() {
+                        return !!localStorage.getItem('fsm_pin_salt');
                     },
                     firstName() {
                         return this.user ? (this.user.name || 'Teknisi').split(' ')[0] : 'Teknisi';
@@ -1757,6 +1959,11 @@
                 },
                 mounted() {
                     this.checkAppVersion();
+                    this.detectBiometric();
+                    if (this.token && this.pinEnabled) {
+                        this.view = 'lock';
+                        return;
+                    }
                     if (this.token) {
                         this.loadOrders();
                         this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
@@ -1867,6 +2074,7 @@
                             localStorage.setItem('fsm_tech_user', JSON.stringify(this.user));
                             this.loadOrders();
                             this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                            if (!this.pinEnabled) this.promptPinSetup();
                         } catch (err) {
                             this.loginError = err.message;
                         } finally {
@@ -1923,6 +2131,8 @@
                             clearInterval(this.pollTimer);
                             this.pollTimer = null;
                         }
+                        this.pinEntry = '';
+                        this.pinError = '';
                     },
                     async doLogout() {
                         try {
@@ -1949,6 +2159,113 @@
                     downloadUpdate() {
                         if (this.updateInfo && this.updateInfo.url) {
                             window.open(this.updateInfo.url, '_system');
+                        }
+                    },
+                    promptPinSetup() {
+                        this.pinSetup = { show: true, first: '', confirm: '', error: '' };
+                    },
+                    skipPinSetup() {
+                        this.pinSetup.show = false;
+                    },
+                    async submitPinSetup() {
+                        const first = this.pinSetup.first;
+                        const confirm = this.pinSetup.confirm;
+                        if (!/^\d{4}$/.test(first)) {
+                            this.pinSetup.error = 'PIN harus 4 digit angka.';
+                            return;
+                        }
+                        if (first !== confirm) {
+                            this.pinSetup.error = 'PIN tidak sama, coba lagi.';
+                            return;
+                        }
+                        this.busy = true;
+                        try {
+                            const salt = this.randomSalt();
+                            const hash = await this.hashPin(first, salt);
+                            localStorage.setItem('fsm_pin_salt', salt);
+                            localStorage.setItem('fsm_pin_hash', hash);
+                            this.pinSetup.show = false;
+                            this.showToast('PIN berhasil dibuat 🔐', 'success');
+                        } catch (err) {
+                            this.pinSetup.error = 'Gagal menyimpan PIN.';
+                        } finally {
+                            this.busy = false;
+                        }
+                    },
+                    async pinKey(digit) {
+                        if (this.pinEntry.length >= 4) return;
+                        this.pinEntry += digit;
+                        this.pinError = '';
+                        if (this.pinEntry.length === 4) await this.verifyPin();
+                    },
+                    pinBack() {
+                        this.pinEntry = this.pinEntry.slice(0, -1);
+                        this.pinError = '';
+                    },
+                    async verifyPin() {
+                        const salt = localStorage.getItem('fsm_pin_salt');
+                        const expected = localStorage.getItem('fsm_pin_hash');
+                        if (!salt || !expected) {
+                            this.forceLogout();
+                            return;
+                        }
+                        const hash = await this.hashPin(this.pinEntry, salt);
+                        if (hash === expected) {
+                            this.unlock();
+                        } else {
+                            this.pinEntry = '';
+                            this.pinError = 'PIN salah, coba lagi.';
+                        }
+                    },
+                    unlock() {
+                        this.pinEntry = '';
+                        this.pinError = '';
+                        this.view = 'home';
+                        if (!this.pollTimer) {
+                            this.loadOrders();
+                            this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                        }
+                    },
+                    async hashPin(pin, salt) {
+                        const text = salt + ':' + pin;
+                        if (window.crypto && crypto.subtle) {
+                            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+                            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+                        }
+                        let h = 5381;
+                        for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
+                        return 'djb2:' + h.toString(16);
+                    },
+                    randomSalt() {
+                        if (window.crypto && crypto.getRandomValues) {
+                            const a = new Uint8Array(8);
+                            crypto.getRandomValues(a);
+                            return Array.from(a).map(b => b.toString(16).padStart(2, '0')).join('');
+                        }
+                        return Math.random().toString(36).slice(2) + Date.now().toString(36);
+                    },
+                    detectBiometric() {
+                        try {
+                            if (window.Capacitor && window.Capacitor.Plugins) {
+                                const p = window.Capacitor.Plugins;
+                                this.biometricAvailable = !!(p.BiometricAuth || p.FingerprintAuth || p.CapacitorBiometricAuth);
+                            }
+                        } catch (_) {
+                            this.biometricAvailable = false;
+                        }
+                    },
+                    async tryBiometric() {
+                        try {
+                            const p = window.Capacitor && window.Capacitor.Plugins;
+                            if (!p) return;
+                            const plugin = p.BiometricAuth || p.FingerprintAuth || p.CapacitorBiometricAuth;
+                            if (!plugin) return;
+                            const res = plugin.verify ?
+                                await plugin.verify({ description: 'Buka FSM Teknisi' }) :
+                                await plugin.authenticate({ description: 'Buka FSM Teknisi' });
+                            if (res && res.verified !== false) this.unlock();
+                        } catch (err) {
+                            this.pinError = 'Sidik jari gagal, gunakan PIN.';
                         }
                     },
                     async runAction(act) {
