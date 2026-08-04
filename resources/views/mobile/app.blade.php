@@ -1771,6 +1771,26 @@
             </div>
 
             
+            <!-- ========== MODAL KONFIRMASI (CUSTOM) ========== -->
+            <div v-if="confirmBox.show" class="modal-backdrop">
+                <div class="modal">
+                    <div class="modal-grip"></div>
+                    <div class="modal-head">
+                        <div class="modal-title-box">
+                            <div class="modal-icon-badge">❓</div>
+                            <div>
+                                <h3>{{ confirmBox.title }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size:14px;color:var(--ink-2);margin:0 0 6px;">{{ confirmBox.message }}</p>
+                    <div class="modal-actions">
+                        <button class="cancel" type="button" @click="confirmBox.show = false">Batal</button>
+                        <button class="ok-red" type="button" @click="confirmOk">Ya</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -1895,6 +1915,12 @@
                             type: 'info'
                         },
                         updateInfo: null,
+                        confirmBox: {
+                            show: false,
+                            title: '',
+                            message: '',
+                            onOk: null
+                        },
                         pinEntry: '',
                         pinError: '',
                         pinSetup: {
@@ -2093,8 +2119,12 @@
                 mounted() {
                     this.checkAppVersion();
                     this.detectBiometric();
+                    this.setupBackButton();
                     if (this.token && this.pinEnabled) {
                         this.view = 'lock';
+                        if (this.biometricAvailable && this.bioEnabled) {
+                            setTimeout(() => this.tryBiometric(), 400);
+                        }
                         return;
                     }
                     if (this.token) {
@@ -2330,6 +2360,36 @@
                         this.view = 'lock';
                         this.pinEntry = '';
                         this.pinError = '';
+                    },
+                    askConfirm(title, message, onOk) {
+                        this.confirmBox = { show: true, title, message, onOk };
+                    },
+                    confirmOk() {
+                        const fn = this.confirmBox.onOk;
+                        this.confirmBox.show = false;
+                        if (typeof fn === 'function') fn();
+                    },
+                    exitApp() {
+                        if (window.Capacitor && window.Capacitor.Plugins.App &&
+                            window.Capacitor.Plugins.App.exitApp) {
+                            window.Capacitor.Plugins.App.exitApp();
+                        }
+                        this.confirmBox.show = false;
+                    },
+                    setupBackButton() {
+                        if (!window.Capacitor || !window.Capacitor.Plugins.App ||
+                            !window.Capacitor.Plugins.App.addListener) return;
+                        window.Capacitor.Plugins.App.addListener('backButton', () => {
+                            if (this.view === 'home' || this.view === 'lock') {
+                                this.askConfirm('Keluar Aplikasi', 'Yakin mau keluar aplikasi?', () => this.exitApp());
+                            } else if (this.view === 'detail') {
+                                this.goHome();
+                            } else if (this.view === 'change-pin' || this.view === 'change-pass') {
+                                this.view = 'security';
+                            } else if (this.view === 'security') {
+                                this.view = 'home';
+                            }
+                        });
                     },
                     softLogout() {
                         this.stopGps();
@@ -2606,8 +2666,12 @@
                             return;
                         }
                         if (act.key === 'finish') {
-                            if (!confirm('Yakin pekerjaan ini sudah selesai? 🙌')) return;
+                            this.askConfirm('Selesaikan Pemasangan', 'Yakin pekerjaan ini sudah selesai? 🙌', () => this.executeAction(act));
+                            return;
                         }
+                        await this.executeAction(act);
+                    },
+                    async executeAction(act) {
                         this.busy = true;
                         try {
                             await this.api('/work-orders/' + this.current.id + '/' + act.key, { method: 'POST' });
