@@ -84,6 +84,8 @@
             --r: 16px;
             --r-lg: 22px;
             --r-xl: 28px;
+
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         *,
@@ -99,7 +101,6 @@
             padding: 0;
             min-height: 100%;
             background: var(--bg);
-            /* Menyamakan background global agar tidak terpotong */
             color: var(--ink);
             font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
             font-size: 15px;
@@ -334,7 +335,7 @@
         }
 
         /* =========================================================
-           SEGMENTED TAB SWITCHER & HORIZONTAL SCROLL CHIPS
+           TAB SWITCHER & HORIZONTAL CHIPS
         ========================================================= */
         .tab-switcher-wrapper {
             padding: 0 16px;
@@ -387,7 +388,6 @@
             color: var(--muted);
         }
 
-        /* Horizontal Scroll Filter Bar (SCROLL-X) */
         .scroll-x-bar {
             display: flex;
             gap: 8px;
@@ -411,7 +411,6 @@
             font-size: 12.5px;
             font-weight: 600;
             cursor: pointer;
-            transition: background .15s, color .15s, border-color .15s;
         }
 
         .filter-chip.active {
@@ -674,7 +673,6 @@
             text-decoration: none;
         }
 
-        /* Fixed Bottom Bar */
         .sticky-actions-bar {
             position: fixed;
             bottom: 0;
@@ -720,13 +718,6 @@
             background: linear-gradient(135deg, #f59e0b, #d97706);
         }
 
-        .action-btn.ghost {
-            background: transparent;
-            color: var(--red-500);
-            border: 1.5px solid rgba(200, 16, 46, .25);
-        }
-
-        /* Bottom Nav */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -777,6 +768,9 @@
             box-shadow: var(--shadow-lg);
         }
 
+        /* =========================================================
+           MODAL & BOTTOM SHEET (ENHANCED FORM DESIGN)
+        ========================================================= */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -785,29 +779,171 @@
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(6px);
         }
 
         .modal {
             background: var(--surface);
             width: 100%;
-            max-width: 500px;
+            max-width: 480px;
             border-radius: var(--r-xl) var(--r-xl) 0 0;
-            padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+            padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+            box-shadow: 0 -12px 48px rgba(0, 0, 0, .25);
+            animation: sheetUp 0.25s var(--ease);
+        }
+
+        @keyframes sheetUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
         }
 
         .modal-grip {
-            width: 36px;
-            height: 4px;
+            width: 40px;
+            height: 4.5px;
             background: var(--line-2);
-            border-radius: 2px;
-            margin: -6px auto 14px;
+            border-radius: 99px;
+            margin: 0 auto 16px;
+        }
+
+        .modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .modal-title-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-icon-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: var(--red-100);
+            color: var(--red-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .modal h3 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .modal .desc {
+            color: var(--muted);
+            font-size: 12.5px;
+            margin: 2px 0 0;
+        }
+
+        /* Form Group Password */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--ink-2);
+            margin-bottom: 6px;
+        }
+
+        .pass-input-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .pass-input-box input {
+            width: 100%;
+            border: 1.5px solid var(--line);
+            border-radius: var(--r-sm);
+            padding: 12px 42px 12px 38px;
+            font-size: 14.5px;
+            font-family: inherit;
+            background: var(--surface-2);
+            color: var(--ink);
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .pass-input-box input:focus {
+            border-color: var(--red-500);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(200, 16, 46, .12);
+        }
+
+        .field-ico {
+            position: absolute;
+            left: 12px;
+            font-size: 16px;
+            opacity: .5;
+            pointer-events: none;
+        }
+
+        .eye-toggle {
+            position: absolute;
+            right: 8px;
+            background: none;
+            border: 0;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: .6;
+            border-radius: 6px;
+        }
+
+        .eye-toggle:active {
+            opacity: 1;
+            background: var(--bg-2);
+        }
+
+        /* Checklist Password */
+        .pass-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: var(--r-sm);
+            padding: 10px 12px;
+            margin-bottom: 16px;
+        }
+
+        .chk-item {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .chk-item.valid {
+            color: var(--green);
+            font-weight: 700;
         }
 
         .modal-actions {
             display: flex;
             gap: 10px;
-            margin-top: 16px;
+            margin-top: 18px;
         }
 
         .modal-actions button {
@@ -815,17 +951,25 @@
             border: 0;
             border-radius: var(--r-sm);
             padding: 14px;
+            font-size: 14.5px;
             font-weight: 700;
+            cursor: pointer;
         }
 
         .modal-actions .cancel {
-            background: var(--bg);
-            color: var(--muted);
+            background: var(--bg-2);
+            color: var(--ink-2);
         }
 
         .modal-actions .ok-red {
             background: var(--red-grad);
             color: #fff;
+            box-shadow: 0 4px 14px rgba(200, 16, 46, .28);
+        }
+
+        .modal-actions button:disabled {
+            opacity: .5;
+            pointer-events: none;
         }
 
         .loading {
@@ -1091,19 +1235,87 @@
             <!-- TOAST -->
             <div v-if="toast.show" class="toast" :class="toast.type">{{ toast . message }}</div>
 
-            <!-- MODAL GANTI PASSWORD -->
+            <!-- ================================================
+                     MODAL GANTI PASSWORD (ENHANCED FORM DESIGN)
+                ================================================ -->
             <div v-if="passModal.show" class="modal-backdrop" @click.self="passModal.show = false">
                 <div class="modal">
                     <div class="modal-grip"></div>
-                    <h3>Ganti Password 🔑</h3>
-                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
-                        <input type="password" v-model.trim="passModal.current" placeholder="Password saat ini">
-                        <input type="password" v-model.trim="passModal.next" placeholder="Password baru">
-                        <input type="password" v-model.trim="passModal.confirm" placeholder="Ulangi password baru">
+
+                    <div class="modal-head">
+                        <div class="modal-title-box">
+                            <div class="modal-icon-badge">🔐</div>
+                            <div>
+                                <h3>Ganti Password</h3>
+                                <p class="desc">Perbarui password akun teknisimu</p>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Input Password Lama -->
+                    <div class="form-group">
+                        <label class="form-label">Password Saat Ini</label>
+                        <div class="pass-input-box">
+                            <span class="field-ico">🔒</span>
+                            <input :type="showPassCurrent ? 'text' : 'password'" v-model.trim="passModal.current"
+                                placeholder="Masukkan password lama">
+                            <button class="eye-toggle" type="button" @click="showPassCurrent = !showPassCurrent">
+                                {{ showPassCurrent ? '🙈' : '👁️' }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Input Password Baru -->
+                    <div class="form-group">
+                        <label class="form-label">Password Baru</label>
+                        <div class="pass-input-box">
+                            <span class="field-ico">🔑</span>
+                            <input :type="showPassNext ? 'text' : 'password'" v-model.trim="passModal.next"
+                                placeholder="Minimal 6 karakter">
+                            <button class="eye-toggle" type="button" @click="showPassNext = !showPassNext">
+                                {{ showPassNext ? '🙈' : '👁️' }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Konfirmasi Password Baru -->
+                    <div class="form-group">
+                        <label class="form-label">Ulangi Password Baru</label>
+                        <div class="pass-input-box">
+                            <span class="field-ico">✨</span>
+                            <input :type="showPassConfirm ? 'text' : 'password'" v-model.trim="passModal.confirm"
+                                placeholder="Ketik ulang password baru">
+                            <button class="eye-toggle" type="button" @click="showPassConfirm = !showPassConfirm">
+                                {{ showPassConfirm ? '🙈' : '👁️' }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Realtime Indicator Checklist -->
+                    <div class="pass-checklist">
+                        <div class="chk-item" :class="{ valid: passModal.next.length >= 6 }">
+                            <span>{{ passModal . next . length >= 6 ? '✅' : '⚪' }}</span>
+                            <span>Minimal 6 karakter</span>
+                        </div>
+                        <div class="chk-item" :class="{ valid: passModal.next && passModal.next === passModal.confirm }">
+                            <span>{{ passModal . next && passModal . next === passModal . confirm ? '✅' : '⚪' }}</span>
+                            <span>Konfirmasi password baru cocok</span>
+                        </div>
+                    </div>
+
+                    <div v-if="passModal.error"
+                        style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
+                        ⚠️ {{ passModal . error }}
+                    </div>
+
                     <div class="modal-actions">
-                        <button class="cancel" @click="passModal.show = false">Batal</button>
-                        <button class="ok-red" :disabled="busy" @click="submitPasswordChange">Simpan</button>
+                        <button class="cancel" type="button" @click="passModal.show = false">Batal</button>
+                        <button class="ok-red" type="button"
+                            :disabled="busy || passModal.next.length < 6 || passModal.next !== passModal.confirm || !passModal
+                                .current"
+                            @click="submitPasswordChange">
+                            {{ busy ? '⏳ Menyimpan…' : 'Simpan Password' }}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1188,8 +1400,8 @@
                         token: localStorage.getItem('fsm_tech_token') || '',
                         user: JSON.parse(localStorage.getItem('fsm_tech_user') || 'null'),
                         view: 'home',
-                        activeTab: 'processing', // Default tab: 'processing' atau 'history'
-                        subFilter: 'all', // Horizontal Filter: 'all', 'waiting_acceptance', dll.
+                        activeTab: 'processing',
+                        subFilter: 'all',
                         loginForm: {
                             email: '',
                             password: ''
@@ -1204,6 +1416,8 @@
                             message: '',
                             type: 'info'
                         },
+
+                        // Password Modal Data & Eye Toggles
                         passModal: {
                             show: false,
                             current: '',
@@ -1211,6 +1425,9 @@
                             confirm: '',
                             error: ''
                         },
+                        showPassCurrent: false,
+                        showPassNext: false,
+                        showPassConfirm: false,
                     };
                 },
                 computed: {
@@ -1317,7 +1534,7 @@
                 },
                 watch: {
                     activeTab() {
-                        this.subFilter = 'all'; // Reset filter x saat ganti tab
+                        this.subFilter = 'all';
                     }
                 },
                 mounted() {
@@ -1469,11 +1686,37 @@
                         this.forceLogout();
                     },
                     openPassModal() {
-                        this.passModal.show = true;
+                        this.passModal = {
+                            show: true,
+                            current: '',
+                            next: '',
+                            confirm: '',
+                            error: ''
+                        };
+                        this.showPassCurrent = false;
+                        this.showPassNext = false;
+                        this.showPassConfirm = false;
                     },
                     async submitPasswordChange() {
-                        this.passModal.show = false;
-                        this.showToast('Password berhasil diganti! 🔐', 'success');
+                        const p = this.passModal;
+                        this.busy = true;
+                        p.error = '';
+                        try {
+                            await this.api('/auth/change-password', {
+                                method: 'POST',
+                                body: {
+                                    current_password: p.current,
+                                    new_password: p.next,
+                                    new_password_confirmation: p.confirm
+                                },
+                            });
+                            p.show = false;
+                            this.showToast('Password berhasil diganti! 🔐', 'success');
+                        } catch (err) {
+                            p.error = err.message;
+                        } finally {
+                            this.busy = false;
+                        }
                     }
                 }
             });
