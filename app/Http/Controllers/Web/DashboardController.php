@@ -108,6 +108,24 @@ class DashboardController extends Controller
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
+    public function overviewJson(): JsonResponse
+    {
+        $statusCounts = WorkOrder::query()
+            ->selectRaw('status, COUNT(*) AS total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return response()->json([
+            'status_counts' => $statusCounts->map(fn ($value): int => (int) $value),
+            'waiting_acceptance' => (int) ($statusCounts[WorkOrderStatus::WaitingAcceptance->value] ?? 0),
+            'on_the_way' => (int) ($statusCounts[WorkOrderStatus::OnTheWay->value] ?? 0),
+            'installation' => (int) ($statusCounts[WorkOrderStatus::Installation->value] ?? 0)
+                + (int) ($statusCounts[WorkOrderStatus::Arrived->value] ?? 0),
+            'finished' => (int) ($statusCounts[WorkOrderStatus::Finished->value] ?? 0),
+            'updated_at' => now()->toIso8601String(),
+        ]);
+    }
+
     public function storeWorkOrder(StoreLegacyWorkOrderRequest $request): RedirectResponse
     {
         $validated = $request->validated();

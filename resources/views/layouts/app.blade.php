@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') — FSM Admin IML</title>
     <link rel="shortcut icon" href="/assets/images/icon.png" type="image/x-icon" />
     <link rel="manifest" href="/mobile/manifest.webmanifest">
@@ -374,6 +375,87 @@
             font-size: 14px;
             flex-shrink: 0;
             box-shadow: 0 2px 8px rgba(200, 16, 46, .30);
+        }
+
+        /* Realtime indicator & toast */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+        }
+        .live-indicator.connected {
+            color: #059669;
+            border-color: rgba(5, 150, 105, .35);
+            background: rgba(5, 150, 105, .08);
+        }
+        .live-indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+        .live-indicator.connected .live-indicator-dot {
+            background: #10b981;
+            animation: rt-pulse 1.4s infinite;
+        }
+        @keyframes rt-pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .35;
+            }
+        }
+        .realtime-toast {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--navy-800);
+            color: #fff;
+            border-radius: 12px;
+            padding: 12px 14px;
+            box-shadow: 0 12px 32px rgba(6, 20, 41, .35);
+            transform: translateY(130%);
+            opacity: 0;
+            transition: transform .25s, opacity .25s;
+            max-width: 440px;
+        }
+        .realtime-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .realtime-toast .rt-icon {
+            font-size: 16px;
+        }
+        .realtime-toast .rt-text {
+            font-size: 13px;
+            flex: 1;
+        }
+        .realtime-toast .rt-refresh {
+            border: 0;
+            background: var(--red-500);
+            color: #fff;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
         }
 
         /* Content */
@@ -964,6 +1046,10 @@
                 <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()"
                     aria-label="Toggle sidebar">☰</button>
                 <div class="topbar-title">@yield('title', 'Dashboard')</div>
+                <div class="live-indicator" id="live-indicator">
+                    <span class="live-indicator-dot"></span>
+                    <span id="live-indicator-label">OFFLINE</span>
+                </div>
                 <div class="topbar-user">
                     <span class="user-name">{{ auth()->user()->name }}</span>
                     <div class="avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</div>
@@ -1023,6 +1109,103 @@
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebar-overlay').classList.remove('show');
         }
+    </script>
+
+    @php
+        $reverbOptions = config('broadcasting.connections.reverb.options') ?? [];
+        $wsHost = (string) ($reverbOptions['host'] ?? '');
+        if (in_array($wsHost, ['localhost', '127.0.0.1'], true)) {
+            $wsHost = request()->getHost();
+        }
+        $wsScheme = (string) ($reverbOptions['scheme'] ?? 'http');
+        $wsPort = (int) ($reverbOptions['port'] ?? 8080);
+    @endphp
+    <script>
+        window.FSM_REALTIME = @json([
+            'key' => config('broadcasting.connections.reverb.key'),
+            'host' => $wsHost,
+            'port' => $wsPort,
+            'scheme' => $wsScheme,
+        ]);
+    </script>
+
+    <div id="realtime-toast" class="realtime-toast">
+        <span class="rt-icon">🔔</span>
+        <span class="rt-text"></span>
+        <button type="button" class="rt-refresh" onclick="window.location.reload()">Muat Ulang</button>
+    </div>
+
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
+    <script>
+        (function () {
+            const cfg = window.FSM_REALTIME || null;
+            const indicator = document.getElementById('live-indicator');
+            const label = document.getElementById('live-indicator-label');
+
+            function setLive(state) {
+                if (!indicator) return;
+                indicator.classList.toggle('connected', state === 'connected');
+                if (label) {
+                    label.textContent = state === 'connected' ? 'LIVE' : (state === 'connecting' ? 'HUBUNG...' : 'OFFLINE');
+                }
+            }
+
+            if (!cfg || !cfg.key || typeof Echo === 'undefined') {
+                setLive('off');
+                return;
+            }
+
+            setLive('connecting');
+
+            window.Echo = new Echo({
+                broadcaster: 'pusher',
+                key: cfg.key,
+                wsHost: cfg.host,
+                wsPort: cfg.port,
+                forceTLS: cfg.scheme === 'https',
+                encrypted: cfg.scheme === 'https',
+                disableStats: true,
+                enabledTransports: ['ws', 'wss'],
+            });
+
+            window.Echo.private('dashboard')
+                .listen('.work-order.status.changed', (payload) => {
+                    if (typeof window.onFsmWorkOrderChanged === 'function') {
+                        window.onFsmWorkOrderChanged(payload);
+                    }
+                    showRealtimeToast(payload);
+                });
+
+            const pusher = window.Echo.connector.pusher;
+            pusher.connection.bind('connected', () => setLive('connected'));
+            pusher.connection.bind('disconnected', () => setLive('off'));
+            pusher.connection.bind('error', () => setLive('off'));
+
+            function statusLabel(s) {
+                return ({
+                    waiting_acceptance: 'Menunggu Konfirmasi',
+                    accepted: 'Diterima',
+                    on_the_way: 'Dalam Perjalanan',
+                    arrived: 'Sudah Tiba',
+                    installation: 'Sedang Pemasangan',
+                    finished: 'Selesai',
+                    cancelled: 'Dibatalkan',
+                    failed: 'Gagal'
+                })[s] || s;
+            }
+
+            function showRealtimeToast(payload) {
+                const box = document.getElementById('realtime-toast');
+                if (!box) return;
+                const number = payload && payload.number ? payload.number : 'Work Order';
+                const status = payload && payload.to_status ? statusLabel(payload.to_status) : '';
+                box.querySelector('.rt-text').textContent = number + ' diperbarui' + (status ? ' — ' + status : '');
+                box.classList.add('show');
+                clearTimeout(window.__fsmRtTimer);
+                window.__fsmRtTimer = setTimeout(() => box.classList.remove('show'), 7000);
+            }
+        })();
     </script>
     @stack('scripts')
 </body>

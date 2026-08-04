@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('dashboard/technicians', [DashboardController::class, 'technicians'])->name('dashboard.technicians');
     Route::get('dashboard/api/sales', [DashboardController::class, 'searchSales']);
     Route::get('dashboard/api/technicians', [DashboardController::class, 'techniciansJson']);
+    Route::get('dashboard/api/overview', [DashboardController::class, 'overviewJson']);
     Route::post('dashboard/work-orders', [DashboardController::class, 'storeWorkOrder']);
     Route::get('dashboard/work-orders/{workOrder}', [DashboardController::class, 'showWorkOrder'])->name('dashboard.work-orders.show');
 

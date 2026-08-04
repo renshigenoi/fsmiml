@@ -307,4 +307,20 @@
         </div>
     @endif
 </div>
+
+@push('scripts')
+    <script>
+        window.onFsmWorkOrderChanged = async function () {
+            try {
+                const res = await fetch('/dashboard/api/overview', { headers: { 'Accept': 'application/json' } });
+                const data = await res.json();
+                const nums = document.querySelectorAll('.stat-card .sc-num');
+                if (nums[0]) nums[0].textContent = data.waiting_acceptance ?? 0;
+                if (nums[1]) nums[1].textContent = data.on_the_way ?? 0;
+                if (nums[2]) nums[2].textContent = data.installation ?? 0;
+                if (nums[3]) nums[3].textContent = data.finished ?? 0;
+            } catch (err) { /* biarkan angka lama; toast realtime tetap muncul */ }
+        };
+    </script>
+@endpush
 @endsection
