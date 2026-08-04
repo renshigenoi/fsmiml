@@ -1603,9 +1603,10 @@
                     activeOrders() {
                         return this.orders.filter(function(wo) {
                             const a = this.myAssignment(wo);
-                            return a && (a.status === 'accepted' || a.status === 'pending' || ['on_the_way',
-                                'arrived', 'installation'
-                            ].includes(wo.status));
+                            if (!a) return false;
+                            if (['rejected', 'superseded'].includes(a.status)) return false;
+                            return ['waiting_acceptance', 'accepted', 'on_the_way', 'arrived', 'installation']
+                                .includes(wo.status);
                         }.bind(this));
                     },
                     historyOrders() {
