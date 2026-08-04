@@ -4,6 +4,76 @@
 
 @section('content')
 <style>
+    /* ---- Page header (Work Order) ---- */
+    .wo-hero {
+        background: linear-gradient(135deg, var(--navy-900, #061429), var(--navy-700, #112b5c));
+        border-radius: 18px;
+        padding: 22px 28px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(11, 32, 68, .22);
+    }
+    .wo-hero::before {
+        content: '';
+        position: absolute;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(200, 16, 46, .15) 0%, transparent 70%);
+        top: -100px;
+        right: 20px;
+        pointer-events: none;
+    }
+    .wo-hero-text {
+        position: relative;
+        z-index: 1;
+    }
+    .wo-hero-text h2 {
+        margin: 0 0 5px;
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: -.3px;
+    }
+    .wo-hero-text p {
+        margin: 0;
+        color: rgba(255, 255, 255, .60);
+        font-size: 13.5px;
+    }
+    .wo-hero-stat {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 14px;
+        padding: 14px 24px;
+        flex-shrink: 0;
+    }
+    .wo-hero-stat .whs-num {
+        font-size: 36px;
+        font-weight: 900;
+        letter-spacing: -2px;
+        line-height: 1;
+    }
+    .wo-hero-stat .whs-lbl {
+        font-size: 11px;
+        color: rgba(255, 255, 255, .55);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    /* Judul kartu digantikan banner halaman */
+    .card-title-row h2 { display: none; }
+    .card-title-row { justify-content: flex-end; }
+
     /* Filter bar enhanced */
     .filter-panel {
         display: flex;
@@ -110,6 +180,18 @@
         padding: 4px 10px;
     }
 </style>
+
+{{-- ===== Hero Banner ===== --}}
+<div class="wo-hero">
+    <div class="wo-hero-text">
+        <h2>📋 Work Order</h2>
+        <p>Pantau dan kelola seluruh pekerjaan pemasangan lapangan.</p>
+    </div>
+    <div class="wo-hero-stat">
+        <div class="whs-num">{{ $workOrders->total() }}</div>
+        <div class="whs-lbl">Total Work Order</div>
+    </div>
+</div>
 
 <div class="card">
     <div class="card-title-row">
