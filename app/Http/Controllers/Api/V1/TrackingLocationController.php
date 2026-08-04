@@ -43,7 +43,12 @@ class TrackingLocationController extends Controller
             ]);
 
         PersistTrackingPoint::dispatch($trackingSession->getKey(), $location);
-        TrackingLocationUpdated::dispatch($trackingSession->work_order_id, $trackingSession->getKey(), $location);
+        TrackingLocationUpdated::dispatch(
+            $trackingSession->work_order_id,
+            $trackingSession->getKey(),
+            $location,
+            $trackingSession->realtime_channel,
+        );
 
         return response()->json(status: 202);
     }

@@ -412,6 +412,13 @@
 
                 @if ($workOrder->serviceLocation->latitude)
                     <div id="wo-map"></div>
+                    <div class="map-note" id="wo-map-note" style="margin-top:10px;font-size:12.5px;color:var(--muted,#64748b);">
+                        @if ($workOrder->status->value === 'on_the_way')
+                            Menunggu sinyal lokasi teknisi...
+                        @else
+                            Posisi teknisi tidak aktif saat ini.
+                        @endif
+                    </div>
                     <a href="https://www.google.com/maps?q={{ $workOrder->serviceLocation->latitude }},{{ $workOrder->serviceLocation->longitude }}"
                        target="_blank" rel="noopener" class="map-link">
                         🗺️ Buka di Google Maps ↗
@@ -461,16 +468,75 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const lat = {{ $workOrder->serviceLocation->latitude }};
-    const lng = {{ $workOrder->serviceLocation->longitude }};
-    const map = L.map('wo-map').setView([lat, lng], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-    L.marker([lat, lng]).addTo(map)
-        .bindPopup('{{ addslashes($workOrder->serviceLocation->address) }}')
-        .openPopup();
+    (function () {
+        const lat = {{ $workOrder->serviceLocation->latitude }};
+        const lng = {{ $workOrder->serviceLocation->longitude }};
+        const initial = @json($currentLocation ?? null);
+        let map = null,
+            posMarker = null,
+            posAccuracy = null;
+
+        function initMap() {
+            if (map || typeof L === 'undefined') return;
+            const el = document.getElementById('wo-map');
+            if (!el) return;
+            map = L.map('wo-map').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('{{ addslashes($workOrder->serviceLocation->address) }}')
+                .openPopup();
+        }
+
+        function updatePos(loc) {
+            if (!loc || !loc.latitude || !loc.longitude) return;
+            if (!map) initMap();
+            if (!map) return;
+            const pLat = parseFloat(loc.latitude),
+                pLng = parseFloat(loc.longitude);
+            if (posMarker) {
+                posMarker.setLatLng([pLat, pLng]);
+            } else {
+                posMarker = L.circleMarker([pLat, pLng], {
+                    radius: 9,
+                    color: '#c8102e',
+                    fillColor: '#c8102e',
+                    fillOpacity: .45
+                }).addTo(map);
+            }
+            if (loc.accuracy_meters) {
+                if (posAccuracy) posAccuracy.setLatLng([pLat, pLng]).setRadius(parseFloat(loc.accuracy_meters));
+                else posAccuracy = L.circle([pLat, pLng], {
+                    radius: parseFloat(loc.accuracy_meters),
+                    color: '#c8102e',
+                    fillColor: '#c8102e',
+                    fillOpacity: .08,
+                    weight: 1
+                }).addTo(map);
+            }
+            const bounds = L.latLngBounds([
+                [pLat, pLng]
+            ]);
+            bounds.extend([lat, lng]);
+            map.fitBounds(bounds.pad(0.35), { maxZoom: 16 });
+            const stamp = loc.recorded_at || loc.received_at;
+            const note = document.getElementById('wo-map-note');
+            if (note) {
+                note.innerHTML = '<span style="color:#059669;font-weight:700;">● Teknisi dalam perjalanan</span> · update ' +
+                    (stamp ? new Date(stamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '...');
+            }
+        }
+
+        initMap();
+        if (initial && initial.latitude) updatePos(initial);
+
+        if (window.Echo) {
+            window.Echo.private('work-order.{{ $workOrder->getKey() }}')
+                .listen('.tracking.location.updated', (payload) => updatePos(payload));
+        }
+    })();
 </script>
 @endif
 @endpush

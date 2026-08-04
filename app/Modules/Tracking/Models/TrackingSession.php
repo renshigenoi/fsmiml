@@ -18,6 +18,7 @@ class TrackingSession extends Model
         'started_at',
         'ended_at',
         'closed_reason',
+        'realtime_channel',
     ];
 
     protected function casts(): array

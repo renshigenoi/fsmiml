@@ -8,11 +8,13 @@ use App\Modules\Assignment\Exceptions\InvalidAssignment;
 use App\Modules\Legacy\Services\LegacyDataSourceService;
 use App\Modules\Legacy\Services\LegacyWorkOrderService;
 use App\Modules\Legacy\Support\LegacyRowFormatter;
+use App\Modules\Tracking\Enums\TrackingSessionStatus;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use App\Modules\WorkOrder\Models\WorkOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -176,6 +178,16 @@ class DashboardController extends Controller
             'trackingSessions',
         ]);
 
-        return view('dashboard.work-order', ['workOrder' => $workOrder]);
+        $activeSession = $workOrder->trackingSessions
+            ->first(fn ($session): bool => $session->status === TrackingSessionStatus::Active);
+
+        $currentLocation = $activeSession !== null
+            ? Cache::get("tracking:session:{$activeSession->getKey()}:current_location")
+            : null;
+
+        return view('dashboard.work-order', [
+            'workOrder' => $workOrder,
+            'currentLocation' => $currentLocation,
+        ]);
     }
 }

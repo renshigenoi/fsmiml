@@ -606,6 +606,24 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    @php
+        $reverbOptions = config('broadcasting.connections.reverb.options') ?? [];
+        $wsHost = (string) ($reverbOptions['host'] ?? '');
+        if (in_array($wsHost, ['localhost', '127.0.0.1'], true)) {
+            $wsHost = request()->getHost();
+        }
+        $trackingRealtime = [
+            'key' => config('broadcasting.connections.reverb.key'),
+            'host' => $wsHost,
+            'port' => (int) ($reverbOptions['port'] ?? 8080),
+            'scheme' => (string) ($reverbOptions['scheme'] ?? 'http'),
+        ];
+    @endphp
+    <script src="{{ asset('assets/vendor/pusher.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/echo.iife.js') }}"></script>
+    <script>
+        window.FSM_TRACKING_REALTIME = @json($trackingRealtime);
+    </script>
     <script>
         const TOKEN = @json($token);
         const API_URL = '/api/v1/public/tracking/' + encodeURIComponent(TOKEN);
@@ -646,7 +664,36 @@
             destMarker = null,
             posMarker = null,
             posAccuracy = null,
-            pollTimer = null;
+            pollTimer = null,
+            subscribed = false,
+            lastRealtime = 0;
+
+        function initTrackingRealtime(data) {
+            if (subscribed || !data.realtime_channel || typeof Echo === 'undefined') return;
+            const cfg = window.FSM_TRACKING_REALTIME || null;
+            if (!cfg || !cfg.key) return;
+            try {
+                window.TrackingEcho = new Echo({
+                    broadcaster: 'pusher',
+                    key: cfg.key,
+                    cluster: 'ap1',
+                    wsHost: cfg.host,
+                    wsPort: cfg.port,
+                    forceTLS: cfg.scheme === 'https',
+                    encrypted: cfg.scheme === 'https',
+                    disableStats: true,
+                    enabledTransports: ['ws', 'wss'],
+                });
+                window.TrackingEcho.channel('tracking.' + data.realtime_channel)
+                    .listen('.tracking.location.updated', (payload) => {
+                        lastRealtime = Date.now();
+                        updatePosition(payload);
+                    });
+                subscribed = true;
+            } catch (err) {
+                console.error('Tracking realtime gagal:', err);
+            }
+        }
 
         function showLoading() {
             document.getElementById('state-loading').classList.remove('hidden');
@@ -752,6 +799,8 @@
                 showActive();
                 if (data.destination) initMap(data.destination, true);
             }
+
+            initTrackingRealtime(data);
         }
 
         function initMap(dest, finalize) {
@@ -835,7 +884,9 @@
 
         showLoading();
         load();
-        pollTimer = setInterval(load, 8000);
+        pollTimer = setInterval(() => {
+            if (Date.now() - lastRealtime > 20000) load();
+        }, 8000);
     </script>
 </body>
 

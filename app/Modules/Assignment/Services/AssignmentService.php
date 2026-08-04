@@ -20,6 +20,7 @@ use App\Modules\WorkOrder\Models\WorkOrderStatusHistory;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AssignmentService
 {
@@ -76,6 +77,7 @@ class AssignmentService
                     'work_order_id' => $lockedWorkOrder->getKey(),
                     'assignment_id' => $assignment->getKey(),
                     'status' => TrackingSessionStatus::Pending,
+                    'realtime_channel' => Str::random(32),
                 ]);
 
                 $assignments->push($assignment);
