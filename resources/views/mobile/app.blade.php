@@ -2342,7 +2342,12 @@
                         const pin = this.pinConfirm.entry;
                         const status = await this.serverPinCheck(pin);
                         if (status === 'ok' || this.localPin() === pin) {
-                            if (status === 'ok') localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
+                            if (status === 'ok') {
+                                localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
+                            } else if (this.user && !this.user.has_pin) {
+                                try { await this.api('/auth/pin', { method: 'POST', body: { pin } }); } catch (_) {}
+                                localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
+                            }
                             this.pinConfirm.show = false;
                             this.showToast('Verifikasi PIN berhasil ✅', 'success');
                             return;
@@ -2459,6 +2464,9 @@
                             return;
                         }
                         if (this.localPin() === pin) {
+                            if (this.user && !this.user.has_pin) {
+                                try { await this.api('/auth/pin', { method: 'POST', body: { pin } }); } catch (_) {}
+                            }
                             this.unlock();
                             return;
                         }
