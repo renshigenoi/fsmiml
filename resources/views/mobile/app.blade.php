@@ -2698,9 +2698,6 @@
                             || window.navigator.standalone === true;
                         if (isStandalone) return;
 
-                        // Jangan tampilkan lagi jika user pernah memilih "Nanti" pada sesi ini.
-                        if (sessionStorage.getItem('fsm_pwa_dismissed') === '1') return;
-
                         this.isIosBrowser = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
                         this.isAndroidBrowser = /android/i.test(navigator.userAgent || '');
 
@@ -2726,8 +2723,7 @@
                         const isMobileBrowser = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
                         setTimeout(() => {
                             if (isMobileBrowser && !this.installEvent &&
-                                !this.installVisible && !this.iosInstallHint && !this.manualHint &&
-                                sessionStorage.getItem('fsm_pwa_dismissed') !== '1') {
+                                !this.installVisible && !this.iosInstallHint && !this.manualHint) {
                                 if (this.isIosBrowser) {
                                     this.iosInstallHint = true;
                                 } else {
@@ -2769,7 +2765,6 @@
                         this.installVisible = false;
                         this.iosInstallHint = false;
                         this.manualHint = false;
-                        sessionStorage.setItem('fsm_pwa_dismissed', '1');
                     },
                     setupConnectivity() {
                         window.addEventListener('online', () => {
