@@ -1853,9 +1853,13 @@
                 return '';
             }
 
+            function fsmPinKeyFor(prefix, email) {
+                const e = String(email || '').trim().toLowerCase();
+                return 'fsm_pin_' + prefix + (e ? '_' + e : '');
+            }
+
             function fsmPinKey(prefix) {
-                const email = fsmCurrentEmail();
-                return 'fsm_pin_' + prefix + (email ? '_' + email : '');
+                return fsmPinKeyFor(prefix, fsmCurrentEmail());
             }
 
             // Migrasi PIN lama (kunci tanpa email) ke kunci per-akun, lalu bersihkan kunci lama.
@@ -1956,7 +1960,7 @@
                         });
                     },
                     pinEnabled() {
-                        return !!localStorage.getItem(fsmPinKey('salt'));
+                        return !!localStorage.getItem(this.pinKey('salt'));
                     },
                     firstName() {
                         return this.user ? (this.user.name || 'Teknisi').split(' ')[0] : 'Teknisi';
@@ -2340,8 +2344,8 @@
                         this.pinConfirm.error = '';
                     },
                     async verifyPinConfirm() {
-                        const salt = localStorage.getItem(fsmPinKey('salt'));
-                        const expected = localStorage.getItem(fsmPinKey('hash'));
+                        const salt = localStorage.getItem(this.pinKey('salt'));
+                        const expected = localStorage.getItem(this.pinKey('hash'));
                         if (!salt || !expected) {
                             this.pinConfirm.show = false;
                             return;
@@ -2356,10 +2360,14 @@
                         }
                     },
                     forgotPin() {
-                        localStorage.removeItem(fsmPinKey('salt'));
-                        localStorage.removeItem(fsmPinKey('hash'));
+                        localStorage.removeItem(this.pinKey('salt'));
+                        localStorage.removeItem(this.pinKey('hash'));
                         this.pinConfirm.show = false;
                         this.showToast('PIN dihapus. Bisa buat PIN baru nanti.', 'info');
+                    },
+                    pinKey(prefix) {
+                        const email = (this.user && this.user.email) || this.loginForm.email || '';
+                        return fsmPinKeyFor(prefix, email);
                     },
                     promptPinSetup() {
                         this.pinSetup = { show: true, stage: 'first', first: '', confirm: '', error: '' };
@@ -2413,8 +2421,8 @@
                         try {
                             const salt = this.randomSalt();
                             const hash = await this.hashPin(first, salt);
-                            localStorage.setItem(fsmPinKey('salt'), salt);
-                            localStorage.setItem(fsmPinKey('hash'), hash);
+                            localStorage.setItem(this.pinKey('salt'), salt);
+                            localStorage.setItem(this.pinKey('hash'), hash);
                             this.pinSetup.show = false;
                             this.showToast('PIN berhasil dibuat 🔐', 'success');
                         } catch (err) {
@@ -2434,8 +2442,8 @@
                         this.pinError = '';
                     },
                     async verifyPin() {
-                        const salt = localStorage.getItem(fsmPinKey('salt'));
-                        const expected = localStorage.getItem(fsmPinKey('hash'));
+                        const salt = localStorage.getItem(this.pinKey('salt'));
+                        const expected = localStorage.getItem(this.pinKey('hash'));
                         if (!salt || !expected) {
                             this.forceLogout();
                             return;
