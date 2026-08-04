@@ -1163,6 +1163,7 @@
                 window.Echo = new Echo({
                     broadcaster: 'pusher',
                     key: cfg.key,
+                    cluster: 'ap1',
                     wsHost: cfg.host,
                     wsPort: cfg.port,
                     forceTLS: cfg.scheme === 'https',
