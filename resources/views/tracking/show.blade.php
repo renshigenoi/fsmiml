@@ -612,6 +612,27 @@
                     </div>
                 </div>
 
+                <!-- Trip summary -->
+                <div class="card" id="trip-summary-card" style="display:none;">
+                    <h4>🧾 Ringkasan Perjalanan</h4>
+                    <div class="kv">
+                        <span class="k">Berangkat</span>
+                        <span class="v" id="ts-start">-</span>
+                    </div>
+                    <div class="kv">
+                        <span class="k">Tiba di lokasi</span>
+                        <span class="v" id="ts-arrive">-</span>
+                    </div>
+                    <div class="kv" id="ts-finish-row">
+                        <span class="k">Selesai pemasangan</span>
+                        <span class="v" id="ts-finish">-</span>
+                    </div>
+                    <div class="kv">
+                        <span class="k">Jarak · Durasi</span>
+                        <span class="v" id="ts-distance">-</span>
+                    </div>
+                </div>
+
                 <!-- Work order info -->
                 <div class="card">
                     <h4>📄 Informasi Pemasangan</h4>
@@ -928,12 +949,14 @@
                 initMap(data.destination);
                 updatePosition(data.current_location);
                 showEtaBar(true);
+                renderTripSummary(null);
             } else {
                 stopPolling();
                 showActive();
                 if (data.destination) initMap(data.destination, true);
                 showEtaBar(false);
                 drawTripPath(data.trip_points);
+                renderTripSummary(data.trip_summary);
             }
 
             initTrackingRealtime(data);
@@ -954,6 +977,35 @@
                 dashArray: '4 6',
             }).addTo(map);
             map.fitBounds(tripLayer.getBounds().pad(0.25), { maxZoom: 16 });
+        }
+
+        function renderTripSummary(summary) {
+            const card = document.getElementById('trip-summary-card');
+            if (!card) return;
+            if (!summary) {
+                card.style.display = 'none';
+                return;
+            }
+            card.style.display = '';
+            const fmt = iso => iso ?
+                new Date(iso).toLocaleString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) :
+                '-';
+            document.getElementById('ts-start').textContent = fmt(summary.started_at);
+            document.getElementById('ts-arrive').textContent = fmt(summary.arrived_at);
+            document.getElementById('ts-finish').textContent = fmt(summary.finished_at);
+            const dist = summary.distance_m >= 1000 ?
+                (summary.distance_m / 1000).toFixed(1) + ' km' :
+                Math.round(summary.distance_m) + ' m';
+            const mins = Math.round(summary.duration_s / 60);
+            const dur = mins >= 60 ?
+                Math.floor(mins / 60) + ' jam ' + (mins % 60) + ' mnt' :
+                mins + ' mnt';
+            document.getElementById('ts-distance').textContent = dist + ' · ' + dur;
         }
 
         function initMap(dest, finalize) {

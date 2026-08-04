@@ -173,6 +173,16 @@ class WorkOrderTransitionService
         if ($toStatus === WorkOrderStatus::Arrived) {
             $this->closeActiveSessions($workOrder, TrackingSessionStatus::Closed, 'arrived');
 
+            TrackingSession::query()
+                ->where('work_order_id', $workOrder->getKey())
+                ->each(function (TrackingSession $session): void {
+                    $session->tokens()
+                        ->where('status', TrackingTokenStatus::Active->value)
+                        ->update([
+                            'expires_at' => now()->addHours((float) config('notifications.tracking.token_ttl_hours', 8)),
+                        ]);
+                });
+
             return;
         }
 
@@ -191,6 +201,7 @@ class WorkOrderTransitionService
                         ->update([
                             'status' => TrackingTokenStatus::Revoked,
                             'revoked_at' => now(),
+                            'expires_at' => now()->addHours((float) config('notifications.tracking.after_finish_hours', 24)),
                         ]);
                 });
         }
