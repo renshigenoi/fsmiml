@@ -1563,7 +1563,7 @@
                             <span class="nav-icon">🔑</span>
                             <span>Password</span>
                         </button>
-                        <button class="nav-item" @click="softLogout">
+                        <button class="nav-item" @click="lockApp">
                             <span class="nav-icon">🚪</span>
                             <span>Keluar</span>
                         </button>
@@ -1845,12 +1845,25 @@
                 finished: 'Kerja bagus! Pekerjaan selesai dengan sempurna. 👏',
             };
 
+            function fsmCurrentEmail() {
+                try {
+                    const u = JSON.parse(localStorage.getItem('fsm_tech_user') || 'null');
+                    if (u && u.email) return String(u.email).trim().toLowerCase();
+                } catch (_) {}
+                return '';
+            }
+
+            function fsmPinKey(prefix) {
+                const email = fsmCurrentEmail();
+                return 'fsm_pin_' + prefix + (email ? '_' + email : '');
+            }
+
             const app = Vue.createApp({
                 data() {
                     return {
                         token: localStorage.getItem('fsm_tech_token') || '',
                         user: JSON.parse(localStorage.getItem('fsm_tech_user') || 'null'),
-                        view: (localStorage.getItem('fsm_tech_token') && localStorage.getItem('fsm_pin_salt'))
+                        view: (localStorage.getItem('fsm_tech_token') && localStorage.getItem(fsmPinKey('salt')))
                             ? 'lock'
                             : (localStorage.getItem('fsm_tech_token') ? 'home' : 'login'),
                         activeTab: 'processing',
@@ -1928,7 +1941,7 @@
                         });
                     },
                     pinEnabled() {
-                        return !!localStorage.getItem('fsm_pin_salt');
+                        return !!localStorage.getItem(fsmPinKey('salt'));
                     },
                     firstName() {
                         return this.user ? (this.user.name || 'Teknisi').split(' ')[0] : 'Teknisi';
@@ -2279,6 +2292,18 @@
                         this.pinEntry = '';
                         this.pinError = '';
                     },
+                    lockApp() {
+                        this.stopGps();
+                        this.current = null;
+                        this.orders = [];
+                        if (this.pollTimer) {
+                            clearInterval(this.pollTimer);
+                            this.pollTimer = null;
+                        }
+                        this.view = 'lock';
+                        this.pinEntry = '';
+                        this.pinError = '';
+                    },
                     softLogout() {
                         this.stopGps();
                         this.current = null;
@@ -2300,8 +2325,8 @@
                         this.pinConfirm.error = '';
                     },
                     async verifyPinConfirm() {
-                        const salt = localStorage.getItem('fsm_pin_salt');
-                        const expected = localStorage.getItem('fsm_pin_hash');
+                        const salt = localStorage.getItem(fsmPinKey('salt'));
+                        const expected = localStorage.getItem(fsmPinKey('hash'));
                         if (!salt || !expected) {
                             this.pinConfirm.show = false;
                             return;
@@ -2316,8 +2341,8 @@
                         }
                     },
                     forgotPin() {
-                        localStorage.removeItem('fsm_pin_salt');
-                        localStorage.removeItem('fsm_pin_hash');
+                        localStorage.removeItem(fsmPinKey('salt'));
+                        localStorage.removeItem(fsmPinKey('hash'));
                         this.pinConfirm.show = false;
                         this.showToast('PIN dihapus. Bisa buat PIN baru nanti.', 'info');
                     },
@@ -2373,8 +2398,8 @@
                         try {
                             const salt = this.randomSalt();
                             const hash = await this.hashPin(first, salt);
-                            localStorage.setItem('fsm_pin_salt', salt);
-                            localStorage.setItem('fsm_pin_hash', hash);
+                            localStorage.setItem(fsmPinKey('salt'), salt);
+                            localStorage.setItem(fsmPinKey('hash'), hash);
                             this.pinSetup.show = false;
                             this.showToast('PIN berhasil dibuat 🔐', 'success');
                         } catch (err) {
@@ -2394,8 +2419,8 @@
                         this.pinError = '';
                     },
                     async verifyPin() {
-                        const salt = localStorage.getItem('fsm_pin_salt');
-                        const expected = localStorage.getItem('fsm_pin_hash');
+                        const salt = localStorage.getItem(fsmPinKey('salt'));
+                        const expected = localStorage.getItem(fsmPinKey('hash'));
                         if (!salt || !expected) {
                             this.forceLogout();
                             return;
