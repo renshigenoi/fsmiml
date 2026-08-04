@@ -14,14 +14,25 @@ class RecordAssignmentCreatedNotification implements ShouldQueue
     public function handle(AssignmentCreated $event): void
     {
         $assignment = $event->assignment->loadMissing(['technician.user', 'workOrder']);
-        $recipient = $assignment->technician->user->email;
+        $technician = $assignment->technician;
+        $recipient = $technician->user->email;
 
         $this->notifications->queue(
-            $assignment->technician->user,
+            $technician->user,
             $assignment->workOrder,
             NotificationChannel::Push,
             'assignment_created',
             $recipient,
         );
+
+        if (filled($technician->phone)) {
+            $this->notifications->queue(
+                $technician->user,
+                $assignment->workOrder,
+                NotificationChannel::WhatsApp,
+                'assignment_created',
+                $technician->phone,
+            );
+        }
     }
 }
