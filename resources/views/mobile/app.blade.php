@@ -253,32 +253,30 @@
             gap: 8px;
         }
 
-        .login-extra {
-            margin-top: 14px;
+        .login-actions-row {
             display: flex;
-            flex-direction: column;
             gap: 10px;
+            margin-top: 20px;
         }
 
-        .btn-pin-login {
-            width: 100%;
-            border: 1.5px solid var(--navy-300);
+        .login-actions-row .btn-login {
+            flex: 1;
+            margin-top: 0;
+        }
+
+        .btn-pin-quick {
+            width: 56px;
+            flex-shrink: 0;
+            border: 1.5px solid rgba(255, 255, 255, .3);
             border-radius: var(--r-sm);
-            padding: 13px;
-            background: rgba(255, 255, 255, .06);
+            background: rgba(255, 255, 255, .08);
             color: #fff;
-            font-size: 14px;
-            font-weight: 700;
+            font-size: 20px;
             cursor: pointer;
         }
 
-        .btn-pin-login:active {
-            background: rgba(255, 255, 255, .12);
-        }
-
-        .btn-pin-logout {
-            border-color: rgba(255, 255, 255, .28);
-            color: rgba(255, 255, 255, .75);
+        .btn-pin-quick:active {
+            background: rgba(255, 255, 255, .16);
         }
 
         /* =========================================================
@@ -1360,7 +1358,7 @@
                         <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
                     </div>
                     <h1>FSM Teknisi</h1>
-                    <p class="login-tagline">Sistem Manajemen Field Service<br>Indo Motor Lestari 💪</p>
+                    <p class="login-tagline">Sistem Manajemen Field Service<br>Indo Motor Lestari</p>
                 </div>
 
                 <div class="login-card">
@@ -1376,19 +1374,21 @@
                         <input type="password" v-model="loginForm.password" placeholder="••••••••"
                             autocomplete="current-password" @keyup.enter="doLogin">
                     </div>
-                    <button class="btn-login" :disabled="busy" @click="doLogin" id="btn-login">
-                        <span v-if="busy">⏳ Memeriksa akun…</span>
-                        <span v-else>Masuk ke Akun</span>
-                    </button>
+                    <div class="login-actions-row">
+                        <button class="btn-login" :disabled="busy" @click="doLogin" id="btn-login">
+                            <span v-if="busy">⏳ Memeriksa akun…</span>
+                            <span v-else>Masuk ke Akun</span>
+                        </button>
+                        <button v-if="pinEnabled && token" type="button" class="btn-pin-quick" :disabled="busy"
+                            :title="biometricAvailable ? 'Buka dengan sidik jari' : 'Masuk dengan PIN'"
+                            @click="quickUnlock">
+                            <span v-if="biometricAvailable">👆</span>
+                            <span v-else>🔐</span>
+                        </button>
+                    </div>
                     <div v-if="loginError" class="login-error">
                         <span>⚠️</span><span>{{ loginError }}</span>
                     </div>
-                </div>
-                <div v-if="pinEnabled && token" class="login-extra">
-                    <button type="button" class="btn-pin-login" @click="doLoginWithPin">🔐 Masuk dengan PIN</button>
-                    <button type="button" class="btn-pin-login btn-pin-logout" @click="doLogout">
-                        🚪 Logout Total (butuh email &amp; password)
-                    </button>
                 </div>
                 <div style="text-align:center; margin-top:20px; font-size:12px; color:var(--on-dark-2);">
                     Indo Motor Lestari © 2026 · FSM Mobile v2
@@ -2250,6 +2250,13 @@
                         this.view = 'lock';
                         this.pinEntry = '';
                         this.pinError = '';
+                    },
+                    quickUnlock() {
+                        if (this.biometricAvailable) {
+                            this.tryBiometric();
+                        } else {
+                            this.doLoginWithPin();
+                        }
                     },
                     lockApp() {
                         this.stopGps();
