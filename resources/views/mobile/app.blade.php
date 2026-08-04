@@ -1719,18 +1719,26 @@
                         </div>
 
                         <!-- ============ INSTALL MODAL (FLOATING TOP) ============ -->
-                        <div v-if="installVisible || iosInstallHint" class="install-sheet">
+                        <div v-if="installBannerVisible" class="install-sheet">
                             <div class="is-icon">📲</div>
                             <div class="is-body">
                                 <div class="is-title">Pasang FSM Teknisi</div>
-                                <div class="is-desc" v-if="installVisible">
-                                    Akses lebih cepat & tampilan aplikasi penuh.
-                                </div>
-                                <div class="is-desc" v-else>
+                                <div class="is-desc" v-if="isIosBrowser">
                                     Gunakan menu ⋮ / Bagikan browser → Tambahkan ke Layar Utama
                                 </div>
+                                <div class="is-desc" v-else-if="installVisible">
+                                    Akses lebih cepat & tampilan aplikasi penuh.
+                                </div>
+                                <div class="is-desc" v-else-if="appDownloadUrl">
+                                    Tersedia versi aplikasi (APK) untuk diunduh.
+                                </div>
+                                <div class="is-desc" v-else>
+                                    Klik ⋮ pada browser → Tambahkan ke layar utama.
+                                </div>
                                 <div class="is-actions">
-                                    <button v-if="installVisible" type="button" class="is-btn"
+                                    <button v-if="!isIosBrowser && !installVisible && appDownloadUrl" type="button"
+                                        class="is-btn" @click="downloadApp">Download</button>
+                                    <button v-else-if="!isIosBrowser && installVisible" type="button" class="is-btn"
                                         @click="installApp">Pasang Sekarang</button>
                                     <button type="button" class="is-later" @click="dismissInstall">Nanti</button>
                                 </div>
@@ -2163,6 +2171,11 @@
                         pullStartY: null,
                         locked: localStorage.getItem('fsm_locked') === '1',
                         installTimer: null,
+                        installPromptInit: false,
+                        isAndroidBrowser: false,
+                        isIosBrowser: false,
+                        manualHint: false,
+                        appDownloadUrl: '',
                         pinChange: {
                             stage: 'old',
                             old: '',
@@ -2219,7 +2232,9 @@
                         return localStorage.getItem('fsm_bio_' + this.currentEmail()) === '1';
                     },
                     installBannerVisible() {
-                        return this.view === 'home' && (this.installVisible || this.iosInstallHint);
+                        return this.view === 'home'
+                            && !this.updateInfo
+                            && (this.installVisible || this.iosInstallHint || this.manualHint);
                     },
                     firstName() {
                         return this.user ? (this.user.name || 'Teknisi').split(' ')[0] : 'Teknisi';
@@ -2366,6 +2381,7 @@
                             this.installTimer = setTimeout(() => {
                                 this.installVisible = false;
                                 this.iosInstallHint = false;
+                                this.manualHint = false;
                             }, 10000);
                         }
                     }
@@ -2374,7 +2390,6 @@
                     this.checkAppVersion();
                     this.detectBiometric();
                     this.setupBackButton();
-                    this.setupInstallPrompt();
                     this.setupConnectivity();
                     this.setupPullToRefresh();
                     if (this.token) {
@@ -2391,6 +2406,7 @@
                     if ('serviceWorker' in navigator) {
                         navigator.serviceWorker.register('/mobile/sw.js').catch(() => {});
                     }
+                    this.maybeShowInstall();
                 },
                 methods: {
                     getNavigationUrl(loc) {
@@ -2674,6 +2690,9 @@
                         this.view = 'login';
                     },
                     setupInstallPrompt() {
+                        if (this.installPromptInit) return;
+                        this.installPromptInit = true;
+
                         // Jangan tampilkan jika sudah berjalan dalam mode PWA / Standalone.
                         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                             || window.navigator.standalone === true;
@@ -2682,8 +2701,16 @@
                         // Jangan tampilkan lagi jika user pernah memilih "Nanti" pada sesi ini.
                         if (sessionStorage.getItem('fsm_pwa_dismissed') === '1') return;
 
-                        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
-                        if (isIos) this.iosInstallHint = true;
+                        this.isIosBrowser = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+                        this.isAndroidBrowser = /android/i.test(navigator.userAgent || '');
+
+                        // Ambil link download APK dari server (jika tersedia).
+                        fetch('/api/v1/app/version')
+                            .then(r => r.json())
+                            .then(d => { this.appDownloadUrl = d.download_url || ''; })
+                            .catch(() => {});
+
+                        if (this.isIosBrowser) this.iosInstallHint = true;
                         if (fsmInstallEvent) {
                             this.installEvent = fsmInstallEvent;
                             fsmInstallEvent = null;
@@ -2693,22 +2720,39 @@
                             e.preventDefault();
                             this.installEvent = e;
                             this.installVisible = true;
+                            this.manualHint = false;
                         });
                         // Fallback: kalau di browser mobile event tidak terpancing, tampilkan petunjuk manual.
                         const isMobileBrowser = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
                         setTimeout(() => {
                             if (isMobileBrowser && !this.installEvent &&
-                                !this.installVisible && !this.iosInstallHint &&
+                                !this.installVisible && !this.iosInstallHint && !this.manualHint &&
                                 sessionStorage.getItem('fsm_pwa_dismissed') !== '1') {
-                                this.iosInstallHint = true;
+                                if (this.isIosBrowser) {
+                                    this.iosInstallHint = true;
+                                } else {
+                                    this.manualHint = true;
+                                }
                             }
                         }, 1500);
                         window.addEventListener('appinstalled', () => {
                             this.installVisible = false;
                             this.iosInstallHint = false;
+                            this.manualHint = false;
                             this.installEvent = null;
                             clearTimeout(this.installTimer);
                         });
+                    },
+                    maybeShowInstall() {
+                        // Jalankan setelah tampilan beranda benar-benar muncul (render + jeda singkat).
+                        this.$nextTick(() => {
+                            setTimeout(() => {
+                                if (this.view === 'home') this.setupInstallPrompt();
+                            }, 300);
+                        });
+                    },
+                    downloadApp() {
+                        if (this.appDownloadUrl) window.open(this.appDownloadUrl, '_blank');
                     },
                     async installApp() {
                         if (!this.installEvent) return;
@@ -2724,6 +2768,7 @@
                         clearTimeout(this.installTimer);
                         this.installVisible = false;
                         this.iosInstallHint = false;
+                        this.manualHint = false;
                         sessionStorage.setItem('fsm_pwa_dismissed', '1');
                     },
                     setupConnectivity() {
@@ -2976,6 +3021,7 @@
                         this.locked = false;
                         localStorage.removeItem('fsm_locked');
                         this.view = 'home';
+                        this.maybeShowInstall();
                         if (!this.pollTimer) {
                             this.loadOrders();
                             this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
