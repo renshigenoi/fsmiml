@@ -181,6 +181,108 @@
     .field-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 500px) { .field-2col { grid-template-columns: 1fr; } }
 
+    /* ---- Time picker popup ---- */
+    .time-picker-wrap { position: relative; }
+    .time-picker-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1.5px solid var(--line,#e2e8f4);
+        border-radius: 9px;
+        background: var(--surface-2,#f6f9ff);
+        color: var(--ink,#0d1b35);
+        padding: 10px 12px;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+        text-align: left;
+        margin-bottom: 0;
+    }
+    .time-picker-btn:hover, .time-picker-btn:focus { border-color: var(--red-500,#c8102e); outline: none; }
+    .tp-ico { font-size: 15px; opacity: .55; }
+    .tp-display { font-weight: 600; }
+    .time-picker-popup {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 60;
+        width: 330px;
+        max-width: 90vw;
+        background: #fff;
+        border: 1px solid var(--line,#e2e8f4);
+        border-radius: 14px;
+        box-shadow: 0 14px 40px rgba(11,32,68,.18);
+        padding: 14px;
+    }
+    .time-picker-popup.open { display: block; }
+    .tp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .tp-value {
+        font-size: 28px;
+        font-weight: 900;
+        letter-spacing: -1px;
+        color: var(--navy-700,#112b5c);
+        font-variant-numeric: tabular-nums;
+    }
+    .tp-presets { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .tp-preset {
+        border: 1px solid var(--line,#e2e8f4);
+        background: var(--surface-2,#f6f9ff);
+        border-radius: 8px;
+        padding: 5px 9px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink-2,#2c3e65);
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+    }
+    .tp-preset:hover { border-color: var(--red-500,#c8102e); color: var(--red-500,#c8102e); }
+    .tp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .tp-col-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-weight: 800;
+        color: var(--muted,#64748b);
+        margin-bottom: 6px;
+    }
+    .tp-options {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        max-height: 190px;
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+    .tp-opt {
+        border: 1px solid var(--line,#e2e8f4);
+        background: #fff;
+        border-radius: 8px;
+        padding: 7px 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-2,#2c3e65);
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+    }
+    .tp-opt:hover { border-color: var(--red-500,#c8102e); color: var(--red-500,#c8102e); }
+    .tp-opt.active { background: var(--navy-700,#112b5c); border-color: var(--navy-700,#112b5c); color: #fff; }
+    .tp-actions { display: flex; gap: 8px; }
+    .tp-actions button {
+        flex: 1;
+        border: 0;
+        border-radius: 9px;
+        padding: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .tp-now { background: var(--surface-2,#f6f9ff); color: var(--ink-2,#2c3e65); }
+    .tp-clear { background: var(--surface-2,#f6f9ff); color: var(--red-500,#c8102e); }
+    .tp-done { background: linear-gradient(135deg,#c8102e,#a30d24); color: #fff; }
+
     /* ---- Map ---- */
     #location-map { height: 320px; border-radius: 10px; border: 1.5px solid var(--line,#e2e8f4); z-index: 0; }
     .map-hint { font-size: 12px; color: var(--muted,#64748b); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
@@ -275,12 +377,12 @@
             </div>
         </div>
 
-        {{-- Step 3: Location --}}
+        {{-- Step 2: Location --}}
         <div class="sec-card">
             <div class="sec-card-head">
                 <div class="sec-head-ico" style="background:linear-gradient(135deg,#059669,#047857);">📍</div>
                 <div>
-                    <h3>Langkah 3 — Lokasi Pemasangan</h3>
+                    <h3>Langkah 2 — Lokasi Pemasangan</h3>
                     <p>Cari di peta atau klik langsung titik lokasi</p>
                 </div>
             </div>
@@ -319,12 +421,12 @@
             </div>
         </div>
 
-        {{-- Step 4: Kontak Customer --}}
+        {{-- Step 3: Kontak Customer --}}
         <div class="sec-card">
             <div class="sec-card-head">
                 <div class="sec-head-ico" style="background:linear-gradient(135deg,#0284c7,#0369a1);">✉️</div>
                 <div>
-                    <h3>Langkah 4 — Kontak Customer (Opsional)</h3>
+                    <h3>Langkah 3 — Kontak Customer (Opsional)</h3>
                     <p>Isi jika ingin memperbarui no. WA / email customer</p>
                 </div>
             </div>
@@ -353,13 +455,13 @@
     {{-- === RIGHT === --}}
     <div>
 
-        {{-- Step 2: Teknisi --}}
+        {{-- Step 4: Jadwal & Teknisi --}}
         <div class="sec-card" style="position:sticky;top:80px;">
             <div class="sec-card-head">
                 <div class="sec-head-ico" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">👷</div>
                 <div>
-                    <h3>Langkah 2 — Assign Teknisi</h3>
-                    <p>Pilih satu atau lebih teknisi yang bertugas</p>
+                    <h3>Langkah 4 — Jadwal &amp; Assign Teknisi</h3>
+                    <p>Pilih tanggal & jam pemasangan, lalu teknisi yang bertugas</p>
                 </div>
             </div>
             <div class="sec-card-body" style="padding-bottom:0;">
@@ -369,8 +471,40 @@
                         <input type="date" name="scheduled_start_at" id="scheduled-start-at" required>
                     </div>
                     <div>
-                        <label for="scheduled-start-time">Jam Pemasangan</label>
-                        <input type="time" name="scheduled_start_time" id="scheduled-start-time">
+                        <label for="time-picker-btn">Jam Pemasangan</label>
+                        <div class="time-picker-wrap">
+                            <button type="button" id="time-picker-btn" class="time-picker-btn">
+                                <span class="tp-ico">🕐</span>
+                                <span class="tp-display" id="time-picker-display">Pilih jam</span>
+                            </button>
+                            <input type="hidden" name="scheduled_start_time" id="scheduled-start-time">
+                            <div id="time-picker-popup" class="time-picker-popup">
+                                <div class="tp-head">
+                                    <div class="tp-value" id="tp-value">--:--</div>
+                                    <div class="tp-presets">
+                                        <button type="button" class="tp-preset" data-h="08" data-m="00">08:00</button>
+                                        <button type="button" class="tp-preset" data-h="09" data-m="00">09:00</button>
+                                        <button type="button" class="tp-preset" data-h="10" data-m="00">10:00</button>
+                                        <button type="button" class="tp-preset" data-h="13" data-m="00">13:00</button>
+                                    </div>
+                                </div>
+                                <div class="tp-cols">
+                                    <div>
+                                        <div class="tp-col-title">Jam</div>
+                                        <div class="tp-options" id="tp-hours"></div>
+                                    </div>
+                                    <div>
+                                        <div class="tp-col-title">Menit</div>
+                                        <div class="tp-options" id="tp-minutes"></div>
+                                    </div>
+                                </div>
+                                <div class="tp-actions">
+                                    <button type="button" class="tp-now" id="tp-now">Sekarang</button>
+                                    <button type="button" class="tp-clear" id="tp-clear">Hapus</button>
+                                    <button type="button" class="tp-done" id="tp-done">OK</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <label for="notes" style="margin-top:14px;">Catatan</label>
@@ -635,6 +769,94 @@
     document.getElementById('tech-filter').addEventListener('input', e => {
         renderTechnicians(e.target.value.trim());
     });
+
+    /* =====================================================
+       TIME PICKER POPUP (JAM PEMASANGAN)
+    ===================================================== */
+    const timePickerBtn = document.getElementById('time-picker-btn');
+    const timePickerPopup = document.getElementById('time-picker-popup');
+    const timeDisplay = document.getElementById('time-picker-display');
+    const timeInput = document.getElementById('scheduled-start-time');
+    const tpValue = document.getElementById('tp-value');
+    let tpHour = null, tpMinute = null;
+
+    function buildTimeOptions() {
+        const hours = document.getElementById('tp-hours');
+        const minutes = document.getElementById('tp-minutes');
+        hours.innerHTML = '';
+        minutes.innerHTML = '';
+        for (let h = 0; h < 24; h++) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'tp-opt';
+            b.textContent = String(h).padStart(2, '0');
+            b.dataset.h = h;
+            b.addEventListener('click', () => { tpHour = h; renderTime(); });
+            hours.appendChild(b);
+        }
+        for (let m = 0; m < 60; m += 5) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'tp-opt';
+            b.textContent = String(m).padStart(2, '0');
+            b.dataset.m = m;
+            b.addEventListener('click', () => { tpMinute = m; renderTime(); });
+            minutes.appendChild(b);
+        }
+    }
+
+    function renderTime() {
+        const val = (tpHour !== null && tpMinute !== null)
+            ? String(tpHour).padStart(2, '0') + ':' + String(tpMinute).padStart(2, '0')
+            : null;
+        tpValue.textContent = val || '--:--';
+        timeDisplay.textContent = val || 'Pilih jam';
+        timeInput.value = val || '';
+        document.querySelectorAll('#tp-hours .tp-opt').forEach(b =>
+            b.classList.toggle('active', b.dataset.h == tpHour));
+        document.querySelectorAll('#tp-minutes .tp-opt').forEach(b =>
+            b.classList.toggle('active', b.dataset.m == tpMinute));
+    }
+
+    timePickerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        timePickerPopup.classList.toggle('open');
+    });
+
+    document.getElementById('tp-now').addEventListener('click', () => {
+        const d = new Date();
+        tpHour = d.getHours();
+        tpMinute = d.getMinutes();
+        renderTime();
+    });
+
+    document.getElementById('tp-clear').addEventListener('click', () => {
+        tpHour = null;
+        tpMinute = null;
+        renderTime();
+    });
+
+    document.getElementById('tp-done').addEventListener('click', () => {
+        timePickerPopup.classList.remove('open');
+    });
+
+    document.querySelectorAll('.tp-preset').forEach(b => b.addEventListener('click', () => {
+        tpHour = +b.dataset.h;
+        tpMinute = +b.dataset.m;
+        renderTime();
+    }));
+
+    document.addEventListener('click', (e) => {
+        if (!timePickerBtn.contains(e.target) && !timePickerPopup.contains(e.target)) {
+            timePickerPopup.classList.remove('open');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') timePickerPopup.classList.remove('open');
+    });
+
+    buildTimeOptions();
 
     /* =====================================================
        FORM SUBMIT VALIDATION
