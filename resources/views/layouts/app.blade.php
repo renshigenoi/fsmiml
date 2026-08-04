@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard') — FSM Admin IML</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <style>
         /* =========================================================
            DESIGN SYSTEM — IML FSM Admin
@@ -23,51 +25,51 @@
             --navy-100: #dce9fc;
 
             /* Red palette */
-            --red-700:  #8b0c1e;
-            --red-600:  #a81226;
-            --red-500:  #c8102e;
-            --red-400:  #e01836;
-            --red-100:  #ffe4e9;
+            --red-700: #8b0c1e;
+            --red-600: #a81226;
+            --red-500: #c8102e;
+            --red-400: #e01836;
+            --red-100: #ffe4e9;
 
             /* Sidebar */
-            --sb-bg:      #07111e;
-            --sb-bg-2:    #0d1d30;
-            --sb-text:    rgba(255,255,255,.60);
-            --sb-text-h:  rgba(255,255,255,.90);
-            --sb-bdr:     rgba(255,255,255,.07);
-            --sb-active-bg: rgba(200,16,46,.18);
+            --sb-bg: #07111e;
+            --sb-bg-2: #0d1d30;
+            --sb-text: rgba(255, 255, 255, .60);
+            --sb-text-h: rgba(255, 255, 255, .90);
+            --sb-bdr: rgba(255, 255, 255, .07);
+            --sb-active-bg: rgba(200, 16, 46, .18);
             --sb-active-text: #f47a8c;
-            --sb-w:       248px;
+            --sb-w: 248px;
 
             /* Content backgrounds */
-            --bg:        #f0f4fb;
-            --bg-2:      #e8eef9;
-            --surface:   #ffffff;
+            --bg: #f0f4fb;
+            --bg-2: #e8eef9;
+            --surface: #ffffff;
             --surface-2: #f6f9ff;
 
             /* Text */
-            --ink:    #0d1b35;
-            --ink-2:  #2c3e65;
-            --muted:  #64748b;
-            --muted-2:#94a3b8;
+            --ink: #0d1b35;
+            --ink-2: #2c3e65;
+            --muted: #64748b;
+            --muted-2: #94a3b8;
 
             /* Border */
-            --line:   #e2e8f4;
+            --line: #e2e8f4;
             --line-2: #cbd5e8;
 
             /* Brand button */
-            --primary:      #c8102e;
+            --primary: #c8102e;
             --primary-dark: #a81226;
             --primary-grad: linear-gradient(135deg, #e01836, #8b0c1e);
 
             /* Shadows */
-            --shadow-sm: 0 1px 4px rgba(11,32,68,.06);
-            --shadow:    0 4px 16px rgba(11,32,68,.10);
-            --shadow-lg: 0 10px 32px rgba(11,32,68,.14);
+            --shadow-sm: 0 1px 4px rgba(11, 32, 68, .06);
+            --shadow: 0 4px 16px rgba(11, 32, 68, .10);
+            --shadow-lg: 0 10px 32px rgba(11, 32, 68, .14);
 
             /* Radii */
             --r-sm: 8px;
-            --r:    12px;
+            --r: 12px;
             --r-lg: 16px;
 
             /* Easing */
@@ -75,8 +77,16 @@
         }
 
         /* ---- Reset ---- */
-        *, *::before, *::after { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             margin: 0;
             font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -102,34 +112,50 @@
             transition: transform .25s var(--ease);
         }
 
-        /* Brand */
+        /* Brand Container (Rata Kiri & Sejajar Navigasi) */
         .sidebar .brand {
             display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 18px 16px 16px;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            gap: 4px;
+            padding: 20px 22px 18px;
+            /* Padding disesuaikan agar sejajar presisi */
             border-bottom: 1px solid var(--sb-bdr);
             flex-shrink: 0;
         }
+
         .sidebar .brand-logo {
-            background: #fff;
+            background: #ffffff;
             border-radius: 8px;
-            padding: 5px 8px;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,.25);
+            padding: 6px 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+            margin-bottom: 6px;
         }
-        .sidebar .brand-logo img { height: 28px; display: block; }
+
+        .sidebar .brand-logo img {
+            height: 28px;
+            width: auto;
+            display: block;
+            object-fit: contain;
+        }
+
         .sidebar .brand-name {
-            color: #fff;
+            color: #ffffff;
             font-weight: 800;
-            font-size: 14px;
+            font-size: 15px;
             letter-spacing: -.2px;
             line-height: 1.2;
         }
+
         .sidebar .brand-sub {
             color: var(--sb-text);
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 500;
+            letter-spacing: .1px;
         }
 
         /* Nav */
@@ -138,21 +164,34 @@
             padding: 10px 10px 8px;
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,.1) transparent;
+            scrollbar-color: rgba(255, 255, 255, .1) transparent;
         }
-        .sidebar nav::-webkit-scrollbar { width: 4px; }
-        .sidebar nav::-webkit-scrollbar-track { background: transparent; }
-        .sidebar nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 2px; }
+
+        .sidebar nav::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .12);
+            border-radius: 2px;
+        }
 
         .nav-section {
             font-size: 10px;
             font-weight: 700;
             letter-spacing: .10em;
             text-transform: uppercase;
-            color: rgba(255,255,255,.25);
-            padding: 14px 8px 6px;
+            color: rgba(255, 255, 255, .25);
+            padding: 14px 12px 6px;
         }
-        .nav-section:first-child { padding-top: 4px; }
+
+        .nav-section:first-child {
+            padding-top: 4px;
+        }
 
         .sidebar nav a {
             display: flex;
@@ -168,36 +207,49 @@
             transition: background .15s, color .15s, transform .1s;
             position: relative;
         }
+
         .sidebar nav a:hover {
-            background: rgba(255,255,255,.07);
+            background: rgba(255, 255, 255, .07);
             color: var(--sb-text-h);
         }
+
         .sidebar nav a.active {
             background: var(--sb-active-bg);
             color: var(--sb-active-text);
             font-weight: 700;
         }
+
         .sidebar nav a.active::before {
             content: '';
             position: absolute;
-            left: 0; top: 6px; bottom: 6px;
+            left: 0;
+            top: 6px;
+            bottom: 6px;
             width: 3px;
             background: var(--red-400);
             border-radius: 0 2px 2px 0;
         }
+
         .sidebar nav a .nav-ico {
-            width: 32px; height: 32px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 8px;
             font-size: 15px;
-            background: rgba(255,255,255,.06);
+            background: rgba(255, 255, 255, .06);
             flex-shrink: 0;
             transition: background .15s;
         }
-        .sidebar nav a:hover .nav-ico { background: rgba(255,255,255,.10); }
-        .sidebar nav a.active .nav-ico { background: rgba(200,16,46,.25); }
+
+        .sidebar nav a:hover .nav-ico {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .sidebar nav a.active .nav-ico {
+            background: rgba(200, 16, 46, .25);
+        }
 
         /* Sidebar footer */
         .sidebar-foot {
@@ -205,7 +257,11 @@
             border-top: 1px solid var(--sb-bdr);
             flex-shrink: 0;
         }
-        .sidebar-foot form { margin: 0; }
+
+        .sidebar-foot form {
+            margin: 0;
+        }
+
         .sidebar-foot button {
             display: flex;
             align-items: center;
@@ -222,8 +278,23 @@
             font-family: inherit;
             transition: background .15s, color .15s;
         }
-        .sidebar-foot button:hover { background: rgba(255,255,255,.07); color: #fff; }
-        .sidebar-foot button .nav-ico { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; background: rgba(255,255,255,.06); flex-shrink: 0; }
+
+        .sidebar-foot button:hover {
+            background: rgba(255, 255, 255, .07);
+            color: #fff;
+        }
+
+        .sidebar-foot button .nav-ico {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 15px;
+            background: rgba(255, 255, 255, .06);
+            flex-shrink: 0;
+        }
 
         /* =========================================================
            MAIN AREA
@@ -249,6 +320,7 @@
             z-index: 40;
             box-shadow: var(--shadow-sm);
         }
+
         .hamburger {
             display: none;
             background: none;
@@ -260,7 +332,11 @@
             border-radius: 6px;
             flex-shrink: 0;
         }
-        .hamburger:hover { background: var(--bg-2); }
+
+        .hamburger:hover {
+            background: var(--bg-2);
+        }
+
         .topbar-title {
             flex: 1;
             font-size: 17px;
@@ -268,6 +344,7 @@
             color: var(--ink);
             letter-spacing: -.2px;
         }
+
         .topbar-user {
             display: flex;
             align-items: center;
@@ -275,12 +352,15 @@
             color: var(--muted);
             font-size: 13.5px;
         }
+
         .topbar-user .user-name {
             font-weight: 600;
             color: var(--ink-2);
         }
+
         .topbar-user .avatar {
-            width: 36px; height: 36px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: var(--primary-grad);
             color: #fff;
@@ -290,7 +370,7 @@
             font-weight: 800;
             font-size: 14px;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(200,16,46,.30);
+            box-shadow: 0 2px 8px rgba(200, 16, 46, .30);
         }
 
         /* Content */
@@ -301,7 +381,10 @@
             padding: 28px;
             flex: 1;
         }
-        .content.guest { max-width: 440px; }
+
+        .content.guest {
+            max-width: 440px;
+        }
 
         /* =========================================================
            COMPONENTS
@@ -316,14 +399,24 @@
             margin-bottom: 20px;
             box-shadow: var(--shadow-sm);
         }
-        .card h2 { margin: 0 0 16px; font-size: 15.5px; font-weight: 700; color: var(--ink); }
+
+        .card h2 {
+            margin: 0 0 16px;
+            font-size: 15.5px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
         .card-title-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
         }
-        .card-title-row h2 { margin: 0; }
+
+        .card-title-row h2 {
+            margin: 0;
+        }
 
         /* Stats grid */
         .grid {
@@ -332,6 +425,7 @@
             gap: 16px;
             margin-bottom: 24px;
         }
+
         .stat {
             background: var(--surface);
             border: 1px solid var(--line);
@@ -341,6 +435,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .stat .num {
             font-size: 32px;
             font-weight: 900;
@@ -349,19 +444,51 @@
             color: var(--ink);
             margin: 8px 0 4px;
         }
-        .stat .lbl { color: var(--muted); font-size: 12.5px; font-weight: 500; }
-        .stat .ico { font-size: 22px; display: block; }
-        .stat-head { display: flex; justify-content: space-between; align-items: flex-start; }
+
+        .stat .lbl {
+            color: var(--muted);
+            font-size: 12.5px;
+            font-weight: 500;
+        }
+
+        .stat .ico {
+            font-size: 22px;
+            display: block;
+        }
+
+        .stat-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
         .stat-bar {
             position: absolute;
-            bottom: 0; left: 0;
-            height: 3px; width: 100%;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 100%;
         }
-        .stat:nth-child(1) .stat-bar { background: linear-gradient(90deg,#f59e0b,#fcd34d); }
-        .stat:nth-child(2) .stat-bar { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
-        .stat:nth-child(3) .stat-bar { background: linear-gradient(90deg,#0284c7,#38bdf8); }
-        .stat:nth-child(4) .stat-bar { background: linear-gradient(90deg,#059669,#34d399); }
-        .stat:nth-child(5) .stat-bar { background: linear-gradient(90deg,var(--red-500),var(--red-300,#f47a8c)); }
+
+        .stat:nth-child(1) .stat-bar {
+            background: linear-gradient(90deg, #f59e0b, #fcd34d);
+        }
+
+        .stat:nth-child(2) .stat-bar {
+            background: linear-gradient(90deg, #7c3aed, #a78bfa);
+        }
+
+        .stat:nth-child(3) .stat-bar {
+            background: linear-gradient(90deg, #0284c7, #38bdf8);
+        }
+
+        .stat:nth-child(4) .stat-bar {
+            background: linear-gradient(90deg, #059669, #34d399);
+        }
+
+        .stat:nth-child(5) .stat-bar {
+            background: linear-gradient(90deg, var(--red-500), var(--red-300, #f47a8c));
+        }
 
         /* Forms */
         input[type="text"],
@@ -384,13 +511,15 @@
             transition: border-color .2s, box-shadow .2s, background .2s;
             -webkit-appearance: none;
         }
+
         input:focus,
         textarea:focus,
         select:focus {
             border-color: var(--red-500);
             background: var(--surface);
-            box-shadow: 0 0 0 3px rgba(200,16,46,.10);
+            box-shadow: 0 0 0 3px rgba(200, 16, 46, .10);
         }
+
         label {
             display: block;
             font-size: 12px;
@@ -416,24 +545,49 @@
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            box-shadow: 0 4px 14px rgba(200,16,46,.28);
+            box-shadow: 0 4px 14px rgba(200, 16, 46, .28);
             transition: transform .15s var(--ease), box-shadow .15s, opacity .15s;
         }
-        .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(200,16,46,.35); }
-        .btn:active { transform: translateY(0) scale(.975); box-shadow: 0 2px 8px rgba(200,16,46,.20); }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(200, 16, 46, .35);
+        }
+
+        .btn:active {
+            transform: translateY(0) scale(.975);
+            box-shadow: 0 2px 8px rgba(200, 16, 46, .20);
+        }
+
         .btn-secondary {
             background: var(--bg-2);
             color: var(--ink-2);
             box-shadow: none;
         }
-        .btn-secondary:hover { background: var(--line); box-shadow: none; }
+
+        .btn-secondary:hover {
+            background: var(--line);
+            box-shadow: none;
+        }
+
         .btn-navy {
             background: linear-gradient(135deg, var(--navy-700), var(--navy-900));
-            box-shadow: 0 4px 14px rgba(11,32,68,.28);
+            box-shadow: 0 4px 14px rgba(11, 32, 68, .28);
         }
-        .btn-navy:hover { box-shadow: 0 6px 18px rgba(11,32,68,.35); }
-        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 14px rgba(220,38,38,.25); }
-        .btn-sm { padding: 7px 14px; font-size: 12.5px; }
+
+        .btn-navy:hover {
+            box-shadow: 0 6px 18px rgba(11, 32, 68, .35);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 14px rgba(220, 38, 38, .25);
+        }
+
+        .btn-sm {
+            padding: 7px 14px;
+            font-size: 12.5px;
+        }
 
         /* Flash messages */
         .flash {
@@ -446,11 +600,26 @@
             align-items: flex-start;
             gap: 10px;
         }
-        .flash-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .flash-error   { background: var(--red-100); color: var(--red-700); border: 1px solid #fecdd3; }
+
+        .flash-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .flash-error {
+            background: var(--red-100);
+            color: var(--red-700);
+            border: 1px solid #fecdd3;
+        }
 
         /* Tables */
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
         thead th {
             text-align: left;
             padding: 10px 14px;
@@ -462,16 +631,33 @@
             letter-spacing: .06em;
             border-bottom: 1.5px solid var(--line);
         }
-        thead th:first-child { border-radius: var(--r-sm) 0 0 0; }
-        thead th:last-child  { border-radius: 0 var(--r-sm) 0 0; }
+
+        thead th:first-child {
+            border-radius: var(--r-sm) 0 0 0;
+        }
+
+        thead th:last-child {
+            border-radius: 0 var(--r-sm) 0 0;
+        }
+
         tbody td {
             padding: 12px 14px;
             border-bottom: 1px solid var(--line);
             vertical-align: middle;
         }
-        tbody tr:last-child td { border-bottom: 0; }
-        tbody tr:hover td { background: var(--surface-2); }
-        .table-wrap { overflow-x: auto; border-radius: var(--r-sm); }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        tbody tr:hover td {
+            background: var(--surface-2);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: var(--r-sm);
+        }
 
         /* Badges */
         .badge {
@@ -484,16 +670,56 @@
             font-weight: 700;
             white-space: nowrap;
         }
-        .b-gray   { background: #e2e8f0;  color: #334155; }
-        .b-amber  { background: #fef3c7;  color: #92400e; }
-        .b-blue   { background: #dbeafe;  color: #1e40af; }
-        .b-indigo { background: #e0e7ff;  color: #3730a3; }
-        .b-cyan   { background: #cffafe;  color: #155e75; }
-        .b-violet { background: #ede9fe;  color: #5b21b6; }
-        .b-green  { background: #d1fae5;  color: #065f46; }
-        .b-rose   { background: #ffe4e6;  color: #9f1239; }
-        .b-red    { background: var(--red-100); color: var(--red-700); }
-        .b-navy   { background: var(--navy-100); color: var(--navy-700); }
+
+        .b-gray {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .b-amber {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .b-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .b-indigo {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .b-cyan {
+            background: #cffafe;
+            color: #155e75;
+        }
+
+        .b-violet {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .b-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .b-rose {
+            background: #ffe4e6;
+            color: #9f1239;
+        }
+
+        .b-red {
+            background: var(--red-100);
+            color: var(--red-700);
+        }
+
+        .b-navy {
+            background: var(--navy-100);
+            color: var(--navy-700);
+        }
 
         /* Autocomplete */
         .suggest {
@@ -507,6 +733,7 @@
             overflow-y: auto;
             box-shadow: var(--shadow-lg);
         }
+
         .suggest li {
             padding: 10px 14px;
             border-bottom: 1px solid var(--line);
@@ -514,9 +741,21 @@
             font-size: 14px;
             transition: background .12s;
         }
-        .suggest li:last-child { border-bottom: 0; }
-        .suggest li:hover { background: var(--navy-100); }
-        .suggest small { color: var(--muted); display: block; font-size: 12px; margin-top: 2px; }
+
+        .suggest li:last-child {
+            border-bottom: 0;
+        }
+
+        .suggest li:hover {
+            background: var(--navy-100);
+        }
+
+        .suggest small {
+            color: var(--muted);
+            display: block;
+            font-size: 12px;
+            margin-top: 2px;
+        }
 
         /* Technician list */
         .tech-list {
@@ -527,6 +766,7 @@
             padding: 8px;
             background: var(--surface-2);
         }
+
         .tech-list label {
             display: flex;
             gap: 8px;
@@ -542,118 +782,211 @@
             cursor: pointer;
             transition: background .12s;
         }
-        .tech-list label:hover { background: var(--navy-100); }
+
+        .tech-list label:hover {
+            background: var(--navy-100);
+        }
 
         /* Misc */
-        .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-        .muted { color: var(--muted); }
-        .mt { margin-top: 14px; }
-        .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .mt {
+            margin-top: 14px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
         .filter-bar select,
-        .filter-bar input { width: auto; margin-bottom: 0; }
-        .search-bar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
-        .search-bar input { margin-bottom: 0; flex: 1; }
+        .filter-bar input {
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .search-bar input {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
         .empty {
             padding: 40px 24px;
             text-align: center;
             color: var(--muted);
             font-size: 13.5px;
         }
-        .hidden { display: none; }
+
+        .hidden {
+            display: none;
+        }
 
         /* Sidebar overlay for mobile */
         .sidebar-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(6,20,41,.5);
+            background: rgba(6, 20, 41, .5);
             z-index: 49;
             backdrop-filter: blur(2px);
         }
-        .sidebar-overlay.show { display: block; }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
 
         /* =========================================================
            RESPONSIVE
         ========================================================= */
         @media (max-width: 900px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main { margin-left: 0; }
-            .hamburger { display: flex; }
-            .content { padding: 18px 14px; }
-            thead th, tbody td { padding: 9px 10px; white-space: nowrap; }
-            .topbar { padding: 0 16px; }
-            .topbar-user .user-name { display: none; }
-            .topbar { height: 54px; }
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main {
+                margin-left: 0;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .content {
+                padding: 18px 14px;
+            }
+
+            thead th,
+            tbody td {
+                padding: 9px 10px;
+                white-space: nowrap;
+            }
+
+            .topbar {
+                padding: 0 16px;
+                height: 54px;
+            }
+
+            .topbar-user .user-name {
+                display: none;
+            }
         }
     </style>
 </head>
-<body>
-@auth
-    <!-- Sidebar overlay (mobile) -->
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-    <aside class="sidebar" id="sidebar">
-        <!-- Brand -->
-        <div class="brand">
-            <div class="brand-logo">
-                <img src="{{ asset('assets/images/iml-logo.png') }}" alt="IML" onerror="this.style.display='none'">
-            </div>
-            <div>
+<body>
+    @auth
+        <!-- Sidebar overlay (mobile) -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <!-- Brand (Diubah ke Rata Kiri) -->
+            <div class="brand">
+                <div class="brand-logo">
+                    <img src="{{ asset('assets/images/iml-logo.png') }}" alt="IML" onerror="this.style.display='none'">
+                </div>
                 <div class="brand-name">FSM Admin</div>
                 <div class="brand-sub">Indo Motor Lestari</div>
             </div>
-        </div>
 
-        <!-- Navigation -->
-        <nav>
-            <div class="nav-section">Menu Utama</div>
-            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" id="nav-dashboard">
-                <span class="nav-ico">🏠</span>
-                Dashboard
-            </a>
-            <a href="{{ route('dashboard.input') }}" class="{{ request()->routeIs('dashboard.input') ? 'active' : '' }}" id="nav-input">
-                <span class="nav-ico">➕</span>
-                Input SPK
-            </a>
-            <a href="{{ route('dashboard.work-orders') }}" class="{{ request()->routeIs('dashboard.work-orders', 'dashboard.work-orders.show') ? 'active' : '' }}" id="nav-workorders">
-                <span class="nav-ico">📋</span>
-                Work Orders
-            </a>
-            <div class="nav-section">Master Data</div>
-            <a href="{{ route('dashboard.technicians') }}" class="{{ request()->routeIs('dashboard.technicians') ? 'active' : '' }}" id="nav-technicians">
-                <span class="nav-ico">👷</span>
-                Teknisi
-            </a>
-            <div class="nav-section">Akun</div>
-            <a href="{{ route('dashboard.profile') }}" class="{{ request()->routeIs('dashboard.profile') ? 'active' : '' }}" id="nav-profile">
-                <span class="nav-ico">👤</span>
-                Profil
-            </a>
-        </nav>
+            <!-- Navigation -->
+            <nav>
+                <div class="nav-section">Menu Utama</div>
+                <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"
+                    id="nav-dashboard">
+                    <span class="nav-ico">🏠</span>
+                    Dashboard
+                </a>
+                <a href="{{ route('dashboard.input') }}" class="{{ request()->routeIs('dashboard.input') ? 'active' : '' }}"
+                    id="nav-input">
+                    <span class="nav-ico">➕</span>
+                    Input SPK
+                </a>
+                <a href="{{ route('dashboard.work-orders') }}"
+                    class="{{ request()->routeIs('dashboard.work-orders', 'dashboard.work-orders.show') ? 'active' : '' }}"
+                    id="nav-workorders">
+                    <span class="nav-ico">📋</span>
+                    Work Orders
+                </a>
+                <div class="nav-section">Master Data</div>
+                <a href="{{ route('dashboard.technicians') }}"
+                    class="{{ request()->routeIs('dashboard.technicians') ? 'active' : '' }}" id="nav-technicians">
+                    <span class="nav-ico">👷</span>
+                    Teknisi
+                </a>
+                <div class="nav-section">Akun</div>
+                <a href="{{ route('dashboard.profile') }}"
+                    class="{{ request()->routeIs('dashboard.profile') ? 'active' : '' }}" id="nav-profile">
+                    <span class="nav-ico">👤</span>
+                    Profil
+                </a>
+            </nav>
 
-        <!-- Footer -->
-        <div class="sidebar-foot">
-            <form method="POST" action="{{ url('/logout') }}">
-                @csrf
-                <button type="submit" id="btn-logout">
-                    <span class="nav-ico">🚪</span>
-                    Logout
-                </button>
-            </form>
-        </div>
-    </aside>
-
-    <div class="main">
-        <header class="topbar">
-            <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">☰</button>
-            <div class="topbar-title">@yield('title', 'Dashboard')</div>
-            <div class="topbar-user">
-                <span class="user-name">{{ auth()->user()->name }}</span>
-                <div class="avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</div>
+            <!-- Footer -->
+            <div class="sidebar-foot">
+                <form method="POST" action="{{ url('/logout') }}">
+                    @csrf
+                    <button type="submit" id="btn-logout">
+                        <span class="nav-ico">🚪</span>
+                        Logout
+                    </button>
+                </form>
             </div>
-        </header>
-        <main class="content">
+        </aside>
+
+        <div class="main">
+            <header class="topbar">
+                <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()"
+                    aria-label="Toggle sidebar">☰</button>
+                <div class="topbar-title">@yield('title', 'Dashboard')</div>
+                <div class="topbar-user">
+                    <span class="user-name">{{ auth()->user()->name }}</span>
+                    <div class="avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</div>
+                </div>
+            </header>
+            <main class="content">
+                @if (session('success'))
+                    <div class="flash flash-success">✅ {{ session('success') }}</div>
+                @endif
+                @if (session('error'))
+                    <div class="flash flash-error">⚠️ {{ session('error') }}</div>
+                @endif
+                @if ($errors->any())
+                    <div class="flash flash-error">
+                        <span>⚠️</span>
+                        <ul style="margin:0;padding-left:16px;">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                @yield('content')
+            </main>
+        </div>
+    @else
+        <main class="content guest" style="padding-top: 60px;">
             @if (session('success'))
                 <div class="flash flash-success">✅ {{ session('success') }}</div>
             @endif
@@ -672,41 +1005,22 @@
             @endif
             @yield('content')
         </main>
-    </div>
-@else
-    <main class="content guest" style="padding-top: 60px;">
-        @if (session('success'))
-            <div class="flash flash-success">✅ {{ session('success') }}</div>
-        @endif
-        @if (session('error'))
-            <div class="flash flash-error">⚠️ {{ session('error') }}</div>
-        @endif
-        @if ($errors->any())
-            <div class="flash flash-error">
-                <span>⚠️</span>
-                <ul style="margin:0;padding-left:16px;">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-        @yield('content')
-    </main>
-@endauth
+    @endauth
 
-<script>
-    function toggleSidebar() {
-        const sb = document.getElementById('sidebar');
-        const ov = document.getElementById('sidebar-overlay');
-        sb.classList.toggle('open');
-        ov.classList.toggle('show');
-    }
-    function closeSidebar() {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('sidebar-overlay').classList.remove('show');
-    }
-</script>
-@stack('scripts')
+    <script>
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const ov = document.getElementById('sidebar-overlay');
+            sb.classList.toggle('open');
+            ov.classList.toggle('show');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('show');
+        }
+    </script>
+    @stack('scripts')
 </body>
+
 </html>
