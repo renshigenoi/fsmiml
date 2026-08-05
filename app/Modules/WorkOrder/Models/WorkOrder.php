@@ -31,6 +31,7 @@ class WorkOrder extends Model
         'notes',
         'cancelled_reason',
         'failed_reason',
+        'completion_note',
         'created_by',
     ];
 
@@ -76,6 +77,11 @@ class WorkOrder extends Model
     public function statusHistories(): HasMany
     {
         return $this->hasMany(WorkOrderStatusHistory::class);
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(WorkOrderPhoto::class);
     }
 
     public function trackingSessions(): HasMany

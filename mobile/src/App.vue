@@ -487,7 +487,57 @@
                 </div>
             </div>
 
-            
+            <!-- ========== MODAL SELESAIKAN PEMASANGAN (FOTO) ========== -->
+            <div v-if="finishSheet.show" class="modal-backdrop" @click.self="closeFinishSheet">
+                <div class="modal">
+                    <div class="modal-grip"></div>
+                    <div class="modal-head">
+                        <div class="modal-title-box">
+                            <div class="modal-icon-badge">📸</div>
+                            <div>
+                                <h3>Selesaikan Pemasangan</h3>
+                                <p class="desc">Lampirkan foto hasil pemasangan (min. 1, maks. {{ maxPhotos }}) sebagai bukti.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="photo-grid">
+                        <div v-for="(p, i) in finishSheet.photos" :key="i" class="photo-thumb">
+                            <img :src="p.preview" alt="foto">
+                            <button type="button" class="photo-del" @click="removeFinishPhoto(i)" title="Hapus">✕</button>
+                        </div>
+                        <button v-if="finishSheet.photos.length < maxPhotos" type="button" class="photo-add"
+                            @click="addFinishPhoto('camera')">
+                            <span>📷</span><span>Kamera</span>
+                        </button>
+                        <button v-if="finishSheet.photos.length < maxPhotos" type="button" class="photo-add"
+                            @click="addFinishPhoto('gallery')">
+                            <span>🖼️</span><span>Galeri</span>
+                        </button>
+                    </div>
+                    <p style="font-size:12px;color:var(--ink-2);margin:0 0 12px;">
+                        {{ finishSheet.photos.length }} / {{ maxPhotos }} foto dipilih
+                    </p>
+
+                    <div class="reason-box">
+                        <textarea v-model="finishSheet.note" rows="2"
+                            placeholder="Catatan hasil pemasangan (opsional)…"></textarea>
+                    </div>
+
+                    <div v-if="finishSheet.error"
+                        style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
+                        ⚠️ {{ finishSheet.error }}
+                    </div>
+                    <div class="modal-actions">
+                        <button class="cancel" type="button" :disabled="finishSheet.uploading" @click="closeFinishSheet">Batal</button>
+                        <button class="ok-green" type="button"
+                            :disabled="finishSheet.uploading || finishSheet.photos.length < 1" @click="submitFinish">
+                            {{ finishSheet.uploading ? 'Mengunggah…' : '🎉 Selesaikan' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- ========== MODAL KONFIRMASI (CUSTOM) ========== -->
             <div v-if="confirmBox.show" class="modal-backdrop">
                 <div class="modal">
@@ -519,6 +569,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 import { BatteryOptimization } from '@capawesome-team/capacitor-android-battery-optimization';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { API_V1 } from './composables/api';
@@ -740,6 +791,14 @@ export default {
                             chips: [],
                             error: ''
                         },
+                        finishSheet: {
+                            show: false,
+                            photos: [],
+                            note: '',
+                            error: '',
+                            uploading: false,
+                        },
+                        maxPhotos: 5,
                         gpsState: 'off',
                         gpsSentLabel: '',
                         watchId: null,
@@ -1031,6 +1090,32 @@ export default {
                         const data = await res.json().catch(function() {
                             return {};
                         });
+                        if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan.');
+                        return data;
+                    },
+                    async apiUpload(path, formData) {
+                        const config = {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json' },
+                            body: formData,
+                        };
+                        if (this.token) config.headers.Authorization = 'Bearer ' + this.token;
+                        const res = await fetch(API_V1 + path, config);
+                        if (res.status === 401) {
+                            if (this.pinEnabled) {
+                                this.pendingRelogin = true;
+                                this.locked = true;
+                                localStorage.setItem('fsm_locked', '1');
+                                this.view = 'lock';
+                                this.pinEntry = '';
+                                this.pinError = '';
+                                this.showToast('Sesi berakhir — masukkan PIN.', 'info');
+                            } else {
+                                this.forceLogout();
+                            }
+                            throw new Error('Sesi berakhir.');
+                        }
+                        const data = await res.json().catch(() => ({}));
                         if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan.');
                         return data;
                     },
@@ -1746,8 +1831,12 @@ export default {
                             };
                             return;
                         }
+                        if (act.key === 'arrive') {
+                            this.askConfirm('Konfirmasi Kedatangan', 'Yakin kamu sudah tiba di lokasi pelanggan? 📍', () => this.executeAction(act));
+                            return;
+                        }
                         if (act.key === 'finish') {
-                            this.askConfirm('Selesaikan Pemasangan', 'Yakin pekerjaan ini sudah selesai? 🙌', () => this.executeAction(act));
+                            this.openFinishSheet();
                             return;
                         }
                         await this.executeAction(act);
@@ -1761,6 +1850,127 @@ export default {
                         } catch (err) {
                             this.showToast(err.message, 'error');
                         } finally {
+                            this.busy = false;
+                        }
+                    },
+                    openFinishSheet() {
+                        this.finishSheet = {
+                            show: true,
+                            photos: [],
+                            note: '',
+                            error: '',
+                            uploading: false,
+                        };
+                    },
+                    closeFinishSheet() {
+                        if (this.finishSheet.uploading) return;
+                        this.finishSheet.show = false;
+                    },
+                    async addFinishPhoto(source) {
+                        if (this.finishSheet.photos.length >= this.maxPhotos) {
+                            this.finishSheet.error = 'Maksimal ' + this.maxPhotos + ' foto.';
+                            return;
+                        }
+                        this.finishSheet.error = '';
+                        try {
+                            if (this.isNativeApp) {
+                                const photo = await Camera.getPhoto({
+                                    quality: 60,
+                                    width: 1280,
+                                    correctOrientation: true,
+                                    resultType: CameraResultType.DataUrl,
+                                    source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos,
+                                });
+                                const blob = this.dataUrlToBlob(photo.dataUrl);
+                                this.pushFinishPhoto(blob, 'foto.' + (photo.format || 'jpeg'));
+                            } else {
+                                // Fallback browser: input file.
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                if (source === 'camera') input.capture = 'environment';
+                                input.onchange = async () => {
+                                    const file = input.files && input.files[0];
+                                    if (file) {
+                                        const compressed = await this.compressImage(file);
+                                        this.pushFinishPhoto(compressed, file.name || 'foto.jpg');
+                                    }
+                                };
+                                input.click();
+                            }
+                        } catch (err) {
+                            // User batal ambil foto — abaikan.
+                        }
+                    },
+                    pushFinishPhoto(blob, name) {
+                        if (!blob) return;
+                        if (this.finishSheet.photos.length >= this.maxPhotos) {
+                            this.finishSheet.error = 'Maksimal ' + this.maxPhotos + ' foto.';
+                            return;
+                        }
+                        const preview = URL.createObjectURL(blob);
+                        this.finishSheet.photos.push({ blob, name, preview });
+                    },
+                    removeFinishPhoto(idx) {
+                        const p = this.finishSheet.photos[idx];
+                        if (p && p.preview) URL.revokeObjectURL(p.preview);
+                        this.finishSheet.photos.splice(idx, 1);
+                    },
+                    dataUrlToBlob(dataUrl) {
+                        const parts = dataUrl.split(',');
+                        const mime = (parts[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+                        const bstr = atob(parts[1]);
+                        let n = bstr.length;
+                        const u8 = new Uint8Array(n);
+                        while (n--) u8[n] = bstr.charCodeAt(n);
+                        return new Blob([u8], { type: mime });
+                    },
+                    compressImage(file, maxDim = 1280, quality = 0.6) {
+                        return new Promise((resolve) => {
+                            const img = new Image();
+                            const url = URL.createObjectURL(file);
+                            img.onload = () => {
+                                let { width, height } = img;
+                                if (width > height && width > maxDim) {
+                                    height = Math.round(height * maxDim / width);
+                                    width = maxDim;
+                                } else if (height > maxDim) {
+                                    width = Math.round(width * maxDim / height);
+                                    height = maxDim;
+                                }
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width;
+                                canvas.height = height;
+                                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                                URL.revokeObjectURL(url);
+                                canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+                            };
+                            img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+                            img.src = url;
+                        });
+                    },
+                    async submitFinish() {
+                        if (this.finishSheet.uploading) return;
+                        if (this.finishSheet.photos.length < 1) {
+                            this.finishSheet.error = 'Minimal 1 foto pemasangan wajib dilampirkan.';
+                            return;
+                        }
+                        this.finishSheet.uploading = true;
+                        this.finishSheet.error = '';
+                        this.busy = true;
+                        try {
+                            const form = new FormData();
+                            this.finishSheet.photos.forEach((p) => form.append('photos[]', p.blob, p.name));
+                            if (this.finishSheet.note.trim()) form.append('note', this.finishSheet.note.trim());
+                            await this.apiUpload('/work-orders/' + this.current.id + '/finish', form);
+                            this.finishSheet.photos.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
+                            this.finishSheet.show = false;
+                            this.showToast('Pemasangan selesai! 🎉', 'success');
+                            await this.reloadDetail();
+                        } catch (err) {
+                            this.finishSheet.error = err.message || 'Gagal menyelesaikan pekerjaan.';
+                        } finally {
+                            this.finishSheet.uploading = false;
                             this.busy = false;
                         }
                     },
@@ -3275,9 +3485,76 @@ export default {
             box-shadow: 0 4px 14px rgba(200, 16, 46, .28);
         }
 
+        .modal-actions .ok-green {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, .28);
+        }
+
         .modal-actions button:disabled {
             opacity: .5;
             pointer-events: none;
+        }
+
+        /* ---- Foto Selesai Pemasangan ---- */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 4px 0 8px;
+        }
+
+        .photo-thumb {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            border-radius: var(--r-sm);
+            overflow: hidden;
+            background: var(--bg-2);
+        }
+
+        .photo-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .photo-del {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, .72);
+            color: #fff;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-add {
+            aspect-ratio: 1 / 1;
+            border: 1.5px dashed var(--line);
+            border-radius: var(--r-sm);
+            background: var(--bg-2);
+            color: var(--ink-2);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .photo-add span:first-child {
+            font-size: 20px;
         }
 
         .loading {

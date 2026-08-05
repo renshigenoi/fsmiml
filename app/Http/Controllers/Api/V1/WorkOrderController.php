@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\FinishWorkOrderRequest;
 use App\Http\Requests\Api\V1\ReasonRequest;
 use App\Http\Requests\Api\V1\StoreWorkOrderRequest;
 use App\Http\Resources\Api\V1\WorkOrderResource;
@@ -103,9 +104,35 @@ class WorkOrderController extends Controller
         return $this->transition($workOrder, WorkOrderStatus::Installation, $transitions);
     }
 
-    public function finish(WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
+    public function finish(FinishWorkOrderRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
     {
-        return $this->transition($workOrder, WorkOrderStatus::Finished, $transitions);
+        /** @var User $actor */
+        $actor = $request->user();
+        $this->authorize('view', $workOrder);
+
+        $result = DB::transaction(function () use ($request, $workOrder, $transitions, $actor): WorkOrder {
+            if ($request->filled('note')) {
+                $workOrder->completion_note = $request->input('note');
+                $workOrder->save();
+            }
+
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('work-orders/' . $workOrder->id . '/completion', 'public');
+
+                $workOrder->photos()->create([
+                    'uploaded_by' => $actor->id,
+                    'disk' => 'public',
+                    'path' => $path,
+                    'original_name' => $photo->getClientOriginalName(),
+                    'mime_type' => $photo->getMimeType(),
+                    'size_bytes' => $photo->getSize(),
+                ]);
+            }
+
+            return $transitions->transition($workOrder, WorkOrderStatus::Finished, $actor);
+        });
+
+        return new WorkOrderResource($result->load('photos'));
     }
 
     public function cancel(ReasonRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource

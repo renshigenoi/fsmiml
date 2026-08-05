@@ -33,7 +33,12 @@ Paste setelah tag `<manifest>`:
 <uses-permission android:name="android.permission.WAKE_LOCK" />
 <!-- Push notification -->
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<!-- Kamera & galeri (foto selesai pemasangan) -->
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 ```
+
+> **CATATAN (plugin baru `@capacitor/camera`):** karena ada tambahan plugin native, tim **wajib rebuild + install ulang APK** sekali lagi (bukan cukup bundle OTA). Jalankan `npm install` lalu `npx cap sync android` sebelum build.
 
 ## 4. Setup Firebase (untuk push notification)
 

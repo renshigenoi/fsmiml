@@ -20,6 +20,7 @@ class WorkOrderResource extends JsonResource
             'scheduled_start_at' => $this->scheduled_start_at->toISOString(),
             'scheduled_end_at' => $this->scheduled_end_at?->toISOString(),
             'notes' => $this->notes,
+            'completion_note' => $this->completion_note,
             'customer' => $this->whenLoaded('customer', fn () => [
                 'id' => $this->customer->id,
                 'name' => $this->customer->name,
@@ -37,6 +38,12 @@ class WorkOrderResource extends JsonResource
                 'longitude' => $this->serviceLocation->longitude,
             ]),
             'items' => $this->whenLoaded('items'),
+            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($photo) => [
+                'id' => $photo->id,
+                'url' => $photo->url,
+                'original_name' => $photo->original_name,
+                'uploaded_at' => $photo->created_at?->toISOString(),
+            ])),
             'assignments' => AssignmentResource::collection($this->whenLoaded('assignments')),
             'tracking_sessions' => $this->whenLoaded('trackingSessions'),
             'status_histories' => $this->whenLoaded('statusHistories'),
