@@ -636,6 +636,20 @@ window.L = L;
                 fsmInstallEvent = e;
             });
 
+            // Bandingkan versi "1.0" vs "1.0.0" dengan benar (angka per segmen).
+            function isVersionNewer(server, native) {
+                const parse = (v) => String(v || '0').split('.').map((n) => parseInt(n, 10) || 0);
+                const a = parse(server);
+                const b = parse(native);
+                for (let i = 0; i < 3; i++) {
+                    const x = a[i] || 0;
+                    const y = b[i] || 0;
+                    if (x > y) return true;
+                    if (x < y) return false;
+                }
+                return false;
+            }
+
 
 export default {
                 data() {
@@ -692,6 +706,7 @@ export default {
                         installPromptInit: false,
                         isAndroidBrowser: false,
                         isIosBrowser: false,
+                        bioEnabledState: false,
                         manualHint: false,
                         appDownloadUrl: '',
                         pinChange: {
@@ -749,10 +764,15 @@ export default {
                         return !!(this.user && this.user.has_pin) || !!this.localPin();
                     },
                     bioEnabled() {
-                        return localStorage.getItem('fsm_bio_' + this.currentEmail()) === '1';
+                        return this.bioEnabledState;
+                    },
+                    isNativeApp() {
+                        return !!(window.Capacitor && window.Capacitor.isNativePlatform
+                            && window.Capacitor.isNativePlatform());
                     },
                     installBannerVisible() {
                         return this.view === 'home'
+                            && !this.isNativeApp
                             && !this.updateInfo
                             && (this.installVisible || this.iosInstallHint || this.manualHint);
                     },
@@ -904,11 +924,15 @@ export default {
                                 this.manualHint = false;
                             }, 10000);
                         }
+                    },
+                    user() {
+                        this.syncBioState();
                     }
                 },
                 mounted() {
                     this.checkAppVersion();
                     this.detectBiometric();
+                    this.syncBioState();
                     this.setupBackButton();
                     this.setupConnectivity();
                     this.registerPushNotifications();
@@ -1136,7 +1160,7 @@ export default {
                             await this.applyLiveUpdate(data);
 
                             // 2) NATIVE — perubahan yang WAJIB install ulang APK.
-                            if (!data.version || data.version === native.version) return;
+                            if (!data.version || !isVersionNewer(data.version, native.version)) return;
                             this.updateInfo = {
                                 version: data.version,
                                 url: data.download_url || '',
@@ -1300,6 +1324,9 @@ export default {
                     setupInstallPrompt() {
                         if (this.installPromptInit) return;
                         this.installPromptInit = true;
+
+                        // Di dalam APK tidak perlu banner install (sudah jadi aplikasi).
+                        if (this.isNativeApp) return;
 
                         // Jangan tampilkan jika sudah berjalan dalam mode PWA / Standalone.
                         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
@@ -1482,11 +1509,13 @@ export default {
                     },
                     toggleBio() {
                         const key = 'fsm_bio_' + this.currentEmail();
-                        if (localStorage.getItem(key) === '1') {
-                            localStorage.removeItem(key);
-                        } else {
-                            localStorage.setItem(key, '1');
-                        }
+                        const next = !this.bioEnabledState;
+                        this.bioEnabledState = next;
+                        if (next) localStorage.setItem(key, '1');
+                        else localStorage.removeItem(key);
+                    },
+                    syncBioState() {
+                        this.bioEnabledState = localStorage.getItem('fsm_bio_' + this.currentEmail()) === '1';
                     },
                     async serverPinCheck(pin) {
                         if (!this.token) return 'error';
