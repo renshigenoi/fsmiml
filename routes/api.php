@@ -14,6 +14,9 @@ Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('auth/pin/login', [AuthController::class, 'pinLogin'])->middleware('throttle:login');
     Route::get('app/version', [AppVersionController::class, 'show']);
+    Route::get('app/bundle/{version}', [AppVersionController::class, 'bundle'])
+        ->where('version', '[0-9]+')
+        ->middleware('throttle:public-tracking');
     Route::get('public/tracking/{token}', [TrackingTokenController::class, 'show'])->middleware('throttle:public-tracking');
 
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
