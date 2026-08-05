@@ -73,7 +73,7 @@
         position: relative;
         overflow: hidden;
         box-shadow: 0 1px 4px rgba(11,32,68,.06);
-        cursor: default;
+        cursor: pointer;
         transition: transform .18s, box-shadow .18s;
     }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(11,32,68,.10); }
@@ -186,31 +186,41 @@
 
 {{-- ===== Stats ===== --}}
 <div class="stat-grid">
-    <div class="stat-card amber">
+    <div class="stat-card amber"
+        onclick="location.href='{{ route('dashboard.work-orders', ['status' => 'waiting_acceptance']) }}'"
+        title="Lihat daftar Menunggu Konfirmasi">
         <span class="sc-icon">⏳</span>
         <div class="sc-num">{{ $statusCounts['waiting_acceptance'] ?? 0 }}</div>
         <div class="sc-lbl">Menunggu<br>Konfirmasi</div>
         <div class="sc-bar"></div>
     </div>
-    <div class="stat-card violet">
+    <div class="stat-card violet"
+        onclick="location.href='{{ route('dashboard.work-orders', ['status' => 'on_the_way']) }}'"
+        title="Lihat daftar Dalam Perjalanan">
         <span class="sc-icon">🚗</span>
         <div class="sc-num">{{ $statusCounts['on_the_way'] ?? 0 }}</div>
         <div class="sc-lbl">Dalam<br>Perjalanan</div>
         <div class="sc-bar"></div>
     </div>
-    <div class="stat-card sky">
+    <div class="stat-card sky"
+        onclick="location.href='{{ route('dashboard.work-orders', ['status' => 'processing']) }}'"
+        title="Lihat daftar Proses Pemasangan">
         <span class="sc-icon">🛠️</span>
         <div class="sc-num">{{ ($statusCounts['installation'] ?? 0) + ($statusCounts['arrived'] ?? 0) }}</div>
         <div class="sc-lbl">Proses<br>Pemasangan</div>
         <div class="sc-bar"></div>
     </div>
-    <div class="stat-card green">
+    <div class="stat-card green"
+        onclick="location.href='{{ route('dashboard.work-orders', ['status' => 'finished']) }}'"
+        title="Lihat daftar Selesai">
         <span class="sc-icon">✅</span>
         <div class="sc-num">{{ $statusCounts['finished'] ?? 0 }}</div>
         <div class="sc-lbl">Selesai<br>Hari Ini</div>
         <div class="sc-bar"></div>
     </div>
-    <div class="stat-card red">
+    <div class="stat-card red"
+        onclick="location.href='{{ route('dashboard.technicians') }}'"
+        title="Lihat data teknisi">
         <span class="sc-icon">👷</span>
         <div class="sc-num">{{ $technicianCount }}</div>
         <div class="sc-lbl">Total<br>Teknisi</div>

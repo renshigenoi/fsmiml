@@ -202,7 +202,10 @@
     {{-- Filter --}}
     <form method="GET" action="{{ route('dashboard.work-orders') }}" class="filter-panel" id="filter-form">
         <select name="status" id="status" onchange="this.form.submit()">
-            <option value="all" @selected($selectedStatus === null)>🔍 Semua Status</option>
+            <option value="all" @selected($selectedStatus === 'all')>🔍 Semua Status</option>
+            <option value="processing" @selected($selectedStatus === 'processing')>
+                Proses Pemasangan (Tiba / Pasang)
+            </option>
             @foreach ($statuses as $status)
                 <option value="{{ $status->value }}" @selected(($selectedStatus ?? null) === $status->value)>
                     {{ \App\Support\StatusMap::label($status->value) }}
@@ -271,6 +274,10 @@
                             @endif
                         </td>
                         <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+                            @if (isset($trackingLinks[$workOrder->getKey()]))
+                                <a href="{{ $trackingLinks[$workOrder->getKey()] }}" target="_blank" rel="noopener"
+                                    class="btn btn-sm" style="background:var(--red-500,#c8102e);color:#fff;">Tracking →</a>
+                            @endif
                             <a href="{{ route('dashboard.work-orders.show', $workOrder) }}" class="btn btn-sm btn-navy">Detail →</a>
                         </td>
                     </tr>

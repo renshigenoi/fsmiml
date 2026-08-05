@@ -12,12 +12,14 @@ use App\Modules\Legacy\Services\LegacyDataSourceService;
 use App\Modules\Legacy\Services\LegacyWorkOrderService;
 use App\Modules\Legacy\Support\LegacyRowFormatter;
 use App\Modules\Tracking\Enums\TrackingSessionStatus;
+use App\Modules\Tracking\Enums\TrackingTokenStatus;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use App\Modules\WorkOrder\Models\WorkOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -63,22 +65,70 @@ class DashboardController extends Controller
     {
         $statusParam = $request->query('status');
 
-        $selectedStatus = match (true) {
-            $statusParam === null => WorkOrderStatus::WaitingAcceptance,
+        $single = null;
+        $multi = [];
+        $selected = 'all';
+
+        match (true) {
+            $statusParam === null => [
+                $single = WorkOrderStatus::WaitingAcceptance,
+                $selected = WorkOrderStatus::WaitingAcceptance->value,
+            ],
             $statusParam === 'all' => null,
-            default => WorkOrderStatus::tryFrom((string) $statusParam) ?? WorkOrderStatus::WaitingAcceptance,
+            $statusParam === 'processing' => [
+                $multi = [WorkOrderStatus::Arrived, WorkOrderStatus::Installation],
+                $selected = 'processing',
+            ],
+            default => [
+                $single = WorkOrderStatus::tryFrom((string) $statusParam) ?? WorkOrderStatus::WaitingAcceptance,
+                $selected = $single->value,
+            ],
         };
 
         $workOrders = WorkOrder::query()
-            ->with(['customer', 'assignments.technician.user'])
-            ->when($selectedStatus !== null, fn ($query) => $query->where('status', $selectedStatus))
+            ->with(['customer', 'assignments.technician.user', 'trackingSessions.tokens'])
+            ->when($single !== null, fn ($query) => $query->where('status', $single))
+            ->when($multi !== [], fn ($query) => $query->whereIn('status', $multi))
             ->latest('scheduled_start_at')
             ->paginate(20);
 
+        $trackingLinks = [];
+
+        foreach ($workOrders as $workOrder) {
+            if ($workOrder->status !== WorkOrderStatus::OnTheWay) {
+                continue;
+            }
+
+            $session = $workOrder->trackingSessions
+                ->first(fn ($session): bool => $session->status === TrackingSessionStatus::Active);
+
+            if ($session === null) {
+                continue;
+            }
+
+            $token = $session->tokens
+                ->first(fn ($token): bool => $token->status === TrackingTokenStatus::Active);
+
+            if ($token?->token_plain_encrypted) {
+                try {
+                    $trackingLinks[$workOrder->getKey()] = rtrim(
+                        (string) config('notifications.tracking.public_url'),
+                        '/',
+                    ).'/'.Crypt::decryptString($token->token_plain_encrypted);
+                } catch (Throwable $exception) {
+                    Log::warning('Gagal mendekripsi token tracking untuk dashboard.', [
+                        'work_order_id' => $workOrder->getKey(),
+                        'error' => $exception->getMessage(),
+                    ]);
+                }
+            }
+        }
+
         return view('dashboard.work-orders', [
             'workOrders' => $workOrders,
-            'selectedStatus' => $selectedStatus?->value,
+            'selectedStatus' => $selected,
             'statuses' => WorkOrderStatus::cases(),
+            'trackingLinks' => $trackingLinks,
         ]);
     }
 

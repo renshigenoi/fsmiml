@@ -10,6 +10,7 @@ use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Models\TrackingToken;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
 class TrackingTokenService
@@ -39,6 +40,7 @@ class TrackingTokenService
             $token = TrackingToken::query()->create([
                 'tracking_session_id' => $session->getKey(),
                 'token_hash' => hash('sha256', $plainToken),
+                'token_plain_encrypted' => Crypt::encryptString($plainToken),
                 'status' => TrackingTokenStatus::Active,
                 'expires_at' => now()->addHours((float) config('notifications.tracking.token_ttl_hours')),
             ]);
