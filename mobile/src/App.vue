@@ -517,6 +517,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
+import { BatteryOptimization } from '@capawesome-team/capacitor-android-battery-optimization';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -1838,6 +1839,7 @@ export default {
                         // Di dalam APK: pakai background geolocation (tetap jalan saat app di-minimize).
                         if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                             this.gpsState = 'starting';
+                            this.requestBatteryOptimizationExemption();
                             BackgroundGeolocation.addWatcher(
                                 {
                                     backgroundMessage: 'Melacak perjalanan teknisi',
@@ -1893,6 +1895,16 @@ export default {
                         this.gpsTimer = setInterval(() => {
                             if (this.lastPos && this.onTrip) this.sendLocation();
                         }, 15000);
+                    },
+                    async requestBatteryOptimizationExemption() {
+                        try {
+                            if (!window.Capacitor || !window.Capacitor.isNativePlatform
+                                || !window.Capacitor.isNativePlatform()) return;
+                            const { enabled } = await BatteryOptimization.isBatteryOptimizationEnabled();
+                            if (enabled) {
+                                await BatteryOptimization.requestIgnoreBatteryOptimization();
+                            }
+                        } catch (_) { /* dialog dibatalkan user — aman */ }
                     },
                     async sendLocation() {
                         const sessionId = this.tripSessionId || (this.activeSession() ? this.activeSession().id : null);
