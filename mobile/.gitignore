@@ -5,7 +5,13 @@ dist/
 *.log
 
 # Capacitor / Android
-android/
+android/*
+!android/app
+android/app/*
+!android/app/src
+android/app/src/*
+!android/app/src/main
+android/app/src/main/*
 !android/app/src/main/AndroidManifest.xml
 .gradle/
 local.properties
