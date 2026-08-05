@@ -13,9 +13,11 @@
 	<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 	<!-- Push notification -->
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-	<!-- Camera dan Gallery -->
+	<!-- Kamera & galeri (foto selesai pemasangan) -->
 	<uses-permission android:name="android.permission.CAMERA" />
 	<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+	<!-- Auto-download & pasang update APK native -->
+	<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="true"

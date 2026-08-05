@@ -36,7 +36,11 @@ Paste setelah tag `<manifest>`:
 <!-- Kamera & galeri (foto selesai pemasangan) -->
 <uses-permission android:name="android.permission.CAMERA" />
 <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<!-- Auto-download & pasang update APK native -->
+<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 ```
+
+> **Catatan `REQUEST_INSTALL_PACKAGES`:** izin ini yang membuat app bisa memicu dialog installer Android otomatis setelah APK selesai diunduh. Android tetap menampilkan dialog "Install" (tidak bisa silent install) — user tap "Install" 1x. Google Play membatasi izin ini; karena APK ini didistribusikan manual (bukan lewat Play Store), aman digunakan.
 
 > **CATATAN (plugin baru `@capacitor/camera`):** karena ada tambahan plugin native, tim **wajib rebuild + install ulang APK** sekali lagi (bukan cukup bundle OTA). Jalankan `npm install` lalu `npx cap sync android` sebelum build.
 

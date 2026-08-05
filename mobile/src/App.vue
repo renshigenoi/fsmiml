@@ -2,9 +2,10 @@
     <div class="fsm-app">
 
             <!-- ============ UPDATE BANNER (hanya muncul di dalam APK) ============ -->
-            <div v-if="updateInfo" class="update-banner" @click="downloadUpdate">
-                <span>🔄 Versi baru {{ updateInfo.version }} tersedia — ketuk untuk unduh</span>
-                <button v-if="!updateInfo.required" type="button" class="ub-close"
+            <div v-if="updateInfo" class="update-banner" @click="!updateDownloading && downloadUpdate()">
+                <span v-if="updateDownloading">⬇️ Mengunduh pembaruan… {{ updateProgress }}%</span>
+                <span v-else>🔄 Versi baru {{ updateInfo.version }} tersedia — ketuk untuk unduh</span>
+                <button v-if="!updateInfo.required && !updateDownloading" type="button" class="ub-close"
                     @click.stop="updateInfo = null">✕</button>
             </div>
 
@@ -570,6 +571,8 @@ import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 import { BatteryOptimization } from '@capawesome-team/capacitor-android-battery-optimization';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { FileOpener } from '@capacitor-community/file-opener';
 import { registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { API_V1 } from './composables/api';
@@ -730,6 +733,8 @@ export default {
                             type: 'info'
                         },
                         updateInfo: null,
+                        updateDownloading: false,
+                        updateProgress: 0,
                         confirmBox: {
                             show: false,
                             title: '',
@@ -1271,9 +1276,57 @@ export default {
                             await CapacitorUpdater.set(bundle);
                         } catch (err) { /* gagal OTA — tetap pakai bundle lama, aman */ }
                     },
-                    downloadUpdate() {
-                        if (this.updateInfo && this.updateInfo.url) {
-                            window.open(this.updateInfo.url, '_system');
+                    async downloadUpdate() {
+                        const url = this.updateInfo && this.updateInfo.url;
+                        if (!url) return;
+
+                        // Di luar APK (browser biasa) — cukup buka link.
+                        const isNative = window.Capacitor && window.Capacitor.isNativePlatform
+                            && window.Capacitor.isNativePlatform();
+                        if (!isNative) {
+                            window.open(url, '_system');
+                            return;
+                        }
+                        if (this.updateDownloading) return; // cegah dobel-tap
+
+                        this.updateDownloading = true;
+                        this.updateProgress = 0;
+                        let progressHandle = null;
+                        try {
+                            // Pantau progress unduhan (0–100%).
+                            progressHandle = await Filesystem.addListener('progress', (status) => {
+                                if (status && status.contentLength > 0) {
+                                    this.updateProgress = Math.min(100,
+                                        Math.round((status.bytes / status.contentLength) * 100));
+                                }
+                            });
+
+                            const fileName = 'fsm-teknisi-' + (this.updateInfo.version || 'update') + '.apk';
+                            // Unduh APK ke penyimpanan cache aplikasi.
+                            const result = await Filesystem.downloadFile({
+                                url,
+                                path: fileName,
+                                directory: Directory.Cache,
+                                progress: true,
+                            });
+
+                            this.updateProgress = 100;
+
+                            // Buka file APK → memicu dialog installer Android (tap "Install").
+                            await FileOpener.open({
+                                filePath: result.path || result.uri,
+                                contentType: 'application/vnd.android.package-archive',
+                            });
+                            this.showToast('Unduhan selesai. Lanjutkan pemasangan di layar Android.', 'success');
+                        } catch (err) {
+                            // Gagal unduh/buka — fallback ke browser sistem (cara lama, tetap aman).
+                            this.showToast('Membuka unduhan di browser…', 'info');
+                            window.open(url, '_system');
+                        } finally {
+                            if (progressHandle && progressHandle.remove) {
+                                try { await progressHandle.remove(); } catch (e) { /* abaikan */ }
+                            }
+                            this.updateDownloading = false;
                         }
                     },
                     async registerPushNotifications() {
@@ -1386,7 +1439,7 @@ export default {
                         if (!window.Capacitor || !window.Capacitor.Plugins.App ||
                             !window.Capacitor.Plugins.App.addListener) return;
                         window.Capacitor.Plugins.App.addListener('backButton', () => {
-                            if (this.view === 'home' || this.view === 'lock') {
+                            if (this.view === 'home' || this.view === 'lock' || this.view === 'login') {
                                 this.askConfirm('Keluar Aplikasi', 'Yakin mau keluar aplikasi?', () => this.exitApp());
                             } else if (this.view === 'detail') {
                                 this.goHome();
