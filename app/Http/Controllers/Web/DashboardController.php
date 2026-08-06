@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ResetPinRequest;
 use App\Http\Requests\Api\V1\StoreLegacyWorkOrderRequest;
+use App\Http\Requests\UpdateWorkOrderRequest;
 use App\Models\User;
 use App\Modules\Assignment\Exceptions\InvalidAssignment;
 use App\Modules\Identity\Enums\UserRole;
@@ -243,6 +244,51 @@ class DashboardController extends Controller
             'workOrder' => $workOrder,
             'currentLocation' => $currentLocation,
         ]);
+    }
+
+    public function updateWorkOrder(UpdateWorkOrderRequest $request, WorkOrder $workOrder): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $scheduledAt = $validated['scheduled_start_at'];
+        if (filled($validated['scheduled_start_time'] ?? null)) {
+            $scheduledAt .= ' '.$validated['scheduled_start_time'];
+        }
+
+        $workOrder->update([
+            'scheduled_start_at' => $scheduledAt,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        if ($workOrder->serviceLocation !== null) {
+            $workOrder->serviceLocation->update([
+                'address' => $validated['location_address'] ?? $workOrder->serviceLocation->address,
+                'latitude' => isset($validated['latitude'])
+                    ? (float) $validated['latitude']
+                    : $workOrder->serviceLocation->latitude,
+                'longitude' => isset($validated['longitude'])
+                    ? (float) $validated['longitude']
+                    : $workOrder->serviceLocation->longitude,
+            ]);
+        }
+
+        if ($workOrder->customer !== null) {
+            $customerUpdate = [];
+
+            if (filled($validated['customer_phone'] ?? null)) {
+                $customerUpdate['phone'] = $validated['customer_phone'];
+            }
+
+            if (filled($validated['customer_email'] ?? null)) {
+                $customerUpdate['email'] = $validated['customer_email'];
+            }
+
+            if ($customerUpdate !== []) {
+                $workOrder->customer->update($customerUpdate);
+            }
+        }
+
+        return back()->with('success', "Work Order {$workOrder->number} berhasil diperbarui.");
     }
 
     public function resetPinForm(): View

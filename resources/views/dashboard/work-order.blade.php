@@ -198,6 +198,39 @@
     .item-row:last-child { border-bottom: 0; }
     .item-name { font-weight: 600; color: var(--ink,#0d1b35); }
     .item-qty { background: var(--navy-100,#dce9fc); color: var(--navy-700,#112b5c); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 800; }
+
+    /* Edit Work Order Modal */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 20, 41, .55);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .modal-box {
+        background: #fff;
+        border-radius: 16px;
+        max-width: 520px;
+        width: 100%;
+        padding: 24px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(6, 20, 41, .30);
+    }
+    .modal-box h3 { margin: 0 0 4px; font-size: 18px; font-weight: 900; color: var(--ink,#0d1b35); }
+    .modal-box label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--muted,#64748b);
+        margin: 14px 0 6px;
+    }
+    .modal-actions-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
 </style>
 
 {{-- ===== Page Header ===== --}}
@@ -216,6 +249,8 @@
             </span>
         </div>
         <div class="wo-hdr-actions">
+            <button type="button" class="btn btn-sm" id="btn-edit-wo"
+                style="background:var(--red-500,#c8102e);color:#fff;">✏️ Edit</button>
             @if ($workOrder->serviceLocation?->latitude)
                 <a href="https://www.google.com/maps?q={{ $workOrder->serviceLocation->latitude }},{{ $workOrder->serviceLocation->longitude }}"
                    target="_blank" rel="noopener"
@@ -463,7 +498,61 @@
     </div>{{-- /right --}}
 </div>
 
+{{-- ===== Edit Work Order Modal ===== --}}
+<div id="edit-wo-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <h3>Edit Work Order</h3>
+        <p style="margin:0 0 6px;font-size:13px;color:var(--muted,#64748b);">
+            Nomor SPK tidak dapat diubah.
+        </p>
+        <form method="POST" action="{{ route('dashboard.work-orders.update', $workOrder) }}">
+            @csrf
+            <label>Nomor SPK</label>
+            <input type="text" value="{{ $workOrder->number }}" disabled>
+
+            <label>Tanggal Pemasangan</label>
+            <input type="date" name="scheduled_start_at" required
+                value="{{ $workOrder->scheduled_start_at?->format('Y-m-d') }}">
+
+            <label>Jam Pemasangan</label>
+            <input type="time" name="scheduled_start_time"
+                value="{{ $workOrder->scheduled_start_at?->format('H:i') }}">
+
+            <label>Catatan</label>
+            <textarea name="notes" rows="2" placeholder="Opsional...">{{ $workOrder->notes }}</textarea>
+
+            <label>Alamat Lokasi</label>
+            <input type="text" name="location_address"
+                value="{{ $workOrder->serviceLocation?->address }}">
+
+            <label>No. WhatsApp Customer</label>
+            <input type="tel" name="customer_phone" value="{{ $workOrder->customer?->phone }}">
+
+            <label>Email Customer</label>
+            <input type="email" name="customer_email" value="{{ $workOrder->customer?->email }}">
+
+            <div class="modal-actions-row">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-edit">Batal</button>
+                <button type="submit" class="btn" style="background:var(--red-500,#c8102e);color:#fff;">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @push('scripts')
+    <script>
+        document.getElementById('btn-edit-wo').addEventListener('click', function () {
+            document.getElementById('edit-wo-modal').style.display = 'flex';
+        });
+        document.getElementById('btn-cancel-edit').addEventListener('click', function () {
+            document.getElementById('edit-wo-modal').style.display = 'none';
+        });
+        document.getElementById('edit-wo-modal').addEventListener('click', function (e) {
+            if (e.target.id === 'edit-wo-modal') {
+                document.getElementById('edit-wo-modal').style.display = 'none';
+            }
+        });
+    </script>
 @if ($workOrder->serviceLocation?->latitude)
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

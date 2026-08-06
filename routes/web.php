@@ -33,6 +33,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('dashboard/api/overview', [DashboardController::class, 'overviewJson']);
     Route::post('dashboard/work-orders', [DashboardController::class, 'storeWorkOrder']);
     Route::get('dashboard/work-orders/{workOrder}', [DashboardController::class, 'showWorkOrder'])->name('dashboard.work-orders.show');
+    Route::post('dashboard/work-orders/{workOrder}/update', [DashboardController::class, 'updateWorkOrder'])->name('dashboard.work-orders.update');
 
     Route::get('dashboard/profile', [ProfileController::class, 'show'])->name('dashboard.profile');
     Route::post('dashboard/profile', [ProfileController::class, 'update']);
