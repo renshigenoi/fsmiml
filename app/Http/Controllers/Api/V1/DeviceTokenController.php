@@ -15,7 +15,10 @@ class DeviceTokenController extends Controller
 
         /** @var UserDeviceToken $deviceToken */
         $deviceToken = $request->user()->deviceTokens()->updateOrCreate(
-            ['token' => $validated['token']],
+            [
+                'user_id' => $request->user()->getKey(),
+                'token' => $validated['token'],
+            ],
             [
                 'platform' => $validated['platform'],
                 'device_name' => $validated['device_name'] ?? null,
