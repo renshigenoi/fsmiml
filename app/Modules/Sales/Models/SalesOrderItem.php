@@ -13,6 +13,7 @@ class SalesOrderItem extends Model
         'sales_order_id',
         'product_code',
         'product_name',
+        'window_film_desc',
         'quantity',
         'unit',
     ];

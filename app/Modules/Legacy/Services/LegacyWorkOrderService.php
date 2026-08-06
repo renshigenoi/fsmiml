@@ -215,6 +215,7 @@ class LegacyWorkOrderService
         $salesItem = $salesOrder->items()->create([
             'product_code' => $row->car_type_serial ? (string) $row->car_type_serial : null,
             'product_name' => $productName,
+            'window_film_desc' => filled($row->window_film_desc ?? null) ? (string) $row->window_film_desc : null,
             'quantity' => 1,
         ]);
 
@@ -222,6 +223,7 @@ class LegacyWorkOrderService
             'sales_order_item_id' => $salesItem->getKey(),
             'product_code' => $salesItem->product_code,
             'product_name' => $productName,
+            'window_film_desc' => $salesItem->window_film_desc,
             'quantity' => 1,
         ]);
     }

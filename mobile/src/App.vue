@@ -471,6 +471,17 @@
                                         class="v">{{ fmtDateTime(current . scheduled_start_at) }}</span></div>
                             </div>
 
+                            <div class="card" v-if="current.items && current.items.length">
+                                <h4>📦 Item Pekerjaan</h4>
+                                <div v-for="it in current.items" :key="it.id" class="wo-item">
+                                    <div>
+                                        <div class="wo-item-name">{{ it.product_name || '-' }}</div>
+                                        <div v-if="it.window_film_desc" class="wo-item-film">🪟 {{ it.window_film_desc }}</div>
+                                    </div>
+                                    <span class="wo-item-qty">× {{ it.quantity }}</span>
+                                </div>
+                            </div>
+
                             <div class="card">
                                 <h4>📍 Lokasi Pemasangan</h4>
                                 <div style="font-size:14px;font-weight:600;margin-bottom:10px;">
@@ -3086,6 +3097,38 @@ export default {
             text-align: right;
             font-weight: 600;
             color: var(--ink-2);
+        }
+
+        .wo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--bg-2);
+            font-size: 14px;
+        }
+
+        .wo-item:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .wo-item-name {
+            font-weight: 700;
+            color: var(--ink-2);
+        }
+
+        .wo-item-film {
+            font-size: 12.5px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .wo-item-qty {
+            flex-shrink: 0;
+            font-weight: 800;
+            color: var(--primary);
         }
 
         #detail-map {

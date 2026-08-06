@@ -13,6 +13,7 @@ class WorkOrderItem extends Model
         'sales_order_item_id',
         'product_code',
         'product_name',
+        'window_film_desc',
         'quantity',
         'unit',
     ];

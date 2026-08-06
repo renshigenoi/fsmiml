@@ -445,9 +445,12 @@
             </div>
             <div class="info-card-body">
                 @foreach ($workOrder->items as $item)
-                    <div class="item-row">
+                    <div class="item-row" style="flex-wrap:wrap;row-gap:4px;">
                         <span class="item-name">{{ $item->product_name }}</span>
                         <span class="item-qty">× {{ $item->quantity }}</span>
+                        @if ($item->window_film_desc)
+                            <span class="item-qty" style="width:100%;color:var(--muted,#64748b);">🪟 {{ $item->window_film_desc }}</span>
+                        @endif
                     </div>
                 @endforeach
             </div>
@@ -602,6 +605,23 @@
             @csrf
             <label>Nomor SPK</label>
             <input type="text" value="{{ $workOrder->number }}" disabled>
+
+            <label>Item Pekerjaan</label>
+            <div class="ew-tech-list" style="max-height:none;margin-bottom:2px;">
+                @forelse ($workOrder->items as $item)
+                    <div style="padding:8px 6px;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line,#e2e8f4);">
+                        <div>
+                            <div style="font-weight:700;font-size:14px;">{{ $item->product_name }}</div>
+                            @if ($item->window_film_desc)
+                                <div style="font-size:12.5px;color:var(--muted,#64748b);margin-top:2px;">🪟 Jenis Film: {{ $item->window_film_desc }}</div>
+                            @endif
+                        </div>
+                        <div style="flex-shrink:0;font-weight:800;color:var(--navy-700,#112b5c);">× {{ $item->quantity }}</div>
+                    </div>
+                @empty
+                    <div style="padding:10px;color:var(--muted,#64748b);">Belum ada item pekerjaan.</div>
+                @endforelse
+            </div>
 
             <label>Tanggal Pemasangan</label>
             <div class="ew-pick" style="position:relative;">
