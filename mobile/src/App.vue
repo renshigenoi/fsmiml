@@ -877,6 +877,8 @@ export default {
                         maxPhotos: 5,
                         gpsState: 'off',
                         gpsSentLabel: '',
+                        lastGpsSentAt: 0,
+                        batteryGuideShown: false,
                         watchId: null,
                         bgWatcherId: null,
                         gpsTimer: null,
@@ -1619,6 +1621,10 @@ export default {
                         window.addEventListener('offline', () => {
                             this.online = false;
                         });
+                        // Saat aplikasi kembali ke foreground, kirim ulang lokasi terakhir kalau sempat basi.
+                        document.addEventListener('visibilitychange', () => {
+                            if (!document.hidden) this.catchUpLocation();
+                        });
                     },
                     setupPullToRefresh() {
                         window.addEventListener('touchstart', (e) => {
@@ -2174,6 +2180,14 @@ export default {
                         if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                             this.gpsState = 'starting';
                             this.requestBatteryOptimizationExemption();
+                            if (!this.batteryGuideShown) {
+                                this.batteryGuideShown = true;
+                                this.askConfirm(
+                                    'Tracking & Baterai',
+                                    'Agar lokasi tetap terkirim saat layar mati, izinkan aplikasi tanpa batasan baterai. Buka pengaturannya?',
+                                    () => this.openBatterySettings(),
+                                );
+                            }
                             BackgroundGeolocation.addWatcher(
                                 {
                                     backgroundMessage: 'Melacak perjalanan teknisi',
@@ -2240,6 +2254,13 @@ export default {
                             }
                         } catch (_) { /* dialog dibatalkan user — aman */ }
                     },
+                    async openBatterySettings() {
+                        try {
+                            if (this.isNativeApp) {
+                                await BatteryOptimization.openBatteryOptimizationSettings();
+                            }
+                        } catch (_) { /* tidak bisa dibuka — abaikan */ }
+                    },
                     async sendLocation() {
                         const sessionId = this.tripSessionId || (this.activeSession() ? this.activeSession().id : null);
                         if (!sessionId || !this.lastPos) return;
@@ -2260,7 +2281,18 @@ export default {
                                 hour: '2-digit',
                                 minute: '2-digit'
                             });
+                            this.lastGpsSentAt = Date.now();
                         } catch (err) { /* dikirim ulang pada interval berikutnya */ }
+                    },
+                    catchUpLocation() {
+                        if (!this.onTrip || !this.lastPos || !this.tripSessionId) return;
+                        const staleMs = Date.now() - this.lastGpsSentAt;
+                        if (staleMs > 45000) {
+                            this.sendLocation();
+                            if (staleMs > 120000) {
+                                this.showToast('Tracking sempat terputus — posisi terakhir dikirim ulang.', 'info');
+                            }
+                        }
                     },
                     stopGps() {
                         if (this.bgWatcherId !== null) {
