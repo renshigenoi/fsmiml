@@ -328,10 +328,11 @@
     /* ---- Toast notification ---- */
     .toast-v {
         position: fixed;
-        top: 24px;
-        right: 24px;
+        top: 20px;
+        left: 50%;
         z-index: 9999;
-        max-width: 420px;
+        width: calc(100% - 40px);
+        max-width: 440px;
         background: #fff;
         border-left: 4px solid var(--red-500,#c8102e);
         border-radius: 12px;
@@ -339,12 +340,12 @@
         display: flex;
         gap: 12px;
         padding: 16px 20px;
-        transform: translateX(110%);
+        transform: translate(-50%, -140%);
         opacity: 0;
-        transition: transform .3s cubic-bezier(.22,.61,.36,1), opacity .25s;
+        transition: transform .35s cubic-bezier(.22,.61,.36,1), opacity .25s;
         pointer-events: none;
     }
-    .toast-v.show { transform: translateX(0); opacity: 1; pointer-events: auto; }
+    .toast-v.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
     .toast-v-icon {
         width: 40px; height: 40px;
         border-radius: 10px;
@@ -531,7 +532,7 @@
                         <input type="tel" name="customer_phone" id="customer-phone"
                                placeholder="08123456789"
                                autocomplete="off"
-                               inputmode="numeric" maxlength="15" required>
+                               inputmode="numeric" maxlength="15">
                         <div class="map-hint" style="margin-top:4px;">
                             Diperlukan untuk notifikasi live tracking ke customer.
                         </div>
@@ -793,12 +794,12 @@
         try {
             const results = await nominatimGet('search', { format: 'jsonv2', q: query, limit: 1, countrycodes: 'id' });
             if (seq !== geocodeSeq) return;
-            if (!results.length) { if (!silent) alert('Lokasi tidak ditemukan. Coba kata kunci lain.'); return; }
+            if (!results.length) { if (!silent) showToast('Lokasi tidak ditemukan', 'Coba kata kunci atau alamat yang lain.', 'location-search'); return; }
             const r = results[0];
             map.flyTo([parseFloat(r.lat), parseFloat(r.lon)], zoom);
             placePin(parseFloat(r.lat), parseFloat(r.lon), true);
         } catch (err) {
-            if (!silent) alert('Gagal mencari lokasi: ' + err.message);
+            if (!silent) showToast('Gagal mencari lokasi', err.message, 'location-search');
         }
     }
 
