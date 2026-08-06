@@ -166,9 +166,12 @@ class LegacyWorkOrderService
             ]);
         }
 
-        if (WorkOrder::query()->withTrashed()->where('number', $number)->exists()) {
+        if (WorkOrder::query()->where('number', $number)->exists()) {
+            $existing = WorkOrder::query()->where('number', $number)->first();
             throw ValidationException::withMessages([
-                'spk_no' => "SPK {$number} sudah pernah dibuat.",
+                'spk_no' => "SPK {$number} sudah pernah dibuat"
+                    .($existing ? " (WO #{$existing->id}, status: {$existing->status->value})" : '')
+                    .'. Gunakan nomor SPK yang berbeda.',
             ]);
         }
 

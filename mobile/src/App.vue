@@ -27,17 +27,38 @@
                 <div class="pin-pad">
                     <button v-for="n in [1,2,3,4,5,6,7,8,9]" :key="n" type="button" class="pin-key"
                         @click="pinKey(String(n))">{{ n }}</button>
-                    <button v-if="biometricAvailable && bioEnabled" type="button" class="pin-key" @click="tryBiometric">👆</button>
+                    <button v-if="biometricAvailable && bioEnabled" type="button" class="pin-key pin-key-bio"
+                        @click="tryBiometric">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 10a2 2 0 0 0-2 2c0 1.5.2 3-.5 4.5" />
+                            <path d="M8 11a4 4 0 0 1 6.9-2.8" />
+                            <path d="M14.5 12c0 2.5-.3 4.4-1 6" />
+                            <path d="M6 13c.3-1 .4-2 .4-3a5.6 5.6 0 0 1 9-4.4" />
+                            <path d="M17.6 8.5c.3 1 .4 2 .4 3.5 0 1.4-.1 2.8-.4 4" />
+                            <path d="M4.5 9.5A8 8 0 0 1 16 4" />
+                        </svg>
+                    </button>
                     <button v-else type="button" class="pin-key"
                         style="background:transparent;border-color:transparent;"></button>
                     <button type="button" class="pin-key" @click="pinKey('0')">0</button>
                     <button type="button" class="pin-key pin-key-back" @click="pinBack">⌫</button>
                 </div>
                 <div class="lock-actions">
-                    <button v-if="biometricAvailable && bioEnabled" type="button" class="lock-link" @click="tryBiometric">
-                        👆 Buka dengan Sidik Jari
+                    <button v-if="biometricAvailable && bioEnabled" type="button" class="sec-back sec-back-icon"
+                        @click="tryBiometric">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 10a2 2 0 0 0-2 2c0 1.5.2 3-.5 4.5" />
+                            <path d="M8 11a4 4 0 0 1 6.9-2.8" />
+                            <path d="M14.5 12c0 2.5-.3 4.4-1 6" />
+                            <path d="M6 13c.3-1 .4-2 .4-3a5.6 5.6 0 0 1 9-4.4" />
+                            <path d="M17.6 8.5c.3 1 .4 2 .4 3.5 0 1.4-.1 2.8-.4 4" />
+                            <path d="M4.5 9.5A8 8 0 0 1 16 4" />
+                        </svg>
+                        <span>Buka dengan Sidik Jari</span>
                     </button>
-                    <button type="button" class="lock-link" @click="softLogout">Ganti Akun / Keluar</button>
+                    <button type="button" class="sec-back" @click="softLogout">Ganti Akun / Keluar</button>
                 </div>
             </div>
 
@@ -64,7 +85,7 @@
                     <button type="button" class="pin-key pin-key-back" @click="pinSetupBack">⌫</button>
                 </div>
                 <div class="lock-actions">
-                    <button type="button" class="lock-link" @click="softLogout">Keluar</button>
+                    <button type="button" class="sec-back" @click="softLogout">Keluar</button>
                 </div>
             </div>
 
@@ -75,23 +96,38 @@
                 </div>
                 <div class="lock-title">Keamanan</div>
                 <div class="lock-sub">Atur PIN &amp; biometrik</div>
-                <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;">
-                    <button type="button" class="pin-key" style="width:100%;font-size:16px;" @click="openChangePin">
-                        🔢 Ganti PIN
+                <div class="sec-list">
+                    <button type="button" class="sec-item" @click="openChangePin">
+                        <span class="sec-ico">🔢</span>
+                        <span class="sec-label">Ganti PIN</span>
+                        <span class="sec-chev">›</span>
                     </button>
-                    <button type="button" class="pin-key" style="width:100%;font-size:16px;margin-top:4px;"
-                        @click="openChangePass">
-                        🔑 Ganti Password
+                    <button type="button" class="sec-item" @click="openChangePass">
+                        <span class="sec-ico">🔑</span>
+                        <span class="sec-label">Ganti Password</span>
+                        <span class="sec-chev">›</span>
                     </button>
-                    <div v-if="biometricAvailable" class="bio-row">
-                        <span class="bio-label">👆 Buka dengan Sidik Jari</span>
+                    <div v-if="biometricAvailable" class="sec-item sec-item-static">
+                        <span class="sec-ico">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                                stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 10a2 2 0 0 0-2 2c0 1.5.2 3-.5 4.5" />
+                                <path d="M8 11a4 4 0 0 1 6.9-2.8" />
+                                <path d="M14.5 12c0 2.5-.3 4.4-1 6" />
+                                <path d="M6 13c.3-1 .4-2 .4-3a5.6 5.6 0 0 1 9-4.4" />
+                                <path d="M17.6 8.5c.3 1 .4 2 .4 3.5 0 1.4-.1 2.8-.4 4" />
+                                <path d="M4.5 9.5A8 8 0 0 1 16 4" />
+                            </svg>
+                        </span>
+                        <span class="sec-label">Buka dengan Sidik Jari</span>
                         <button type="button" class="bio-switch" :class="{ on: bioEnabled }" @click="toggleBio">
                             <span class="bio-knob"></span>
                         </button>
                     </div>
-                </div>
-                <div class="lock-actions">
-                    <button type="button" class="lock-link" @click="view = 'home'">Kembali</button>
+                    <button type="button" class="sec-back" @click="view = 'home'">
+                        ‹ Kembali
+                    </button>
                 </div>
             </div>
 
@@ -118,7 +154,7 @@
                     <button type="button" class="pin-key pin-key-back" @click="pinChangeBack">⌫</button>
                 </div>
                 <div class="lock-actions">
-                    <button type="button" class="lock-link" @click="view = 'security'">Kembali</button>
+                    <button type="button" class="sec-back" @click="view = 'security'">‹ Kembali</button>
                 </div>
             </div>
 
@@ -129,21 +165,41 @@
                 </div>
                 <div class="lock-title">Ganti Password</div>
                 <div class="lock-sub">Password minimal 6 karakter</div>
-                <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="color:rgba(255,255,255,.7);">Password Saat Ini</label>
-                        <input class="pass-input" type="password" v-model.trim="passModal.current"
-                            style="letter-spacing:2px;text-align:left;" placeholder="Password lama">
+                <div class="pass-form">
+                    <div class="pass-field">
+                        <label class="pass-label">Password Saat Ini</label>
+                        <div class="pass-input-wrap">
+                            <input class="pass-input pass-input-text" :type="showPassCurrent ? 'text' : 'password'"
+                                v-model.trim="passModal.current" placeholder="Password lama"
+                                autocomplete="current-password">
+                            <button type="button" class="pass-eye" @click="showPassCurrent = !showPassCurrent"
+                                :aria-label="showPassCurrent ? 'Sembunyikan' : 'Tampilkan'">
+                                <span v-if="showPassCurrent">🙈</span><span v-else>👁️</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="color:rgba(255,255,255,.7);">Password Baru</label>
-                        <input class="pass-input" type="password" v-model.trim="passModal.next"
-                            style="letter-spacing:2px;text-align:left;" placeholder="Minimal 6 karakter">
+                    <div class="pass-field">
+                        <label class="pass-label">Password Baru</label>
+                        <div class="pass-input-wrap">
+                            <input class="pass-input pass-input-text" :type="showPassNext ? 'text' : 'password'"
+                                v-model.trim="passModal.next" placeholder="Minimal 6 karakter"
+                                autocomplete="new-password">
+                            <button type="button" class="pass-eye" @click="showPassNext = !showPassNext"
+                                :aria-label="showPassNext ? 'Sembunyikan' : 'Tampilkan'">
+                                <span v-if="showPassNext">🙈</span><span v-else>👁️</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="color:rgba(255,255,255,.7);">Ulangi Password Baru</label>
-                        <input class="pass-input" type="password" v-model.trim="passModal.confirm"
-                            style="letter-spacing:2px;text-align:left;" placeholder="Ketik ulang">
+                    <div class="pass-field">
+                        <label class="pass-label">Ulangi Password Baru</label>
+                        <div class="pass-input-wrap">
+                            <input class="pass-input pass-input-text" :type="showPassConfirm ? 'text' : 'password'"
+                                v-model.trim="passModal.confirm" placeholder="Ketik ulang" autocomplete="new-password">
+                            <button type="button" class="pass-eye" @click="showPassConfirm = !showPassConfirm"
+                                :aria-label="showPassConfirm ? 'Sembunyikan' : 'Tampilkan'">
+                                <span v-if="showPassConfirm">🙈</span><span v-else>👁️</span>
+                            </button>
+                        </div>
                     </div>
                     <div v-if="passModal.error" class="pin-error">{{ passModal.error }}</div>
                     <button class="btn-login" style="margin-top:8px;" :disabled="busy" @click="submitPasswordChange">
@@ -151,8 +207,8 @@
                         <span v-else>Simpan Password</span>
                     </button>
                 </div>
-                <div class="lock-actions">
-                    <button type="button" class="lock-link" @click="view = 'security'">Kembali</button>
+                <div class="lock-actions" style="margin-top:18px;">
+                    <button type="button" class="sec-back" @click="view = 'security'">‹ Kembali</button>
                 </div>
             </div>
 
@@ -178,8 +234,13 @@
                     <label>Password</label>
                     <div class="input-wrap">
                         <span class="input-icon">🔒</span>
-                        <input type="password" v-model="loginForm.password" placeholder="••••••••"
-                            autocomplete="current-password" @keyup.enter="doLogin">
+                        <input :type="showLoginPass ? 'text' : 'password'" v-model="loginForm.password"
+                            placeholder="••••••••" autocomplete="current-password" @keyup.enter="doLogin"
+                            class="input-has-eye">
+                        <button type="button" class="login-eye" @click="showLoginPass = !showLoginPass"
+                            :aria-label="showLoginPass ? 'Sembunyikan' : 'Tampilkan'">
+                            <span v-if="showLoginPass">🙈</span><span v-else>👁️</span>
+                        </button>
                     </div>
                     <div class="login-actions-row">
                         <button class="btn-login" :disabled="busy" @click="doLogin" id="btn-login">
@@ -189,7 +250,16 @@
                         <button v-if="pinEnabled && token" type="button" class="btn-pin-quick" :disabled="busy"
                             :title="biometricAvailable ? 'Buka dengan sidik jari' : 'Masuk dengan PIN'"
                             @click="quickUnlock">
-                            <span v-if="biometricAvailable && bioEnabled">👆</span>
+                            <svg v-if="biometricAvailable && bioEnabled" viewBox="0 0 24 24" width="24" height="24"
+                                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 10a2 2 0 0 0-2 2c0 1.5.2 3-.5 4.5" />
+                                <path d="M8 11a4 4 0 0 1 6.9-2.8" />
+                                <path d="M14.5 12c0 2.5-.3 4.4-1 6" />
+                                <path d="M6 13c.3-1 .4-2 .4-3a5.6 5.6 0 0 1 9-4.4" />
+                                <path d="M17.6 8.5c.3 1 .4 2 .4 3.5 0 1.4-.1 2.8-.4 4" />
+                                <path d="M4.5 9.5A8 8 0 0 1 16 4" />
+                            </svg>
                             <span v-else>🔐</span>
                         </button>
                     </div>
@@ -785,6 +855,7 @@ export default {
                         showPassCurrent: false,
                         showPassNext: false,
                         showPassConfirm: false,
+                        showLoginPass: false,
                         toastTimer: null,
                         pendingFcmToken: '',
                         modal: {
@@ -2484,6 +2555,31 @@ export default {
             outline: none;
         }
 
+        .login-card input.input-has-eye {
+            padding-right: 46px;
+        }
+
+        .login-eye {
+            position: absolute;
+            top: 50%;
+            right: 6px;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            background: transparent;
+            font-size: 17px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        .login-eye:active {
+            background: rgba(0, 0, 0, .06);
+        }
+
         .btn-login {
             width: 100%;
             margin-top: 20px;
@@ -2524,16 +2620,19 @@ export default {
         .btn-pin-quick {
             width: 56px;
             flex-shrink: 0;
-            border: 1.5px solid rgba(255, 255, 255, .3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid var(--line);
             border-radius: var(--r-sm);
-            background: rgba(255, 255, 255, .08);
-            color: #fff;
+            background: var(--surface-2);
+            color: var(--red-500);
             font-size: 20px;
             cursor: pointer;
         }
 
         .btn-pin-quick:active {
-            background: rgba(255, 255, 255, .16);
+            background: rgba(200, 16, 46, .1);
         }
 
         /* =========================================================
@@ -3697,13 +3796,15 @@ export default {
 
         .pin-pad {
             display: grid;
-            grid-template-columns: repeat(3, 76px);
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
+            width: 100%;
+            max-width: 340px;
             margin-bottom: 22px;
         }
 
         .pin-key {
-            width: 76px;
+            width: 100%;
             height: 64px;
             border-radius: 16px;
             background: rgba(255, 255, 255, .08);
@@ -3722,11 +3823,31 @@ export default {
             font-size: 18px;
         }
 
+        .pin-key-bio {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
         .lock-actions {
             display: flex;
             flex-direction: column;
             gap: 10px;
             align-items: center;
+            width: 100%;
+            max-width: 340px;
+        }
+
+        .lock-actions .sec-back {
+            margin-top: 0;
+        }
+
+        .sec-back-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .lock-link {
@@ -3754,6 +3875,74 @@ export default {
 
         .pass-input:focus {
             border-color: var(--red-500);
+        }
+
+        /* ===== Ganti Password form ===== */
+        .pass-form {
+            width: 100%;
+            max-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .pass-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .pass-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, .75);
+            padding-left: 2px;
+        }
+
+        .pass-input-text {
+            text-align: left;
+            letter-spacing: normal;
+            background: rgba(255, 255, 255, .1);
+            border-color: rgba(255, 255, 255, .18);
+            color: #fff;
+        }
+
+        .pass-input-text::placeholder {
+            color: rgba(255, 255, 255, .4);
+        }
+
+        .pass-input-text:focus {
+            border-color: rgba(255, 255, 255, .55);
+            background: rgba(255, 255, 255, .14);
+        }
+
+        .pass-input-wrap {
+            position: relative;
+        }
+
+        .pass-input-wrap .pass-input {
+            padding-right: 46px;
+        }
+
+        .pass-eye {
+            position: absolute;
+            top: 50%;
+            right: 6px;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            background: transparent;
+            font-size: 17px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        .pass-eye:active {
+            background: rgba(255, 255, 255, .12);
         }
 
         .bio-row {
@@ -3801,6 +3990,82 @@ export default {
 
         .bio-switch.on .bio-knob {
             transform: translateX(22px);
+        }
+
+        /* ===== Security (Keamanan) list ===== */
+        .sec-list {
+            width: 100%;
+            max-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sec-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 15px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid rgba(255, 255, 255, .14);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            text-align: left;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .sec-item:active {
+            background: rgba(255, 255, 255, .16);
+        }
+
+        .sec-item-static {
+            cursor: default;
+        }
+
+        .sec-ico {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .1);
+            font-size: 17px;
+            color: #fff;
+        }
+
+        .sec-label {
+            flex: 1 1 auto;
+        }
+
+        .sec-chev {
+            color: rgba(255, 255, 255, .5);
+            font-size: 22px;
+            line-height: 1;
+            font-weight: 400;
+        }
+
+        .sec-back {
+            margin-top: 6px;
+            width: 100%;
+            padding: 13px 16px;
+            border-radius: 14px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, .22);
+            color: rgba(255, 255, 255, .85);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .sec-back:active {
+            background: rgba(255, 255, 255, .1);
         }
 
         .pin-pad-modal {

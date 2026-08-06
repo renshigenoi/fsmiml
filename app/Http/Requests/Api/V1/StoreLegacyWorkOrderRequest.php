@@ -24,10 +24,24 @@ class StoreLegacyWorkOrderRequest extends FormRequest
             'scheduled_start_time' => ['nullable', 'date_format:H:i'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'location_address' => ['nullable', 'string', 'max:500'],
-            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
-            'customer_phone' => ['nullable', 'string', 'max:30'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'customer_phone' => ['required', 'string', 'max:30'],
             'customer_email' => ['nullable', 'email', 'max:190'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'technician_legacy_serials.required' => 'Pilih minimal 1 teknisi untuk assignment.',
+            'technician_legacy_serials.min' => 'Pilih minimal 1 teknisi.',
+            'latitude.required' => 'Lokasi pemasangan wajib di-pin di peta. Klik pada peta untuk menentukan titik lokasi.',
+            'longitude.required' => 'Lokasi pemasangan wajib di-pin di peta. Klik pada peta untuk menentukan titik lokasi.',
+            'customer_phone.required' => 'No. WhatsApp customer wajib diisi — diperlukan untuk notifikasi live tracking ke customer.',
         ];
     }
 }

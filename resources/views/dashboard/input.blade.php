@@ -468,17 +468,21 @@
             <div class="sec-card-head">
                 <div class="sec-head-ico" style="background:linear-gradient(135deg,#0284c7,#0369a1);">✉️</div>
                 <div>
-                    <h3>Langkah 3 — Kontak Customer (Opsional)</h3>
-                    <p>Isi jika ingin memperbarui no. WA / email customer</p>
+                    <h3>Langkah 3 — Kontak Customer</h3>
+                    <p>No. WA wajib untuk notifikasi live tracking, email opsional</p>
                 </div>
             </div>
             <div class="sec-card-body">
                 <div class="field-2col">
                     <div>
-                        <label for="customer-phone">No. WhatsApp</label>
+                        <label for="customer-phone">No. WhatsApp <span style="color:var(--red-500,#c8102e);">*</span></label>
                         <input type="tel" name="customer_phone" id="customer-phone"
-                               placeholder="08xxxxxxxxxx" autocomplete="off"
-                               inputmode="numeric" maxlength="15">
+                               placeholder="08123456789"
+                               autocomplete="off"
+                               inputmode="numeric" maxlength="15" required>
+                        <div class="map-hint" style="margin-top:4px;">
+                            Diperlukan untuk notifikasi live tracking ke customer.
+                        </div>
                     </div>
                     <div>
                         <label for="customer-email">Email</label>
@@ -488,7 +492,7 @@
                     </div>
                 </div>
                 <div class="map-hint" style="margin-top:10px;">
-                    Kosongkan jika tidak ingin mengubah data customer.
+                    Email opsional — kosongkan jika tidak diperlukan.
                 </div>
             </div>
         </div>
@@ -1052,6 +1056,9 @@
         const serial = document.getElementById('legacy-sales-serial').value;
         const dateVal = document.getElementById('scheduled-start-at').value;
         const checks = document.querySelectorAll('.tech-check:checked');
+        const lat = document.getElementById('latitude').value;
+        const lng = document.getElementById('longitude').value;
+        const wa = document.getElementById('customer-phone').value.trim();
         if (!serial) {
             e.preventDefault();
             alert('⚠️ Silakan pilih SPK terlebih dahulu.');
@@ -1060,6 +1067,16 @@
         if (!dateVal) {
             e.preventDefault();
             alert('⚠️ Tanggal pemasangan wajib diisi.');
+            return;
+        }
+        if (!lat || !lng) {
+            e.preventDefault();
+            alert('⚠️ Lokasi pemasangan wajib di-pin di peta.\n\nKlik pada peta atau cari lokasi untuk menandai titik pemasangan.');
+            return;
+        }
+        if (!wa) {
+            e.preventDefault();
+            alert('⚠️ No. WhatsApp customer wajib diisi.\n\nDiperlukan untuk notifikasi live tracking ke customer.');
             return;
         }
         if (!checks.length) {
