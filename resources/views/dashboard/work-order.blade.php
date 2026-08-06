@@ -231,6 +231,99 @@
         margin: 14px 0 6px;
     }
     .modal-actions-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+    /* Edit modal: date/time pickers */
+    .ew-picker-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1.5px solid var(--line,#e2e8f4);
+        border-radius: 9px;
+        background: var(--surface-2,#f6f9ff);
+        color: var(--ink,#0d1b35);
+        padding: 10px 12px;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    .ew-picker-btn:hover { border-color: var(--red-500,#c8102e); }
+    .ew-popup {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 300;
+        background: #fff;
+        border: 1px solid var(--line,#e2e8f4);
+        border-radius: 12px;
+        box-shadow: 0 14px 40px rgba(11,32,68,.18);
+        padding: 12px;
+        width: 280px;
+    }
+    .ew-dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .ew-dp-nav {
+        border: 1px solid var(--line,#e2e8f4);
+        background: var(--surface-2,#f6f9ff);
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+    }
+    .ew-dp-title { font-weight: 800; font-size: 13px; color: var(--navy-700,#112b5c); }
+    .ew-dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 10px; }
+    .ew-dp-grid > span { text-align: center; font-size: 10.5px; font-weight: 800; color: var(--muted,#64748b); }
+    .ew-dp-day {
+        border: 1px solid transparent;
+        background: transparent;
+        border-radius: 8px;
+        padding: 6px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-2,#2c3e65);
+        cursor: pointer;
+    }
+    .ew-dp-day:hover { background: var(--surface-2,#f6f9ff); }
+    .ew-dp-day.today { border-color: var(--red-500,#c8102e); color: var(--red-500,#c8102e); }
+    .ew-dp-day.selected { background: var(--navy-700,#112b5c); border-color: var(--navy-700,#112b5c); color: #fff; }
+    .ew-pop-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .ew-tp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .ew-tp-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        font-weight: 800;
+        color: var(--muted,#64748b);
+        margin-bottom: 6px;
+    }
+    .ew-tp-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; max-height: 160px; overflow-y: auto; }
+    .ew-tp-opt {
+        border: 1px solid var(--line,#e2e8f4);
+        background: #fff;
+        border-radius: 8px;
+        padding: 6px 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-2,#2c3e65);
+        cursor: pointer;
+    }
+    .ew-tp-opt:hover { border-color: var(--red-500,#c8102e); color: var(--red-500,#c8102e); }
+    .ew-tp-opt.active { background: var(--navy-700,#112b5c); border-color: var(--navy-700,#112b5c); color: #fff; }
+    .ew-tech-list {
+        max-height: 180px;
+        overflow-y: auto;
+        border: 1px solid var(--line,#e2e8f4);
+        border-radius: 10px;
+        padding: 8px;
+    }
+    .ew-tech-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 6px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    .ew-tech-item:hover { background: var(--surface-2,#f6f9ff); }
 </style>
 
 {{-- ===== Page Header ===== --}}
@@ -511,19 +604,68 @@
             <input type="text" value="{{ $workOrder->number }}" disabled>
 
             <label>Tanggal Pemasangan</label>
-            <input type="date" name="scheduled_start_at" required
-                value="{{ $workOrder->scheduled_start_at?->format('Y-m-d') }}">
+            <div class="ew-pick" style="position:relative;">
+                <button type="button" id="ew-date-btn" class="ew-picker-btn">
+                    📅 <span id="ew-date-label">Pilih tanggal</span>
+                </button>
+                <input type="hidden" name="scheduled_start_at" id="ew-scheduled-start-at"
+                    value="{{ $workOrder->scheduled_start_at?->format('Y-m-d') }}">
+                <div id="ew-date-popup" class="ew-popup" style="display:none;">
+                    <div class="ew-dp-head">
+                        <button type="button" class="ew-dp-nav" id="ew-dp-prev">‹</button>
+                        <span class="ew-dp-title" id="ew-dp-title"></span>
+                        <button type="button" class="ew-dp-nav" id="ew-dp-next">›</button>
+                    </div>
+                    <div class="ew-dp-grid" id="ew-dp-grid"></div>
+                    <div class="ew-pop-actions">
+                        <button type="button" class="btn btn-sm" id="ew-dp-today">Hari Ini</button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="ew-dp-close">OK</button>
+                    </div>
+                </div>
+            </div>
 
             <label>Jam Pemasangan</label>
-            <input type="time" name="scheduled_start_time"
-                value="{{ $workOrder->scheduled_start_at?->format('H:i') }}">
+            <div class="ew-pick" style="position:relative;">
+                <button type="button" id="ew-time-btn" class="ew-picker-btn">
+                    🕐 <span id="ew-time-label">Pilih jam</span>
+                </button>
+                <input type="hidden" name="scheduled_start_time" id="ew-scheduled-start-time"
+                    value="{{ $workOrder->scheduled_start_at?->format('H:i') }}">
+                <div id="ew-time-popup" class="ew-popup" style="display:none;">
+                    <div class="ew-tp-cols">
+                        <div>
+                            <div class="ew-tp-title">Jam</div>
+                            <div class="ew-tp-options" id="ew-tp-hours"></div>
+                        </div>
+                        <div>
+                            <div class="ew-tp-title">Menit</div>
+                            <div class="ew-tp-options" id="ew-tp-minutes"></div>
+                        </div>
+                    </div>
+                    <div class="ew-pop-actions">
+                        <button type="button" class="btn btn-sm" id="ew-tp-now">Sekarang</button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="ew-tp-close">OK</button>
+                    </div>
+                </div>
+            </div>
 
             <label>Catatan</label>
             <textarea name="notes" rows="2" placeholder="Opsional...">{{ $workOrder->notes }}</textarea>
 
-            <label>Alamat Lokasi</label>
-            <input type="text" name="location_address"
+            <label>Lokasi Pemasangan (klik peta / cari)</label>
+            <div id="ew-location-map" style="height:220px;border:1.5px solid var(--line,#e2e8f4);border-radius:10px;z-index:0;"></div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <input type="text" id="ew-location-search" placeholder="Cari lokasi / alamat..." style="flex:1;margin-bottom:0;">
+                <button type="button" class="btn btn-sm" id="ew-location-search-btn">Cari</button>
+            </div>
+            <input type="hidden" name="latitude" id="ew-latitude" value="{{ $workOrder->serviceLocation?->latitude }}">
+            <input type="hidden" name="longitude" id="ew-longitude" value="{{ $workOrder->serviceLocation?->longitude }}">
+            <label style="margin-top:12px;">Alamat Lengkap</label>
+            <input type="text" name="location_address" id="ew-location-address"
                 value="{{ $workOrder->serviceLocation?->address }}">
+
+            <label>Teknisi</label>
+            <div id="ew-tech-list" class="ew-tech-list">Memuat daftar teknisi…</div>
 
             <label>No. WhatsApp Customer</label>
             <input type="tel" name="customer_phone" value="{{ $workOrder->customer?->phone }}">
@@ -543,6 +685,12 @@
     <script>
         document.getElementById('btn-edit-wo').addEventListener('click', function () {
             document.getElementById('edit-wo-modal').style.display = 'flex';
+            setTimeout(function () {
+                if (typeof ewMap !== 'undefined') {
+                    if (ewMap) ewMap.invalidateSize();
+                    else ewInitMap();
+                }
+            }, 80);
         });
         document.getElementById('btn-cancel-edit').addEventListener('click', function () {
             document.getElementById('edit-wo-modal').style.display = 'none';
@@ -552,10 +700,255 @@
                 document.getElementById('edit-wo-modal').style.display = 'none';
             }
         });
+
+        // ===== Edit modal: date & time pickers =====
+        const ewDateInput = document.getElementById('ew-scheduled-start-at');
+        const ewTimeInput = document.getElementById('ew-scheduled-start-time');
+        const ewDateLabel = document.getElementById('ew-date-label');
+        const ewTimeLabel = document.getElementById('ew-time-label');
+        const ewDatePopup = document.getElementById('ew-date-popup');
+        const ewTimePopup = document.getElementById('ew-time-popup');
+        const ewDpGrid = document.getElementById('ew-dp-grid');
+        let ewDpView = ewDateInput.value ? new Date(ewDateInput.value + 'T00:00:00') : new Date();
+        let ewDpSelected = ewDateInput.value || null;
+        let ewTpHour = null;
+        let ewTpMinute = null;
+
+        function ewFmtLabel() {
+            ewDateLabel.textContent = ewDpSelected
+                ? new Date(ewDpSelected + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                : 'Pilih tanggal';
+            ewTimeLabel.textContent = (ewTpHour !== null && ewTpMinute !== null)
+                ? String(ewTpHour).padStart(2, '0') + ':' + String(ewTpMinute).padStart(2, '0')
+                : 'Pilih jam';
+        }
+        (function () {
+            if (ewDateInput.value) {
+                ewDateLabel.textContent = new Date(ewDateInput.value + 'T00:00:00')
+                    .toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            const tv = ewTimeInput.value || '';
+            if (tv) {
+                const p = tv.split(':');
+                ewTpHour = +p[0];
+                ewTpMinute = +p[1];
+                ewTimeLabel.textContent = tv;
+            }
+        })();
+
+        function ewRenderDate() {
+            document.getElementById('ew-dp-title').textContent =
+                ewDpView.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            const y = ewDpView.getFullYear();
+            const m = ewDpView.getMonth();
+            const startDow = (new Date(y, m, 1).getDay() + 6) % 7;
+            const days = new Date(y, m + 1, 0).getDate();
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            let html = '<span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>';
+            for (let i = 0; i < startDow; i++) html += '<span></span>';
+            for (let d = 1; d <= days; d++) {
+                const ds = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                html += '<button type="button" class="ew-dp-day' + (ds === todayStr ? ' today' : '') + (ds === ewDpSelected ? ' selected' : '') + '" data-d="' + ds + '">' + d + '</button>';
+            }
+            ewDpGrid.innerHTML = html;
+        }
+        ewDpGrid.addEventListener('click', function (e) {
+            const b = e.target.closest('.ew-dp-day');
+            if (!b) return;
+            ewDpSelected = b.dataset.d;
+            ewDateInput.value = ewDpSelected;
+            ewFmtLabel();
+            ewRenderDate();
+        });
+        document.getElementById('ew-dp-prev').addEventListener('click', function () {
+            ewDpView = new Date(ewDpView.getFullYear(), ewDpView.getMonth() - 1, 1);
+            ewRenderDate();
+        });
+        document.getElementById('ew-dp-next').addEventListener('click', function () {
+            ewDpView = new Date(ewDpView.getFullYear(), ewDpView.getMonth() + 1, 1);
+            ewRenderDate();
+        });
+        document.getElementById('ew-dp-today').addEventListener('click', function () {
+            const t = new Date();
+            ewDpSelected = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+            ewDateInput.value = ewDpSelected;
+            ewFmtLabel();
+            ewRenderDate();
+        });
+        document.getElementById('ew-dp-close').addEventListener('click', function () {
+            ewDatePopup.style.display = 'none';
+        });
+        document.getElementById('ew-date-btn').addEventListener('click', function (e) {
+            e.stopPropagation();
+            ewTimePopup.style.display = 'none';
+            ewDatePopup.style.display = ewDatePopup.style.display === 'none' ? 'block' : 'none';
+            if (ewDatePopup.style.display === 'block') ewRenderDate();
+        });
+
+        function ewRenderTime() {
+            const hours = document.getElementById('ew-tp-hours');
+            const minutes = document.getElementById('ew-tp-minutes');
+            let hh = '';
+            let mm = '';
+            for (let h = 0; h < 24; h++) {
+                hh += '<button type="button" class="ew-tp-opt' + (h === ewTpHour ? ' active' : '') + '" data-h="' + h + '">' + String(h).padStart(2, '0') + '</button>';
+            }
+            for (let m = 0; m < 60; m += 5) {
+                mm += '<button type="button" class="ew-tp-opt' + (m === ewTpMinute ? ' active' : '') + '" data-m="' + m + '">' + String(m).padStart(2, '0') + '</button>';
+            }
+            hours.innerHTML = hh;
+            minutes.innerHTML = mm;
+        }
+        document.getElementById('ew-tp-hours').addEventListener('click', function (e) {
+            const b = e.target.closest('.ew-tp-opt');
+            if (!b) return;
+            ewTpHour = +b.dataset.h;
+            ewFmtLabel();
+            ewRenderTime();
+        });
+        document.getElementById('ew-tp-minutes').addEventListener('click', function (e) {
+            const b = e.target.closest('.ew-tp-opt');
+            if (!b) return;
+            ewTpMinute = +b.dataset.m;
+            ewFmtLabel();
+            ewRenderTime();
+        });
+        document.getElementById('ew-tp-now').addEventListener('click', function () {
+            const t = new Date();
+            ewTpHour = t.getHours();
+            ewTpMinute = t.getMinutes();
+            ewFmtLabel();
+            ewRenderTime();
+        });
+        document.getElementById('ew-tp-close').addEventListener('click', function () {
+            ewTimePopup.style.display = 'none';
+        });
+        document.getElementById('ew-time-btn').addEventListener('click', function (e) {
+            e.stopPropagation();
+            ewDatePopup.style.display = 'none';
+            ewTimePopup.style.display = ewTimePopup.style.display === 'none' ? 'block' : 'none';
+            if (ewTimePopup.style.display === 'block') ewRenderTime();
+        });
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.ew-pick')) {
+                ewDatePopup.style.display = 'none';
+                ewTimePopup.style.display = 'none';
+            }
+        });
+
+        // ===== Edit modal: map & pin =====
+        const ewLatInput = document.getElementById('ew-latitude');
+        const ewLngInput = document.getElementById('ew-longitude');
+        const ewAddrInput = document.getElementById('ew-location-address');
+        let ewMap = null;
+        let ewPin = null;
+
+        function ewInitMap() {
+            const el = document.getElementById('ew-location-map');
+            if (ewMap || !el || typeof L === 'undefined') return;
+            const hasCoord = ewLatInput.value && ewLngInput.value;
+            const lat = hasCoord ? parseFloat(ewLatInput.value) : -2.5489;
+            const lng = hasCoord ? parseFloat(ewLngInput.value) : 118.0149;
+            ewMap = L.map('ew-location-map').setView([lat, lng], hasCoord ? 14 : 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(ewMap);
+            if (hasCoord) ewSetPin(lat, lng);
+            ewMap.on('click', function (e) {
+                ewSetPin(e.latlng.lat, e.latlng.lng);
+            });
+        }
+        function ewSetPin(lat, lng) {
+            ewLatInput.value = lat.toFixed(7);
+            ewLngInput.value = lng.toFixed(7);
+            if (ewPin) {
+                ewPin.setLatLng([lat, lng]);
+            } else {
+                ewPin = L.marker([lat, lng], { draggable: true }).addTo(ewMap);
+            }
+            ewPin.on('dragend', function () {
+                const p = ewPin.getLatLng();
+                ewLatInput.value = p.lat.toFixed(7);
+                ewLngInput.value = p.lng.toFixed(7);
+                ewReverse(p.lat, p.lng);
+            });
+            ewReverse(lat, lng);
+        }
+        async function ewReverse(lat, lng) {
+            try {
+                const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng + '&zoom=16');
+                const data = await res.json();
+                if (data && data.display_name) ewAddrInput.value = data.display_name;
+            } catch (_) {}
+        }
+        async function ewSearch(query) {
+            if (!query.trim()) return;
+            try {
+                const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&q=' + encodeURIComponent(query) + '&limit=1&countrycodes=id');
+                const data = await res.json();
+                if (!data.length) {
+                    alert('Lokasi tidak ditemukan.');
+                    return;
+                }
+                const r = data[0];
+                ewMap.flyTo([parseFloat(r.lat), parseFloat(r.lon)], 16);
+                ewSetPin(parseFloat(r.lat), parseFloat(r.lon));
+            } catch (_) {}
+        }
+        document.getElementById('ew-location-search-btn').addEventListener('click', function () {
+            ewSearch(document.getElementById('ew-location-search').value);
+        });
+        document.getElementById('ew-location-search').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                ewSearch(this.value);
+            }
+        });
+
+        // ===== Edit modal: technicians =====
+        const ewCurrentSerials = @json($workOrder->assignments->pluck('technician.external_serial')->filter()->values());
+        const ewAcceptedSerials = @json(
+            $workOrder->assignments
+                ->filter(fn ($a) => $a->status === \App\Modules\Assignment\Enums\AssignmentStatus::Accepted)
+                ->pluck('technician.external_serial')
+                ->filter()
+                ->values()
+        );
+        (async function () {
+            try {
+                const res = await fetch('/dashboard/api/technicians');
+                const payload = await res.json();
+                const list = document.getElementById('ew-tech-list');
+                if (!payload.data || !payload.data.length) {
+                    list.innerHTML = '<div style="padding:10px;color:var(--muted,#64748b);">Tidak ada teknisi terdaftar.</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                payload.data.forEach(function (t) {
+                    const checked = ewCurrentSerials.indexOf(String(t.serial)) !== -1;
+                    const locked = ewAcceptedSerials.indexOf(String(t.serial)) !== -1;
+                    const label = document.createElement('label');
+                    label.className = 'ew-tech-item';
+                    label.innerHTML = (locked
+                        ? '<input type="hidden" name="technician_legacy_serials[]" value="' + t.serial + '">'
+                        : '') +
+                        '<input type="checkbox" name="technician_legacy_serials[]" value="' + t.serial + '"' +
+                        (checked ? ' checked' : '') + (locked ? ' disabled' : '') + '> <span>' +
+                        (t.full_name || '-') + '</span>' +
+                        (locked ? ' <em style="font-size:11px;color:var(--muted,#64748b);font-style:normal;">sudah menerima</em>' : '');
+                    list.appendChild(label);
+                });
+            } catch (e) {
+                document.getElementById('ew-tech-list').innerHTML =
+                    '<div style="padding:10px;color:var(--red-500,#c8102e);">Gagal memuat daftar teknisi.</div>';
+            }
+        })();
     </script>
-@if ($workOrder->serviceLocation?->latitude)
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+@if ($workOrder->serviceLocation?->latitude)
 <script>
     (function () {
         const lat = {{ $workOrder->serviceLocation->latitude }};

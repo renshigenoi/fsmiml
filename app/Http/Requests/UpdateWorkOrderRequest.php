@@ -23,6 +23,8 @@ class UpdateWorkOrderRequest extends FormRequest
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'customer_phone' => ['nullable', 'string', 'max:30'],
             'customer_email' => ['nullable', 'email', 'max:190'],
+            'technician_legacy_serials' => ['nullable', 'array'],
+            'technician_legacy_serials.*' => ['string', 'max:40'],
         ];
     }
 }

@@ -7,11 +7,16 @@ use App\Http\Requests\ResetPinRequest;
 use App\Http\Requests\Api\V1\StoreLegacyWorkOrderRequest;
 use App\Http\Requests\UpdateWorkOrderRequest;
 use App\Models\User;
+use App\Modules\Assignment\Enums\AssignmentStatus;
 use App\Modules\Assignment\Exceptions\InvalidAssignment;
+use App\Modules\Assignment\Events\AssignmentCreated;
+use App\Modules\Assignment\Models\Assignment;
 use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Legacy\Services\LegacyDataSourceService;
+use App\Modules\Legacy\Services\LegacyTechnicianImporter;
 use App\Modules\Legacy\Services\LegacyWorkOrderService;
 use App\Modules\Legacy\Support\LegacyRowFormatter;
+use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Enums\TrackingSessionStatus;
 use App\Modules\Tracking\Enums\TrackingTokenStatus;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
@@ -23,6 +28,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -31,6 +37,7 @@ class DashboardController extends Controller
     public function __construct(
         private readonly LegacyDataSourceService $legacy,
         private readonly LegacyWorkOrderService $workOrders,
+        private readonly LegacyTechnicianImporter $technicianImporter,
     ) {}
 
     public function index(): View
@@ -288,7 +295,78 @@ class DashboardController extends Controller
             }
         }
 
+        $this->syncTechnicians($workOrder, $validated['technician_legacy_serials'] ?? [], $request->user());
+
         return back()->with('success', "Work Order {$workOrder->number} berhasil diperbarui.");
+    }
+
+    /**
+     * Sinkronkan daftar teknisi: tambah yang baru, hapus yang pending.
+     * Teknisi yang sudah menerima tugas tidak bisa dihapus.
+     *
+     * @param  array<int, string>  $serials
+     */
+    private function syncTechnicians(WorkOrder $workOrder, array $serials, User $actor): void
+    {
+        $desired = collect($serials)->filter()->unique();
+        $workOrder->loadMissing(['assignments.technician.user']);
+
+        $currentSerials = $workOrder->assignments
+            ->pluck('technician.external_serial')
+            ->filter();
+
+        $newSerials = $desired->diff($currentSerials)->values()->all();
+
+        if ($newSerials !== []) {
+            $technicians = $this->technicianImporter->importBySerials($newSerials);
+
+            foreach ($technicians as $technician) {
+                $assignment = Assignment::query()->create([
+                    'work_order_id' => $workOrder->getKey(),
+                    'technician_id' => $technician->getKey(),
+                    'status' => AssignmentStatus::Pending,
+                    'assigned_by' => $actor->getKey(),
+                    'assigned_at' => now(),
+                ]);
+
+                TrackingSession::query()->create([
+                    'work_order_id' => $workOrder->getKey(),
+                    'assignment_id' => $assignment->getKey(),
+                    'status' => TrackingSessionStatus::Pending,
+                    'realtime_channel' => Str::random(32),
+                ]);
+
+                AssignmentCreated::dispatch($assignment);
+            }
+        }
+
+        foreach ($workOrder->assignments as $assignment) {
+            if ($desired->contains($assignment->technician?->external_serial)) {
+                continue;
+            }
+
+            if ($assignment->status === AssignmentStatus::Accepted) {
+                throw ValidationException::withMessages([
+                    'technician_legacy_serials' => sprintf(
+                        'Teknisi %s sudah menerima tugas, tidak bisa dihapus.',
+                        $assignment->technician?->user?->name ?? 'tersebut',
+                    ),
+                ]);
+            }
+
+            if ($assignment->status === AssignmentStatus::Pending) {
+                $assignment->update(['status' => AssignmentStatus::Cancelled]);
+
+                TrackingSession::query()
+                    ->where('assignment_id', $assignment->getKey())
+                    ->where('status', TrackingSessionStatus::Pending->value)
+                    ->update([
+                        'status' => TrackingSessionStatus::Cancelled,
+                        'closed_reason' => 'cancelled',
+                        'ended_at' => now(),
+                    ]);
+            }
+        }
     }
 
     public function resetPinForm(): View
