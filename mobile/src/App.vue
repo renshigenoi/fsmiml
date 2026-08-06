@@ -639,6 +639,7 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 import { BatteryOptimization } from '@capawesome-team/capacitor-android-battery-optimization';
+import { KeepAwake } from '@capacitor-community/keep-awake';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -879,6 +880,7 @@ export default {
                         gpsSentLabel: '',
                         lastGpsSentAt: 0,
                         batteryGuideShown: false,
+                        wakeLockSentinel: null,
                         watchId: null,
                         bgWatcherId: null,
                         gpsTimer: null,
@@ -2175,6 +2177,7 @@ export default {
                     },
                     startGps() {
                         if (this.watchId !== null || this.bgWatcherId !== null) return;
+                        this.keepScreenAwake();
 
                         // Di dalam APK: pakai background geolocation (tetap jalan saat app di-minimize).
                         if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
@@ -2261,6 +2264,25 @@ export default {
                             }
                         } catch (_) { /* tidak bisa dibuka — abaikan */ }
                     },
+                    async keepScreenAwake() {
+                        try {
+                            if (this.isNativeApp) {
+                                await KeepAwake.keepAwake();
+                            } else if (navigator.wakeLock && navigator.wakeLock.request) {
+                                this.wakeLockSentinel = await navigator.wakeLock.request('screen');
+                            }
+                        } catch (_) { /* layar tetap boleh tidur — aman */ }
+                    },
+                    async allowScreenSleep() {
+                        try {
+                            if (this.isNativeApp) {
+                                await KeepAwake.allowSleep();
+                            } else if (this.wakeLockSentinel) {
+                                await this.wakeLockSentinel.release();
+                                this.wakeLockSentinel = null;
+                            }
+                        } catch (_) {}
+                    },
                     async sendLocation() {
                         const sessionId = this.tripSessionId || (this.activeSession() ? this.activeSession().id : null);
                         if (!sessionId || !this.lastPos) return;
@@ -2309,6 +2331,7 @@ export default {
                         }
                         this.gpsState = 'off';
                         this.lastPos = null;
+                        this.allowScreenSleep();
                     },
                     initMap() {
                         if (typeof L === 'undefined') return;
