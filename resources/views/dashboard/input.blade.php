@@ -325,6 +325,48 @@
     .dp-day.today { border-color: var(--red-500,#c8102e); color: var(--red-500,#c8102e); }
     .dp-day.selected { background: var(--navy-700,#112b5c); border-color: var(--navy-700,#112b5c); color: #fff; }
 
+    /* ---- Toast notification ---- */
+    .toast-v {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 9999;
+        max-width: 420px;
+        background: #fff;
+        border-left: 4px solid var(--red-500,#c8102e);
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(11,32,68,.20);
+        display: flex;
+        gap: 12px;
+        padding: 16px 20px;
+        transform: translateX(110%);
+        opacity: 0;
+        transition: transform .3s cubic-bezier(.22,.61,.36,1), opacity .25s;
+        pointer-events: none;
+    }
+    .toast-v.show { transform: translateX(0); opacity: 1; pointer-events: auto; }
+    .toast-v-icon {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg,#c8102e,#a50d26);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+    .toast-v-body { flex: 1; min-width: 0; }
+    .toast-v-title { font-weight: 800; font-size: 13.5px; color: var(--ink,#0d1b35); margin-bottom: 3px; }
+    .toast-v-msg { font-size: 12.5px; color: var(--muted,#64748b); line-height: 1.45; }
+    .toast-v-close {
+        background: none; border: 0;
+        color: var(--muted,#64748b);
+        font-size: 18px; cursor: pointer;
+        padding: 0; line-height: 1;
+        align-self: flex-start;
+    }
+    .toast-v-close:hover { color: var(--red-500,#c8102e); }
+    .field-error { border-color: var(--red-500,#c8102e) !important; background: #fff5f7 !important; }
+    .field-error:focus { box-shadow: 0 0 0 3px rgba(200,16,46,.12) !important; }
+
     /* ---- Map ---- */
     #location-map { height: 320px; border-radius: 10px; border: 1.5px solid var(--line,#e2e8f4); z-index: 0; }
     .map-hint { font-size: 12px; color: var(--muted,#64748b); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
@@ -367,6 +409,16 @@
 <div class="input-hero">
     <h2>➕ Input SPK Pemasangan Baru</h2>
     <p>Cari nomor SPK, assign teknisi, dan tentukan lokasi pemasangan.</p>
+</div>
+
+{{-- Toast notification --}}
+<div id="toast-v" class="toast-v">
+    <div class="toast-v-icon">⚠️</div>
+    <div class="toast-v-body">
+        <div class="toast-v-title" id="toast-v-title"></div>
+        <div class="toast-v-msg" id="toast-v-msg"></div>
+    </div>
+    <button type="button" class="toast-v-close" onclick="hideToast()">✕</button>
 </div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -1050,8 +1102,29 @@
     });
 
     /* =====================================================
-       FORM SUBMIT VALIDATION
+       TOAST & VALIDATION
     ===================================================== */
+    let toastTimer = null;
+    function showToast(title, msg, fieldId) {
+        document.getElementById('toast-v-title').textContent = title;
+        document.getElementById('toast-v-msg').textContent = msg;
+        const toast = document.getElementById('toast-v');
+        // Hapus highlight dari field sebelumnya
+        document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+        // Highlight field baru & focus
+        if (fieldId) {
+            const f = document.getElementById(fieldId);
+            if (f) { f.classList.add('field-error'); f.focus(); f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        }
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 4000);
+    }
+    window.hideToast = function() {
+        document.getElementById('toast-v').classList.remove('show');
+        clearTimeout(toastTimer);
+    };
+
     document.getElementById('wo-form').addEventListener('submit', e => {
         const serial = document.getElementById('legacy-sales-serial').value;
         const dateVal = document.getElementById('scheduled-start-at').value;
@@ -1061,27 +1134,27 @@
         const wa = document.getElementById('customer-phone').value.trim();
         if (!serial) {
             e.preventDefault();
-            alert('⚠️ Silakan pilih SPK terlebih dahulu.');
+            showToast('Belum pilih SPK', 'Silakan cari dan pilih nomor SPK terlebih dahulu.', 'spk-search');
             return;
         }
         if (!dateVal) {
             e.preventDefault();
-            alert('⚠️ Tanggal pemasangan wajib diisi.');
+            showToast('Tanggal wajib diisi', 'Pilih tanggal pemasangan terlebih dahulu.', 'date-picker-btn');
             return;
         }
         if (!lat || !lng) {
             e.preventDefault();
-            alert('⚠️ Lokasi pemasangan wajib di-pin di peta.\n\nKlik pada peta atau cari lokasi untuk menandai titik pemasangan.');
+            showToast('Lokasi belum di-pin', 'Klik pada peta atau cari lokasi untuk menandai titik pemasangan.', 'location-search');
             return;
         }
         if (!wa) {
             e.preventDefault();
-            alert('⚠️ No. WhatsApp customer wajib diisi.\n\nDiperlukan untuk notifikasi live tracking ke customer.');
+            showToast('No. WA wajib diisi', 'Diperlukan untuk notifikasi live tracking ke customer.', 'customer-phone');
             return;
         }
         if (!checks.length) {
             e.preventDefault();
-            alert('⚠️ Pilih minimal 1 teknisi untuk assignment.');
+            showToast('Teknisi belum dipilih', 'Pilih minimal 1 teknisi untuk assignment.', 'tech-filter');
         }
     });
 
