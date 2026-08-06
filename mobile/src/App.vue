@@ -1427,8 +1427,9 @@ export default {
 
                             // Listener: notifikasi masuk saat app dibuka
                             PushNotifications.addListener('pushNotificationReceived', (notification) => {
-                                // Tampilkan banner di dalam app atau langsung refresh data.
-                                // Contoh: jika dapat WO baru, refresh list.
+                                const n = notification.notification || {};
+                                const msg = [n.title, n.body].filter(Boolean).join(' — ');
+                                if (msg) this.showToast(msg, 'info');
                                 if (this.view === 'home') this.loadOrders();
                             });
 
