@@ -1354,13 +1354,25 @@ export default {
                             const applied = parseInt(localStorage.getItem('fsm_bundle_version') || '0', 10);
                             if (data.bundle_version <= applied) return; // sudah bundle terbaru
                             // Download bundle .zip dari server sendiri lalu aktifkan (auto-reload).
+                            const version = String(data.bundle_version);
+                            this.showToast('Mengunduh pembaruan v' + version + '…', 'info');
                             const bundle = await CapacitorUpdater.download({
                                 url: data.bundle_url,
-                                version: String(data.bundle_version),
+                                version,
                             });
-                            localStorage.setItem('fsm_bundle_version', String(data.bundle_version));
+                            // Tandai SEBELUM set() karena set() langsung me-reload app.
+                            localStorage.setItem('fsm_bundle_version', version);
                             await CapacitorUpdater.set(bundle);
-                        } catch (err) { /* gagal OTA — tetap pakai bundle lama, aman */ }
+                        } catch (err) {
+                            // Gagal OTA — hapus penanda agar coba lagi saat app dibuka berikutnya.
+                            try {
+                                const ver = String(data?.bundle_version ?? '');
+                                if (ver && localStorage.getItem('fsm_bundle_version') === ver) {
+                                    localStorage.removeItem('fsm_bundle_version');
+                                }
+                            } catch (_) { /* abaikan */ }
+                            this.showToast('Pembaruan gagal, akan dicoba lagi nanti.', 'error');
+                        }
                     },
                     async downloadUpdate() {
                         const url = this.updateInfo && this.updateInfo.url;
