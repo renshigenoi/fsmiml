@@ -677,6 +677,8 @@
         }
 
         #detail-map {
+            position: relative;
+            z-index: 0;
             height: 180px;
             border-radius: var(--r-sm);
             border: 1px solid var(--line);
@@ -1089,7 +1091,7 @@
             position: fixed;
             inset: 0;
             background: rgba(6, 20, 41, .65);
-            z-index: 90;
+            z-index: 1000;
             display: flex;
             align-items: flex-end;
             justify-content: center;
