@@ -29,7 +29,12 @@ cd mobile/dist && zip -r ../../bundles/6.zip . && cd ../..
 mv bundles\6.zip storage\app\bundles\6.zip
 ```
 
-Atau via FTP/deploy script taruh langsung di `storage/app/bundles/`.
+Atau via FTP/deploy script taruh langsung di `storage/app/private/bundles/`.
+
+> Penting: Laravel 12 memindahkan root disk `local` ke `storage/app/private`.
+> File zip WAJIB di `storage/app/private/bundles/{version}.zip` — bukan `storage/app/bundles/`.
+> Kalau ditaruh di tempat lama, endpoint akan tetap 404 karena `Storage::disk('local')`
+> mengarah ke folder `private`.
 
 4. **Perbarui `.env` Laravel:**
 
@@ -54,14 +59,14 @@ php artisan queue:restart  # kalau pakai queue
 - **Hanya untuk perubahan `mobile/src/`** (tampilan/UI/logika Vue). Kalau tambah plugin native, ubah permission, atau sentuh `android/`, itu wajib APK baru (native version).
 - Bundle rollback otomatis jika app gagal dibuka setelah update (safety Capgo `notifyAppReady()`).
 - Endpoint `GET /api/v1/app/bundle/{version}` ada di `AppVersionController@bundle`, publik (tanpa auth), throttle `public-tracking`.
-- File bundle disimpan di `storage/app/bundles/{version}.zip` — backup file lama untuk rollback manual kalau perlu.
+- File bundle disimpan di `storage/app/private/bundles/{version}.zip` — backup file lama untuk rollback manual kalau perlu.
 
 ---
 
 ## Troubleshooting
 
 **Bundle tidak ter-download:**
-- Cek `storage/app/bundles/{version}.zip` ada dan bisa diakses via `GET /api/v1/app/bundle/{version}`.
+- Cek `storage/app/private/bundles/{version}.zip` ada dan bisa diakses via `GET /api/v1/app/bundle/{version}`.
 - Cek `MOBILE_BUNDLE_VERSION` di `.env` cocok dengan file yang ada.
 
 **App crash setelah update:**
