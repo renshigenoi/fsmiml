@@ -11,14 +11,18 @@ npm run build                          # hasilkan dist/ terbaru
 
 2. **Zip isi folder `dist/` (index.html harus di root zip, bukan di dalam subfolder):**
 
+> PENTING: JANGAN pakai `Compress-Archive` di Windows — hasil zip-nya menyimpan nama
+> entry dengan backslash (`assets\index.js`) sehingga bundle gagal diekstrak di Android.
+> Gunakan `tar` bawaan Windows (bsdtar) atau `zip` di Linux/Mac.
+
 Windows PowerShell:
 ```powershell
-Compress-Archive -Path mobile\dist\* -DestinationPath bundles\6.zip
+tar -a -c -f bundles\6.zip -C mobile\dist index.html assets
 ```
 
 Linux/Mac:
 ```bash
-cd mobile/dist && zip -r ../../bundles/6.zip . && cd ../..
+cd mobile/dist && zip -r ../../bundles/6.zip index.html assets && cd ../..
 ```
 
 > Angka `6` = versi bundle baru (naikkan tiap rilis).
