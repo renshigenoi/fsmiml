@@ -2,6 +2,17 @@
 
 Setelah APK "OTA-ready" beredar, perubahan tampilan/UI (`mobile/src/`) bisa dirilis tanpa install ulang APK. Alurnya:
 
+> **Cara termudah: jalankan script rilis satu-perintah**
+> [`release-ota.ps1`](release-ota.ps1) di root repo. Script otomatis: build web bundle,
+> zip dengan format yang benar, menentukan versi berikutnya, memperbarui `.env` lokal,
+> lalu menampilkan langkah upload ke VPS.
+>
+> ```powershell
+> powershell -ExecutionPolicy Bypass -File .\release-ota.ps1
+> ```
+>
+> (Opsi: `-Version 7` untuk memaksa nomor versi, `-NoEnvUpdate` agar `.env` lokal tidak diubah.)
+
 1. **Build bundle baru:**
 
 ```bash
