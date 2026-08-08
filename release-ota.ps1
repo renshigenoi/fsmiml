@@ -31,13 +31,16 @@
 [CmdletBinding()]
 param(
     [int]$Version = 0,
-    [string]$OutDir = (Join-Path $PSScriptRoot 'bundles'),
+    [string]$OutDir = '',
     [switch]$NoEnvUpdate,
     [switch]$SkipBuild
 )
 
 $ErrorActionPreference = 'Stop'
-$Root = $PSScriptRoot
+$Root = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.Path }
+if ([string]::IsNullOrWhiteSpace($OutDir)) {
+    $OutDir = Join-Path $Root 'bundles'
+}
 $Dist = Join-Path $Root 'mobile\dist'
 
 # ---------- 1. Tentukan versi ----------
