@@ -3,9 +3,11 @@
 namespace App\Modules\Notification\Services;
 
 use App\Modules\Notification\Enums\NotificationStatus;
+use App\Modules\Notification\Enums\NotificationChannel;
 use App\Modules\Notification\Exceptions\NotificationDeliveryException;
 use App\Modules\Notification\Models\Notification;
 use App\Modules\Notification\Providers\NotificationProviderResolver;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class NotificationDeliveryService
@@ -18,6 +20,21 @@ final class NotificationDeliveryService
     public function deliver(Notification $notification): void
     {
         if ($notification->status !== NotificationStatus::Queued) {
+            return;
+        }
+
+        // FCM tanpa device token terdaftar → tandai gagal sekali (tanpa retry &
+        // tanpa error log penuh). Berlaku di semua jalur pengiriman.
+        if (
+            $notification->channel === NotificationChannel::Push->value
+            && ($notification->user === null || $notification->user->deviceTokens->isEmpty())
+        ) {
+            $this->markFailed($notification, 'No registered device token for the recipient user.');
+            Log::warning('FCM push dilewati: tidak ada device token terdaftar.', [
+                'notification_id' => $notification->getKey(),
+                'user_id' => $notification->user_id,
+            ]);
+
             return;
         }
 
