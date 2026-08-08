@@ -75,6 +75,7 @@ class DashboardController extends Controller
         $statusParam = $request->query('status');
         $rangeParam = $request->query('range');
         $perPageParam = $request->query('per_page');
+        $searchParam = trim((string) $request->query('q'));
 
         $perPage = match (strtolower((string) $perPageParam)) {
             '25' => 25,
@@ -114,8 +115,15 @@ class DashboardController extends Controller
             ->when($single !== null, fn ($query) => $query->where('status', $single))
             ->when($multi !== [], fn ($query) => $query->whereIn('status', $multi))
             ->when($selectedRange !== null, fn ($query) => $query->where('created_at', '>=', now()->subDays($selectedRange)))
+            ->when($searchParam !== '', fn ($query) => $query->where(function ($query) use ($searchParam) {
+                $pattern = '%'.$searchParam.'%';
+
+                $query->where('number', 'ilike', $pattern)
+                    ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'ilike', $pattern));
+            }))
             ->latest('scheduled_start_at')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->withQueryString();
 
         $trackingLinks = [];
 
@@ -158,6 +166,7 @@ class DashboardController extends Controller
             'selectedPerPage' => $perPageParam !== null && strtolower((string) $perPageParam) === 'all'
                 ? 'all'
                 : $perPage,
+            'search' => $searchParam,
         ]);
     }
 

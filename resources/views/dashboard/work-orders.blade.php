@@ -97,6 +97,19 @@
         width: auto;
     }
     .filter-panel select:focus { border-color: var(--red-500,#c8102e); box-shadow: 0 0 0 3px rgba(200,16,46,.10); }
+    .filter-panel input[type="search"] {
+        padding: 9px 14px;
+        border: 1.5px solid var(--line,#e2e8f4);
+        border-radius: 9px;
+        font-size: 13.5px;
+        font-family: inherit;
+        background: var(--surface-2,#f6f9ff);
+        color: var(--ink,#0d1b35);
+        outline: none;
+        margin: 0;
+        width: 240px;
+    }
+    .filter-panel input[type="search"]:focus { border-color: var(--red-500,#c8102e); box-shadow: 0 0 0 3px rgba(200,16,46,.10); }
     .filter-count {
         display: inline-flex;
         align-items: center;
@@ -201,6 +214,8 @@
 
     {{-- Filter --}}
     <form method="GET" action="{{ route('dashboard.work-orders') }}" class="filter-panel" id="filter-form">
+        <input type="search" name="q" value="{{ $search }}" placeholder="🔍 Cari SPK / customer..."
+            onchange="this.form.submit()">
         <select name="status" id="status" onchange="this.form.submit()">
             <option value="all" @selected($selectedStatus === 'all')>🔍 Semua Status</option>
             <option value="processing" @selected($selectedStatus === 'processing')>
@@ -232,6 +247,9 @@
         <div class="empty">
             <div style="font-size:44px;margin-bottom:12px;">📭</div>
             Tidak ada work order dengan filter ini.
+            <div style="margin-top:14px;">
+                <a href="{{ route('dashboard.work-orders') }}" class="btn btn-sm">Reset Filter</a>
+            </div>
         </div>
     @else
         <div class="table-wrap">
