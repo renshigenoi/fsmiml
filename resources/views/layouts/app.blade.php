@@ -458,6 +458,35 @@
             white-space: nowrap;
         }
 
+        /* Back to top */
+        .back-to-top {
+            position: fixed;
+            right: 20px;
+            bottom: 84px;
+            z-index: 90;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 0;
+            background: var(--navy-700,#112b5c);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(11,32,68,.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: opacity .2s, transform .2s;
+        }
+        .back-to-top.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
         /* Content */
         .content {
             max-width: 1600px;
@@ -1102,7 +1131,23 @@
         </main>
     @endauth
 
+    @auth
+        <button type="button" id="back-to-top" class="back-to-top" aria-label="Kembali ke atas">↑</button>
+    @endauth
+
     <script>
+        (function () {
+            const btn = document.getElementById('back-to-top');
+            if (!btn) return;
+            const onScroll = () => btn.classList.toggle(
+                'show',
+                (window.scrollY || document.documentElement.scrollTop) > 260
+            );
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+            btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        })();
+
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
             const ov = document.getElementById('sidebar-overlay');

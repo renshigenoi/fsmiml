@@ -274,11 +274,11 @@
                             @endif
                         </td>
                         <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+                            <a href="{{ route('dashboard.work-orders.show', $workOrder) }}" class="btn btn-sm btn-navy">Detail →</a>
                             @if (isset($trackingLinks[$workOrder->getKey()]))
                                 <a href="{{ $trackingLinks[$workOrder->getKey()] }}" target="_blank" rel="noopener"
                                     class="btn btn-sm" style="background:var(--red-500,#c8102e);color:#fff;">Tracking →</a>
                             @endif
-                            <a href="{{ route('dashboard.work-orders.show', $workOrder) }}" class="btn btn-sm btn-navy">Detail →</a>
                         </td>
                     </tr>
                 @endforeach
