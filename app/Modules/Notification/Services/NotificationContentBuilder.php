@@ -63,7 +63,7 @@ final class NotificationContentBuilder
         $number = $workOrder?->number ?? '-';
 
         $lines = [
-            "Halo {$customer} 👋",
+            "Halo Bapak / Ibu {$customer} 👋",
             '',
             'Teknisi kami sedang menuju lokasi pemasangan Anda 🚗💨',
             "📋 No. Order: {$number}",
