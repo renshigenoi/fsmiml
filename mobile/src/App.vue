@@ -354,7 +354,7 @@
                         <div class="scroll-x-bar">
                             <button class="filter-chip" :class="{ active: subFilter === 'all' }"
                                 @click="subFilter = 'all'">
-                                Semua
+                                Semua ({{ activeOrders.length }})
                             </button>
                             <template v-if="activeTab === 'processing'">
                                 <button class="filter-chip" :class="{ active: subFilter === 'waiting_acceptance' }"
@@ -363,11 +363,11 @@
                                 </button>
                                 <button class="filter-chip" :class="{ active: subFilter === 'on_the_way' }"
                                     @click="subFilter = 'on_the_way'">
-                                    Perjalanan
+                                    Perjalanan ({{ onTheWayOrders.length }})
                                 </button>
                                 <button class="filter-chip" :class="{ active: subFilter === 'installation' }"
                                     @click="subFilter = 'installation'">
-                                    Pemasangan
+                                    Pemasangan ({{ installationOrders.length }})
                                 </button>
                             </template>
                             <template v-else>
@@ -946,6 +946,16 @@ export default {
                             return a && a.status === 'pending' && wo.status === 'waiting_acceptance';
                         }.bind(this));
                     },
+                    onTheWayOrders() {
+                        return this.activeOrders.filter(function(wo) {
+                            return wo.status === 'on_the_way';
+                        }.bind(this));
+                    },
+                    installationOrders() {
+                        return this.activeOrders.filter(function(wo) {
+                            return wo.status === 'installation' || wo.status === 'arrived';
+                        }.bind(this));
+                    },
                     activeOrders() {
                         return this.orders.filter(function(wo) {
                             const a = this.myAssignment(wo);
@@ -966,6 +976,11 @@ export default {
                     },
                     filteredProcessingOrders() {
                         if (this.subFilter === 'all') return this.activeOrders;
+                        if (this.subFilter === 'installation') {
+                            return this.activeOrders.filter(function(wo) {
+                                return wo.status === 'arrived' || wo.status === 'installation';
+                            }.bind(this));
+                        }
                         return this.activeOrders.filter(function(wo) {
                             return wo.status === this.subFilter;
                         }.bind(this));
