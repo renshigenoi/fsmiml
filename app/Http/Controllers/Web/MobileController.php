@@ -9,9 +9,20 @@ use Illuminate\View\View;
 
 class MobileController extends Controller
 {
-    public function app(): View
+    public function app(): \Symfony\Component\HttpFoundation\Response
     {
-        return view('mobile.app');
+        // Demo web: kalau build Vue sudah ada di public/mobile, sajikan itu
+        // (UI sama persis dengan APK). Fallback ke Blade lama kalau belum ada.
+        $vueIndex = public_path('mobile/index.html');
+
+        if (is_file($vueIndex)) {
+            return response()->file($vueIndex, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+                'Cache-Control' => 'no-store',
+            ]);
+        }
+
+        return response()->view('mobile.app');
     }
 
     public function manifest(): JsonResponse
@@ -38,7 +49,7 @@ class MobileController extends Controller
     public function serviceWorker(): Response
     {
         $script = <<<'JS'
-const CACHE = 'fsm-mobile-v8';
+const CACHE = 'fsm-mobile-v9';
 const SHELL = ['/mobile', '/mobile/manifest.webmanifest', '/assets/images/iml-logo.png'];
 
 self.addEventListener('install', (event) => {
