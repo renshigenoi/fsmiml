@@ -186,6 +186,22 @@ class WorkOrderTransitionService
             return;
         }
 
+        // Perpanjang masa aktif link tracking saat pemasangan dimulai,
+        // supaya link tetap bisa dibuka selama pengerjaan berlangsung.
+        if ($toStatus === WorkOrderStatus::Installation) {
+            TrackingSession::query()
+                ->where('work_order_id', $workOrder->getKey())
+                ->each(function (TrackingSession $session): void {
+                    $session->tokens()
+                        ->where('status', TrackingTokenStatus::Active->value)
+                        ->update([
+                            'expires_at' => now()->addHours((float) config('notifications.tracking.token_ttl_hours', 8)),
+                        ]);
+                });
+
+            return;
+        }
+
         if (in_array($toStatus, [WorkOrderStatus::Finished, WorkOrderStatus::Cancelled, WorkOrderStatus::Failed], true)) {
             $sessionStatus = $toStatus === WorkOrderStatus::Cancelled
                 ? TrackingSessionStatus::Cancelled

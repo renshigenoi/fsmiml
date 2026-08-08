@@ -365,6 +365,10 @@
                                     @click="subFilter = 'on_the_way'">
                                     Perjalanan ({{ onTheWayOrders.length }})
                                 </button>
+                                <button class="filter-chip" :class="{ active: subFilter === 'arrived' }"
+                                    @click="subFilter = 'arrived'">
+                                    Sudah Tiba ({{ arrivedOrders.length }})
+                                </button>
                                 <button class="filter-chip" :class="{ active: subFilter === 'installation' }"
                                     @click="subFilter = 'installation'">
                                     Pemasangan ({{ installationOrders.length }})
@@ -951,9 +955,14 @@ export default {
                             return wo.status === 'on_the_way';
                         }.bind(this));
                     },
+                    arrivedOrders() {
+                        return this.activeOrders.filter(function(wo) {
+                            return wo.status === 'arrived';
+                        }.bind(this));
+                    },
                     installationOrders() {
                         return this.activeOrders.filter(function(wo) {
-                            return wo.status === 'installation' || wo.status === 'arrived';
+                            return wo.status === 'installation';
                         }.bind(this));
                     },
                     activeOrders() {
@@ -976,11 +985,6 @@ export default {
                     },
                     filteredProcessingOrders() {
                         if (this.subFilter === 'all') return this.activeOrders;
-                        if (this.subFilter === 'installation') {
-                            return this.activeOrders.filter(function(wo) {
-                                return wo.status === 'arrived' || wo.status === 'installation';
-                            }.bind(this));
-                        }
                         return this.activeOrders.filter(function(wo) {
                             return wo.status === this.subFilter;
                         }.bind(this));
