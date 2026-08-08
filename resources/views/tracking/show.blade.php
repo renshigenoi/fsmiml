@@ -953,10 +953,13 @@
             } else {
                 stopPolling();
                 showActive();
+                const livePill = document.getElementById('live-pill');
+                if (livePill) livePill.classList.add('hidden');
                 if (data.destination) initMap(data.destination, true);
                 showEtaBar(false);
                 drawTripPath(data.trip_points);
                 renderTripSummary(data.trip_summary);
+                renderArrivedNote(data);
             }
 
             initTrackingRealtime(data);
@@ -1006,6 +1009,33 @@
                 Math.floor(mins / 60) + ' jam ' + (mins % 60) + ' mnt' :
                 mins + ' mnt';
             document.getElementById('ts-distance').textContent = dist + ' · ' + dur;
+        }
+
+        function renderArrivedNote(data) {
+            const note = document.getElementById('map-note');
+            if (!note) return;
+            if (data.status === 'on_the_way') {
+                return;
+            }
+            if (data.status === 'arrived' || data.status === 'installation') {
+                const arrived = data.trip_summary && data.trip_summary.arrived_at;
+                const t = arrived
+                    ? new Date(arrived).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    : null;
+                note.innerHTML = t
+                    ? '<span style="color:#059669;font-weight:700;">✅ Teknisi sudah tiba pada ' + t + ' WIB.</span>'
+                    : '<span style="color:var(--muted)">✅ Teknisi sudah tiba di lokasi.</span>';
+                return;
+            }
+            if (data.status === 'finished') {
+                const finished = data.trip_summary && data.trip_summary.finished_at;
+                const t = finished
+                    ? new Date(finished).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    : null;
+                note.innerHTML = t
+                    ? '<span style="color:#059669;font-weight:700;">✅ Pemasangan selesai pada ' + t + ' WIB.</span>'
+                    : '<span style="color:var(--muted)">✅ Pemasangan selesai.</span>';
+            }
         }
 
         function initMap(dest, finalize) {

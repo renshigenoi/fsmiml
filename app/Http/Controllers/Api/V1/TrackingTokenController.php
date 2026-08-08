@@ -70,7 +70,9 @@ class TrackingTokenController extends Controller
 
         $location = Cache::get("tracking:session:{$trackingToken->tracking_session_id}:current_location");
 
-        return $this->payload($trackingToken, 'on_the_way', $location);
+        // Kirim status asli (on_the_way / arrived / installation) supaya halaman
+        // tracking tahu kapan teknisi sudah tiba & berhenti menampilkan ETA live.
+        return $this->payload($trackingToken, $workOrder->status->value, $location);
     }
 
     private function payload(TrackingToken $trackingToken, string $status, ?array $location): JsonResponse
@@ -101,6 +103,7 @@ class TrackingTokenController extends Controller
             if ($total > 0) {
                 $first = $points->first();
                 $last = $points->last();
+                $arrivedAt = $trackingToken->trackingSession->ended_at ?? $last->recorded_at;
                 $distance = 0;
                 $previous = null;
 
@@ -124,7 +127,7 @@ class TrackingTokenController extends Controller
 
                 $tripSummary = [
                     'started_at' => $first->recorded_at->toIso8601String(),
-                    'arrived_at' => $last->recorded_at->toIso8601String(),
+                    'arrived_at' => $arrivedAt?->toIso8601String(),
                     'finished_at' => $finishedAt?->toIso8601String(),
                     'distance_m' => (int) round($distance),
                     'duration_s' => (int) max(0, $last->recorded_at->diffInSeconds($first->recorded_at)),
