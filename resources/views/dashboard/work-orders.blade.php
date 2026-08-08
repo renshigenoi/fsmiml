@@ -238,17 +238,24 @@
             <table>
                 <thead>
                 <tr>
+                    <th></th>
                     <th>Nomor SPK</th>
                     <th>Customer</th>
                     <th>Tanggal Pasang</th>
                     <th>Status</th>
                     <th>Teknisi</th>
-                    <th></th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach ($workOrders as $workOrder)
                     <tr onclick="window.location='{{ route('dashboard.work-orders.show', $workOrder) }}'">
+                        <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+                            <a href="{{ route('dashboard.work-orders.show', $workOrder) }}" class="btn btn-sm btn-navy">Detail →</a>
+                            @if (isset($trackingLinks[$workOrder->getKey()]))
+                                <a href="{{ $trackingLinks[$workOrder->getKey()] }}" target="_blank" rel="noopener"
+                                    class="btn btn-sm" style="background:var(--red-500,#c8102e);color:#fff;">Tracking →</a>
+                            @endif
+                        </td>
                         <td>
                             <span class="wo-number">{{ $workOrder->number }}</span>
                         </td>
@@ -282,13 +289,6 @@
                                         {{ $t }}
                                     </span>
                                 @endforeach
-                            @endif
-                        </td>
-                        <td onclick="event.stopPropagation();" style="white-space:nowrap;">
-                            <a href="{{ route('dashboard.work-orders.show', $workOrder) }}" class="btn btn-sm btn-navy">Detail →</a>
-                            @if (isset($trackingLinks[$workOrder->getKey()]))
-                                <a href="{{ $trackingLinks[$workOrder->getKey()] }}" target="_blank" rel="noopener"
-                                    class="btn btn-sm" style="background:var(--red-500,#c8102e);color:#fff;">Tracking →</a>
                             @endif
                         </td>
                     </tr>
