@@ -436,23 +436,38 @@
             </div>
         </div>
 
-        {{-- Work Items --}}
-        @if ($workOrder->items->isNotEmpty())
+        {{-- Car Info (dari data sales legacy) --}}
+        @if (!empty($carInfo['brand']) || !empty($carInfo['model']) || !empty($carInfo['chassis_no'])
+            || !empty($carInfo['police_no']) || !empty($carInfo['installation_type']) || !empty($carInfo['window_film_desc']))
         <div class="info-card">
             <div class="info-card-head">
-                <div class="ic-ico">📦</div>
+                <div class="ic-ico">🚗</div>
                 <h3>Item Pekerjaan</h3>
             </div>
             <div class="info-card-body">
-                @foreach ($workOrder->items as $item)
-                    <div class="item-row" style="flex-wrap:wrap;row-gap:4px;">
-                        <span class="item-name">{{ $item->product_name }}</span>
-                        <span class="item-qty">× {{ $item->quantity }}</span>
-                        @if ($item->window_film_desc)
-                            <span class="item-qty" style="width:100%;color:var(--muted,#64748b);">🪟 {{ $item->window_film_desc }}</span>
-                        @endif
+                @php $carName = trim(($carInfo['brand'] ?? '').' '.($carInfo['model'] ?? '')); @endphp
+                <div class="kv-row">
+                    <span class="kv-k">Car Info</span>
+                    <span class="kv-v" style="text-align:right;">{{ $carName ?: '—' }}</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-k">No. Rangka</span>
+                    <span class="kv-v" style="text-align:right;">{{ $carInfo['chassis_no'] ?: '—' }}</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-k">No. Polisi</span>
+                    <span class="kv-v" style="text-align:right;">{{ $carInfo['police_no'] ?: '—' }}</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-k">Installation Type</span>
+                    <span class="kv-v" style="text-align:right;">{{ $carInfo['installation_type'] ?: '—' }}</span>
+                </div>
+                @if (!empty($carInfo['window_film_desc']))
+                    <div class="kv-row">
+                        <span class="kv-k">Jenis Film</span>
+                        <span class="kv-v" style="text-align:right;">{{ $carInfo['window_film_desc'] }}</span>
                     </div>
-                @endforeach
+                @endif
             </div>
         </div>
         @endif

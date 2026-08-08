@@ -261,6 +261,7 @@ class DashboardController extends Controller
             : null;
 
         $salesType = $workOrder->salesOrder?->source_payload['sales_type'] ?? null;
+        $salesPayload = $workOrder->salesOrder?->source_payload ?? [];
         $salesDetails = [];
 
         if ($salesSerial = $workOrder->salesOrder?->external_id) {
@@ -270,11 +271,23 @@ class DashboardController extends Controller
             );
         }
 
+        $carInfo = [
+            'brand' => $salesPayload['car_brand'] ?? null,
+            'model' => $salesPayload['car_model'] ?? null,
+            'chassis_no' => $salesPayload['chassis_no'] ?? null,
+            'police_no' => $salesPayload['police_no'] ?? null,
+            'installation_type' => SalesDetailMapper::installationTypeLabel(
+                $salesPayload['installation_type'] ?? null,
+            ),
+            'window_film_desc' => $salesPayload['window_film_desc'] ?? null,
+        ];
+
         return view('dashboard.work-order', [
             'workOrder' => $workOrder,
             'currentLocation' => $currentLocation,
             'salesDetails' => $salesDetails,
             'salesType' => $salesType,
+            'carInfo' => $carInfo,
         ]);
     }
 
