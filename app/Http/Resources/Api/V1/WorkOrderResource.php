@@ -37,7 +37,9 @@ class WorkOrderResource extends JsonResource
                 'latitude' => $this->serviceLocation->latitude,
                 'longitude' => $this->serviceLocation->longitude,
             ]),
+            'car_info' => $this->car_info ?? null,
             'items' => $this->whenLoaded('items'),
+            'sales_details' => $this->sales_details ?? [],
             'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($photo) => [
                 'id' => $photo->id,
                 'url' => $photo->url,

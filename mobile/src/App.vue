@@ -480,13 +480,69 @@
                                         class="v">{{ fmtDateTime(current . scheduled_start_at) }}</span></div>
                             </div>
 
-                            <div class="card" v-if="current.items && current.items.length">
+                            <div class="card"
+                                v-if="(current.items && current.items.length) ||
+                                    (current.car_info && (current.car_info.brand || current.car_info.model ||
+                                        current.car_info.chassis_no || current.car_info.police_no ||
+                                        current.car_info.installation_type))">
                                 <h4>📦 Item Pekerjaan</h4>
+                                <div class="kv"><span class="k">Car Info</span><span
+                                        class="v">{{ carInfoLabel }}</span></div>
+                                <div class="kv" v-if="current.car_info && current.car_info.chassis_no">
+                                    <span class="k">No. Rangka</span><span class="v">{{ current.car_info.chassis_no }}</span>
+                                </div>
+                                <div class="kv" v-if="current.car_info && current.car_info.police_no">
+                                    <span class="k">No. Polisi</span><span class="v">{{ current.car_info.police_no }}</span>
+                                </div>
+                                <div class="kv" v-if="current.car_info && current.car_info.installation_type">
+                                    <span class="k">Installation Type</span><span
+                                        class="v">{{ current.car_info.installation_type }}</span>
+                                </div>
                                 <div v-for="it in current.items" :key="it.id" class="wo-item">
                                     <div>
                                         <div class="wo-item-name">{{ it.product_name || '-' }}</div>
                                     </div>
                                     <span class="wo-item-qty">× {{ it.quantity }}</span>
+                                </div>
+                                <div v-if="current.sales_details && current.sales_details.length"
+                                    class="sales-detail-wrap">
+                                    <div class="sales-detail-title">Detail Item Pemasangan</div>
+                                    <div class="sales-detail-scroll">
+                                        <table class="sales-detail-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>No</th>
+                                                    <th>Inventory</th>
+                                                    <template
+                                                        v-if="current.car_info && String(current.car_info.sales_type) === '3'">
+                                                        <th class="r">Lebar</th>
+                                                        <th class="r">Panjang</th>
+                                                    </template>
+                                                    <template v-else>
+                                                        <th>Posisi</th>
+                                                        <th>Detail</th>
+                                                    </template>
+                                                    <th class="r">Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(d, i) in current.sales_details" :key="i">
+                                                    <td>{{ i + 1 }}</td>
+                                                    <td>{{ d.inventory_name || '-' }}</td>
+                                                    <template
+                                                        v-if="current.car_info && String(current.car_info.sales_type) === '3'">
+                                                        <td class="r">{{ d.width || '-' }}</td>
+                                                        <td class="r">{{ d.length || '-' }}</td>
+                                                    </template>
+                                                    <template v-else>
+                                                        <td>{{ d.window_position || '-' }}</td>
+                                                        <td>{{ d.window_position_detail || '-' }}</td>
+                                                    </template>
+                                                    <td class="r">{{ d.qty || '-' }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
 
@@ -936,6 +992,11 @@ export default {
                     },
                     firstName() {
                         return this.user ? (this.user.name || 'Teknisi').split(' ')[0] : 'Teknisi';
+                    },
+                    carInfoLabel() {
+                        const ci = this.current && this.current.car_info;
+                        if (!ci) return '-';
+                        return [ci.brand, ci.model].filter(Boolean).join(' ') || '-';
                     },
                     greetingLine() {
                         const h = new Date().getHours();
@@ -3160,6 +3221,48 @@ export default {
             flex-shrink: 0;
             font-weight: 800;
             color: var(--primary);
+        }
+
+        .sales-detail-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            margin: 12px 0 2px;
+        }
+
+        .sales-detail-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sales-detail-table {
+            width: 100%;
+            min-width: 480px;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+
+        .sales-detail-table th {
+            text-align: left;
+            padding: 7px 8px;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            color: var(--muted);
+            background: var(--bg-2);
+            white-space: nowrap;
+        }
+
+        .sales-detail-table td {
+            padding: 7px 8px;
+            border-top: 1px solid var(--bg-2);
+            color: var(--ink-2);
+        }
+
+        .sales-detail-table .r {
+            text-align: right;
         }
 
         #detail-map {

@@ -9,6 +9,9 @@ use App\Http\Requests\Api\V1\StoreWorkOrderRequest;
 use App\Http\Resources\Api\V1\WorkOrderResource;
 use App\Models\User;
 use App\Modules\Identity\Enums\UserRole;
+use App\Modules\Legacy\Services\LegacyDataSourceService;
+use App\Modules\Legacy\Support\LegacyRowFormatter;
+use App\Modules\Legacy\Support\SalesDetailMapper;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use App\Modules\WorkOrder\Models\WorkOrder;
 use App\Modules\WorkOrder\Models\WorkOrderStatusHistory;
@@ -75,18 +78,41 @@ class WorkOrderController extends Controller
         return new WorkOrderResource($workOrder->load('items'));
     }
 
-    public function show(WorkOrder $workOrder): WorkOrderResource
+    public function show(WorkOrder $workOrder, LegacyDataSourceService $legacy): WorkOrderResource
     {
         $this->authorize('view', $workOrder);
 
-        return new WorkOrderResource($workOrder->load([
+        $workOrder->load([
             'customer',
             'serviceLocation',
             'items',
+            'salesOrder',
             'assignments',
             'statusHistories',
             'trackingSessions',
-        ]));
+        ]);
+
+        $payload = $workOrder->salesOrder?->source_payload ?? [];
+
+        $workOrder->car_info = [
+            'brand' => $payload['car_brand'] ?? null,
+            'model' => $payload['car_model'] ?? null,
+            'chassis_no' => $payload['chassis_no'] ?? null,
+            'police_no' => $payload['police_no'] ?? null,
+            'installation_type' => SalesDetailMapper::installationTypeLabel(
+                $payload['installation_type'] ?? null,
+            ),
+            'sales_type' => $payload['sales_type'] ?? null,
+        ];
+
+        $workOrder->sales_details = ($salesSerial = $workOrder->salesOrder?->external_id)
+            ? array_map(
+                fn (object $row): array => LegacyRowFormatter::salesDetail($row),
+                $legacy->salesDetails($salesSerial),
+            )
+            : [];
+
+        return new WorkOrderResource($workOrder);
     }
 
     public function startTrip(WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
