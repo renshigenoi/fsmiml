@@ -481,10 +481,10 @@
                             </div>
 
                             <div class="card"
-                                v-if="(current.items && current.items.length) ||
-                                    (current.car_info && (current.car_info.brand || current.car_info.model ||
+                                v-if="(current.car_info && (current.car_info.brand || current.car_info.model ||
                                         current.car_info.chassis_no || current.car_info.police_no ||
-                                        current.car_info.installation_type))">
+                                        current.car_info.installation_type)) ||
+                                    (current.sales_details && current.sales_details.length)">
                                 <h4>📦 Item Pekerjaan</h4>
                                 <div class="kv"><span class="k">Car Info</span><span
                                         class="v">{{ carInfoLabel }}</span></div>
@@ -497,12 +497,6 @@
                                 <div class="kv" v-if="current.car_info && current.car_info.installation_type">
                                     <span class="k">Installation Type</span><span
                                         class="v">{{ current.car_info.installation_type }}</span>
-                                </div>
-                                <div v-for="it in current.items" :key="it.id" class="wo-item">
-                                    <div>
-                                        <div class="wo-item-name">{{ it.product_name || '-' }}</div>
-                                    </div>
-                                    <span class="wo-item-qty">× {{ it.quantity }}</span>
                                 </div>
                                 <div v-if="current.sales_details && current.sales_details.length"
                                     class="sales-detail-wrap">
@@ -3195,32 +3189,6 @@ export default {
             text-align: right;
             font-weight: 600;
             color: var(--ink-2);
-        }
-
-        .wo-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--bg-2);
-            font-size: 14px;
-        }
-
-        .wo-item:last-child {
-            border-bottom: 0;
-            padding-bottom: 0;
-        }
-
-        .wo-item-name {
-            font-weight: 700;
-            color: var(--ink-2);
-        }
-
-        .wo-item-qty {
-            flex-shrink: 0;
-            font-weight: 800;
-            color: var(--primary);
         }
 
         .sales-detail-title {
