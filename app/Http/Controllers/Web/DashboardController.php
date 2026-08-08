@@ -235,6 +235,7 @@ class DashboardController extends Controller
             'customer',
             'serviceLocation',
             'items',
+            'salesOrder',
             'assignments.technician.user',
             'statusHistories',
             'trackingSessions',
@@ -247,9 +248,21 @@ class DashboardController extends Controller
             ? Cache::get("tracking:session:{$activeSession->getKey()}:current_location")
             : null;
 
+        $salesType = $workOrder->salesOrder?->source_payload['sales_type'] ?? null;
+        $salesDetails = [];
+
+        if ($salesSerial = $workOrder->salesOrder?->external_id) {
+            $salesDetails = array_map(
+                fn (object $row): array => LegacyRowFormatter::salesDetail($row),
+                $this->legacy->salesDetails($salesSerial),
+            );
+        }
+
         return view('dashboard.work-order', [
             'workOrder' => $workOrder,
             'currentLocation' => $currentLocation,
+            'salesDetails' => $salesDetails,
+            'salesType' => $salesType,
         ]);
     }
 

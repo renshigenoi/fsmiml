@@ -161,6 +161,22 @@ class LegacyDataSourceService
         return $rows[0] ?? null;
     }
 
+    /**
+     * Detail item penjualan dari view legacy SHOW_SalesDetail.
+     *
+     * @return list<object>
+     */
+    public function salesDetails(string $salesSerial): array
+    {
+        return DB::connection('sales')->select(
+            'SELECT inventory_name, window_position, window_position_detail, width, length_, qty
+             FROM "SHOW_SalesDetail"
+             WHERE sales_serial = ?
+             ORDER BY created_date ASC, serial ASC',
+            [$salesSerial],
+        );
+    }
+
     public function countTechnicians(): int
     {
         $row = DB::connection('sales')->selectOne(

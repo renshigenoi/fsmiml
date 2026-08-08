@@ -457,6 +457,50 @@
         </div>
         @endif
 
+        {{-- Sales Detail (legacy SHOW_SalesDetail) --}}
+        @if (!empty($salesDetails))
+        <div class="info-card">
+            <div class="info-card-head">
+                <div class="ic-ico" style="background:linear-gradient(135deg,#0891b2,#155e75);">🪟</div>
+                <h3>Detail Item Pemasangan</h3>
+            </div>
+            <div class="info-card-body" style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+                    <thead>
+                        <tr style="background:var(--surface-2,#f6f9ff);">
+                            <th style="padding:9px 10px;text-align:left;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">No</th>
+                            <th style="padding:9px 10px;text-align:left;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">Inventory</th>
+                            @if ((string) $salesType === '3')
+                                <th style="padding:9px 10px;text-align:right;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">Lebar (cm)</th>
+                                <th style="padding:9px 10px;text-align:right;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">Panjang (cm)</th>
+                            @else
+                                <th style="padding:9px 10px;text-align:left;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">Posisi Kaca</th>
+                                <th style="padding:9px 10px;text-align:left;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">Detail Posisi</th>
+                            @endif
+                            <th style="padding:9px 10px;text-align:right;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($salesDetails as $idx => $detail)
+                            <tr style="border-bottom:1px solid var(--line,#e2e8f4);">
+                                <td style="padding:9px 10px;color:var(--muted,#64748b);">{{ $idx + 1 }}</td>
+                                <td style="padding:9px 10px;font-weight:700;color:var(--ink-2,#2c3e65);">{{ $detail['inventory_name'] ?? '—' }}</td>
+                                @if ((string) $salesType === '3')
+                                    <td style="padding:9px 10px;text-align:right;">{{ $detail['width'] ?? '—' }}</td>
+                                    <td style="padding:9px 10px;text-align:right;">{{ $detail['length'] ?? '—' }}</td>
+                                @else
+                                    <td style="padding:9px 10px;">{{ $detail['window_position'] ?? '—' }}</td>
+                                    <td style="padding:9px 10px;">{{ $detail['window_position_detail'] ?? '—' }}</td>
+                                @endif
+                                <td style="padding:9px 10px;text-align:right;font-weight:700;">{{ $detail['qty'] ?? '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
         {{-- Status History Timeline --}}
         <div class="info-card">
             <div class="info-card-head">

@@ -54,4 +54,25 @@ final class LegacyRowFormatter
             'window_film_desc' => $row->window_film_desc ?? null,
         ];
     }
+
+    /**
+     * Baris detail penjualan (SHOW_SalesDetail) siap tampil:
+     * kode window_position & window_position_detail sudah jadi label.
+     *
+     * @return array<string, mixed>
+     */
+    public static function salesDetail(object $row): array
+    {
+        return [
+            'inventory_name' => filled($row->inventory_name ?? null) ? (string) $row->inventory_name : null,
+            'window_position' => SalesDetailMapper::windowPositionLabel($row->window_position ?? null),
+            'window_position_detail' => SalesDetailMapper::windowPositionDetailLabel(
+                $row->window_position ?? null,
+                $row->window_position_detail ?? null,
+            ),
+            'width' => filled($row->width ?? null) ? (string) $row->width : null,
+            'length' => filled($row->length_ ?? null) ? (string) $row->length_ : null,
+            'qty' => filled($row->qty ?? null) ? (string) $row->qty : null,
+        ];
+    }
 }
