@@ -161,6 +161,18 @@ class DashboardController extends Controller
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
+    public function salesDetailsJson(string $serial): JsonResponse
+    {
+        $rows = array_map(
+            fn (object $row): array => LegacyRowFormatter::salesDetail($row),
+            $this->legacy->salesDetails($serial),
+        );
+
+        return response()
+            ->json(['data' => $rows])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
     public function techniciansJson(Request $request): JsonResponse
     {
         $rows = $this->legacy->technicians($request->query('search'), 200);

@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('dashboard/reset-pin', [DashboardController::class, 'resetPinForm'])->name('dashboard.reset-pin');
     Route::post('dashboard/reset-pin', [DashboardController::class, 'resetPin']);
     Route::get('dashboard/api/sales', [DashboardController::class, 'searchSales']);
+    Route::get('dashboard/api/sales/{serial}/details', [DashboardController::class, 'salesDetailsJson']);
     Route::get('dashboard/api/technicians', [DashboardController::class, 'techniciansJson']);
     Route::get('dashboard/api/overview', [DashboardController::class, 'overviewJson']);
     Route::post('dashboard/work-orders', [DashboardController::class, 'storeWorkOrder']);

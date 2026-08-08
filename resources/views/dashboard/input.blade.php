@@ -469,6 +469,13 @@
                         <div class="sp-field"><div class="sp-label">Alamat</div><div class="sp-val" id="s-address">—</div></div>
                     </div>
                 </div>
+
+                <div id="sales-detail-wrap" class="sales-detail-wrap" style="display:none;margin-top:14px;">
+                    <div class="sales-detail-head" style="font-weight:800;font-size:13px;color:var(--navy-700,#112b5c);margin-bottom:8px;">
+                        🪟 Detail Item Pemasangan
+                    </div>
+                    <div id="sales-detail-body" style="border:1px solid var(--line,#e2e8f4);border-radius:10px;overflow:hidden;"></div>
+                </div>
             </div>
         </div>
 
@@ -692,12 +699,15 @@
             preview.classList.add('visible');
             document.getElementById('spk-search').closest('.spk-search-wrap').style.display = 'none';
             if (fullAddress.trim()) autoGeocode(fullAddress);
+            loadSalesDetail(data.serial, data.sales_type);
         },
         clear() {
             document.getElementById('spk-selected').classList.remove('visible');
             document.getElementById('legacy-sales-serial').value = '';
             document.getElementById('spk-search').value = '';
             document.getElementById('spk-search').closest('.spk-search-wrap').style.display = '';
+            document.getElementById('sales-detail-wrap').style.display = 'none';
+            document.getElementById('sales-detail-body').innerHTML = '';
         },
     };
 
@@ -749,6 +759,70 @@
             });
         } catch (e) {
             spkResults.innerHTML = '<li class="ss-empty">⚠️ Gagal memuat data</li>';
+        }
+    }
+
+    function escHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    async function loadSalesDetail(serial, salesType) {
+        const wrap = document.getElementById('sales-detail-wrap');
+        const body = document.getElementById('sales-detail-body');
+        if (!serial) {
+            wrap.style.display = 'none';
+            body.innerHTML = '';
+            return;
+        }
+        wrap.style.display = 'block';
+        body.innerHTML = '<div class="ss-loading" style="padding:14px;text-align:center;">⏳ Memuat detail item…</div>';
+        try {
+            const res = await fetch('/dashboard/api/sales/' + encodeURIComponent(serial) + '/details');
+            const payload = await res.json();
+            const rows = payload.data || [];
+            if (!rows.length) {
+                body.innerHTML = '<div class="ss-empty" style="padding:14px;text-align:center;color:var(--muted,#64748b);font-size:13px;">Tidak ada detail item untuk SPK ini.</div>';
+                return;
+            }
+            const isSize = String(salesType) === '3';
+            const th = (label, align) =>
+                `<th style="padding:9px 10px;text-align:${align || 'left'};color:var(--muted,#64748b);font-size:11px;text-transform:uppercase;letter-spacing:.03em;background:var(--surface-2,#f6f9ff);">${label}</th>`;
+            const td = (value, align, bold) =>
+                `<td style="padding:9px 10px;text-align:${align || 'left'};${bold ? 'font-weight:700;' : ''}">${escHtml(value) || '—'}</td>`;
+
+            let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+            html += '<thead><tr>';
+            html += th('No');
+            html += th('Inventory');
+            html += isSize ? th('Lebar (cm)', 'right') + th('Panjang (cm)', 'right')
+                           : th('Posisi Kaca') + th('Detail Posisi');
+            html += th('Qty', 'right');
+            html += '</tr></thead><tbody>';
+
+            rows.forEach((d, i) => {
+                html += '<tr style="border-bottom:1px solid var(--line,#e2e8f4);">';
+                html += td(i + 1, 'left', false);
+                html += td(d.inventory_name || '-', 'left', true);
+                if (isSize) {
+                    html += td(d.width || '-', 'right', false);
+                    html += td(d.length || '-', 'right', false);
+                } else {
+                    html += td(d.window_position || '-', 'left', false);
+                    html += td(d.window_position_detail || '-', 'left', false);
+                }
+                html += td(d.qty || '-', 'right', true);
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            body.innerHTML = html;
+        } catch (e) {
+            body.innerHTML = '<div class="ss-empty" style="padding:14px;text-align:center;color:var(--red-500,#c8102e);font-size:13px;">⚠️ Gagal memuat detail item.</div>';
         }
     }
 
