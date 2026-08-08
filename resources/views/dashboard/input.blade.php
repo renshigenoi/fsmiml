@@ -533,6 +533,10 @@
                 <div class="map-hint">
                     📌 Klik di peta atau geser pin untuk mengatur titik lokasi. Alamat dari SPK otomatis dicari saat SPK dipilih.
                 </div>
+                <div id="location-status" class="map-hint"
+                     style="display:none;margin-top:10px;background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.28);color:#047857;">
+                    📍 <span id="location-status-text">Lokasi terdeteksi</span>
+                </div>
             </div>
         </div>
 
@@ -735,6 +739,10 @@
             document.getElementById('spk-search').closest('.spk-search-wrap').style.display = '';
             document.getElementById('sales-detail-wrap').style.display = 'none';
             document.getElementById('sales-detail-body').innerHTML = '';
+            document.getElementById('latitude').value = '';
+            document.getElementById('longitude').value = '';
+            const locStatus = document.getElementById('location-status');
+            if (locStatus) locStatus.style.display = 'none';
         },
     };
 
@@ -871,6 +879,12 @@
     function placePin(lat, lng, reverse) {
         document.getElementById('latitude').value  = lat.toFixed(7);
         document.getElementById('longitude').value = lng.toFixed(7);
+        const locStatus = document.getElementById('location-status');
+        const locText = document.getElementById('location-status-text');
+        if (locStatus && locText) {
+            locStatus.style.display = 'flex';
+            locText.textContent = 'Lokasi terdeteksi (' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ')';
+        }
         if (!pin) {
             pin = L.marker([lat, lng], { draggable: true }).addTo(map);
             pin.on('dragend', () => { const p = pin.getLatLng(); placePin(p.lat, p.lng, true); });

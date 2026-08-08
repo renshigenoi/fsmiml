@@ -135,9 +135,31 @@ class LegacyDataSourceService
             $bindings = [$pattern, $pattern, $pattern];
         }
 
-        $sql .= ' ORDER BY s.sales_invoice_no_car, s.sales_order_no_car, s.sales_invoice_no_building, s.sales_order_no_building, s.sales_invoice_no_materials, s.sales_order_no_materials LIMIT '.$this->limit($limit);
+        $sql .= ' LIMIT '.$this->limit($limit);
 
-        return DB::connection('sales')->select($sql, $bindings);
+        $rows = DB::connection('sales')->select($sql, $bindings);
+
+        // Urutkan berdasarkan jadwal pasang (installation_date) terbaru dulu;
+        // SPK tanpa jadwal diletakkan di akhir. Sortir di PHP agar aman dari
+        // perbedaan nama kolom di database legacy.
+        usort($rows, static function (object $a, object $b): int {
+            $dateA = $a->sellingdate ?? $a->installation_date ?? null;
+            $dateB = $b->sellingdate ?? $b->installation_date ?? null;
+
+            if ($dateA === $dateB) {
+                return 0;
+            }
+            if ($dateA === null) {
+                return 1;
+            }
+            if ($dateB === null) {
+                return -1;
+            }
+
+            return $dateB <=> $dateA; // DESC
+        });
+
+        return $rows;
     }
 
     public function salesBySerial(string $serial): ?object
