@@ -107,6 +107,11 @@
                         <span class="sec-label">Ganti Password</span>
                         <span class="sec-chev">›</span>
                     </button>
+                    <button v-if="isNativeApp" type="button" class="sec-item" @click="openBatterySettings">
+                        <span class="sec-ico">🔋</span>
+                        <span class="sec-label">Optimasi Baterai</span>
+                        <span class="sec-chev">›</span>
+                    </button>
                     <div v-if="biometricAvailable" class="sec-item sec-item-static">
                         <span class="sec-ico">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
@@ -889,7 +894,6 @@ export default {
                         gpsState: 'off',
                         gpsSentLabel: '',
                         lastGpsSentAt: 0,
-                        batteryGuideShown: false,
                         wakeLockSentinel: null,
                         watchId: null,
                         bgWatcherId: null,
@@ -2206,8 +2210,8 @@ export default {
                         if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                             this.gpsState = 'starting';
                             this.requestBatteryOptimizationExemption();
-                            if (!this.batteryGuideShown) {
-                                this.batteryGuideShown = true;
+                            if (!localStorage.getItem('fsm_battery_guide_shown')) {
+                                localStorage.setItem('fsm_battery_guide_shown', '1');
                                 this.askConfirm(
                                     'Tracking & Baterai',
                                     'Agar lokasi tetap terkirim saat layar mati, izinkan aplikasi tanpa batasan baterai. Buka pengaturannya?',
@@ -2275,9 +2279,12 @@ export default {
                             if (!window.Capacitor || !window.Capacitor.isNativePlatform
                                 || !window.Capacitor.isNativePlatform()) return;
                             const { enabled } = await BatteryOptimization.isBatteryOptimizationEnabled();
-                            if (enabled) {
-                                await BatteryOptimization.requestIgnoreBatteryOptimization();
-                            }
+                            if (!enabled) return; // sudah dibebaskan — tidak perlu apa-apa
+                            // Dialog sistem cukup diminta SEKALI per install, biar tidak
+                            // muncul ulang tiap app dibuka saat perjalanan aktif.
+                            if (localStorage.getItem('fsm_battery_requested') === '1') return;
+                            localStorage.setItem('fsm_battery_requested', '1');
+                            await BatteryOptimization.requestIgnoreBatteryOptimization();
                         } catch (_) { /* dialog dibatalkan user — aman */ }
                     },
                     async openBatterySettings() {
