@@ -53,10 +53,29 @@ final class NotificationContentBuilder
     {
         $workOrder = $notification->workOrder;
         $customer = $workOrder?->customer?->name ?? 'Customer';
+        $payload = $workOrder?->salesOrder?->source_payload ?? [];
+        $car = trim(
+            trim((string) ($payload['car_brand'] ?? '')).' '.trim((string) ($payload['car_model'] ?? ''))
+        );
+        $number = $workOrder?->number ?? '-';
+
+        $lines = [
+            "Halo {$customer} 👋",
+            '',
+            'Teknisi kami sedang menuju lokasi pemasangan Anda 🚗💨',
+            "📋 No. Order: {$number}",
+        ];
+
+        if ($car !== '') {
+            $lines[] = "🚘 Kendaraan: {$car}";
+        }
+
+        $lines[] = '';
+        $lines[] = 'Link tracking pemasangan akan menyusul di pesan ini.';
 
         return new NotificationContent(
             title: 'Link Tracking Pemasangan',
-            body: "Halo {$customer}, teknisi kami sedang menuju lokasi pemasangan Anda. Pantau perjalanan teknisi melalui link berikut:",
+            body: implode("\n", $lines),
             trackingUrl: null,
         );
     }

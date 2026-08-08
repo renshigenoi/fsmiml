@@ -2,6 +2,7 @@
 
 namespace App\Modules\WorkOrder\Listeners;
 
+use App\Modules\Assignment\Enums\AssignmentStatus;
 use App\Modules\Customer\Models\Customer;
 use App\Modules\Notification\Enums\NotificationChannel;
 use App\Modules\Notification\Services\NotificationAuditService;
@@ -99,12 +100,38 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
             ]);
         }
 
-        $body = "Halo {$customer->name}, teknisi kami sedang menuju lokasi pemasangan Anda.";
+        $payload = $workOrder->salesOrder?->source_payload ?? [];
+        $car = trim(
+            trim((string) ($payload['car_brand'] ?? '')).' '.trim((string) ($payload['car_model'] ?? ''))
+        );
+        $technician = $workOrder->assignments
+            ->firstWhere('status', AssignmentStatus::Accepted)
+            ?->technician?->user?->name;
+
+        $lines = [
+            "Halo {$customer->name} 👋",
+            '',
+            'Teknisi kami sedang menuju lokasi pemasangan Anda 🚗💨',
+            "📋 No. Order: {$workOrder->number}",
+        ];
+
+        if ($car !== '') {
+            $lines[] = "🚘 Kendaraan: {$car}";
+        }
+
+        if (filled($technician)) {
+            $lines[] = "🧑‍🔧 Teknisi: {$technician}";
+        }
 
         if ($trackingUrl !== null) {
-            $body .= " Pantau perjalanan teknisi di: {$trackingUrl}";
-            $body .= ' (link berlaku selama perjalanan berlangsung)';
+            $lines[] = '';
+            $lines[] = '👉 Pantau posisi teknisi secara langsung lewat link berikut:';
+            $lines[] = $trackingUrl;
+            $lines[] = '';
+            $lines[] = '_Link berlaku selama perjalanan berlangsung._';
         }
+
+        $body = implode("\n", $lines);
 
         return [
             'title' => 'Link Tracking Pemasangan',
