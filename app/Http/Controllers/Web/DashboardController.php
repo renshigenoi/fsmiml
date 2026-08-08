@@ -19,14 +19,13 @@ use App\Modules\Legacy\Support\LegacyRowFormatter;
 use App\Modules\Legacy\Support\SalesDetailMapper;
 use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Enums\TrackingSessionStatus;
-use App\Modules\Tracking\Enums\TrackingTokenStatus;
+use App\Modules\Tracking\Services\TrackingTokenService;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use App\Modules\WorkOrder\Models\WorkOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -39,6 +38,7 @@ class DashboardController extends Controller
         private readonly LegacyDataSourceService $legacy,
         private readonly LegacyWorkOrderService $workOrders,
         private readonly LegacyTechnicianImporter $technicianImporter,
+        private readonly TrackingTokenService $trackingTokens,
     ) {}
 
     public function index(): View
@@ -140,21 +140,19 @@ class DashboardController extends Controller
                 continue;
             }
 
-            $token = $session->tokens
-                ->first(fn ($token): bool => $token->status === TrackingTokenStatus::Active);
-
-            if ($token?->token_plain_encrypted) {
-                try {
+            try {
+                $issued = $this->trackingTokens->ensurePlaintextLink($session);
+                if ($issued !== null) {
                     $trackingLinks[$workOrder->getKey()] = rtrim(
                         (string) config('notifications.tracking.public_url'),
                         '/',
-                    ).'/'.Crypt::decryptString($token->token_plain_encrypted);
-                } catch (Throwable $exception) {
-                    Log::warning('Gagal mendekripsi token tracking untuk dashboard.', [
-                        'work_order_id' => $workOrder->getKey(),
-                        'error' => $exception->getMessage(),
-                    ]);
+                    ).'/'.$issued->plainToken;
                 }
+            } catch (Throwable $exception) {
+                Log::warning('Gagal menyiapkan link tracking untuk dashboard.', [
+                    'work_order_id' => $workOrder->getKey(),
+                    'error' => $exception->getMessage(),
+                ]);
             }
         }
 
@@ -297,6 +295,22 @@ class DashboardController extends Controller
             ? Cache::get("tracking:session:{$activeSession->getKey()}:current_location")
             : null;
 
+        $trackingLink = null;
+
+        if ($activeSession !== null) {
+            try {
+                $issued = $this->trackingTokens->ensurePlaintextLink($activeSession);
+                $trackingLink = $issued !== null
+                    ? rtrim((string) config('notifications.tracking.public_url'), '/').'/'.$issued->plainToken
+                    : null;
+            } catch (Throwable $exception) {
+                Log::warning('Gagal menyiapkan link tracking untuk detail work order.', [
+                    'work_order_id' => $workOrder->getKey(),
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
         $salesType = $workOrder->salesOrder?->source_payload['sales_type'] ?? null;
         $salesPayload = $workOrder->salesOrder?->source_payload ?? [];
         $salesDetails = [];
@@ -321,6 +335,7 @@ class DashboardController extends Controller
         return view('dashboard.work-order', [
             'workOrder' => $workOrder,
             'currentLocation' => $currentLocation,
+            'trackingLink' => $trackingLink,
             'salesDetails' => $salesDetails,
             'salesType' => $salesType,
             'carInfo' => $carInfo,

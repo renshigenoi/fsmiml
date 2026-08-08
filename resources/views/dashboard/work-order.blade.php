@@ -633,6 +633,12 @@
                        target="_blank" rel="noopener" class="map-link">
                         🗺️ Buka di Google Maps ↗
                     </a>
+                    @if (!empty($trackingLink))
+                        <a href="{{ $trackingLink }}" target="_blank" rel="noopener" class="map-link"
+                           style="background:var(--red-500,#c8102e);">
+                            📡 Link Tracking Customer ↗
+                        </a>
+                    @endif
                 @endif
             </div>
         </div>
