@@ -468,6 +468,7 @@
 
         {{-- Sales Detail (legacy SHOW_SalesDetail) --}}
         @if (!empty($salesDetails))
+        @php $fmtNum = fn ($v) => ($v === null || $v === '') ? null : (string) (float) $v; @endphp
         <div class="info-card">
             <div class="info-card-head">
                 <div class="ic-ico" style="background:linear-gradient(135deg,#0891b2,#155e75);">🪟</div>
@@ -495,13 +496,13 @@
                                 <td style="padding:9px 10px;color:var(--muted,#64748b);">{{ $idx + 1 }}</td>
                                 <td style="padding:9px 10px;font-weight:700;color:var(--ink-2,#2c3e65);">{{ $detail['inventory_name'] ?? '—' }}</td>
                                 @if ((string) $salesType === '3')
-                                    <td style="padding:9px 10px;text-align:right;">{{ $detail['width'] ?? '—' }}</td>
-                                    <td style="padding:9px 10px;text-align:right;">{{ $detail['length'] ?? '—' }}</td>
+                                    <td style="padding:9px 10px;text-align:right;">{{ $fmtNum($detail['width']) ?? '—' }}</td>
+                                    <td style="padding:9px 10px;text-align:right;">{{ $fmtNum($detail['length']) ?? '—' }}</td>
                                 @else
                                     <td style="padding:9px 10px;">{{ $detail['window_position'] ?? '—' }}</td>
                                     <td style="padding:9px 10px;">{{ $detail['window_position_detail'] ?? '—' }}</td>
                                 @endif
-                                <td style="padding:9px 10px;text-align:right;font-weight:700;">{{ $detail['qty'] ?? '—' }}</td>
+                                <td style="padding:9px 10px;text-align:right;font-weight:700;">{{ $fmtNum($detail['qty']) ?? '—' }}</td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -673,6 +673,21 @@
 
 @push('scripts')
 <script>
+    function fmtDate(value) {
+        if (!value) return '-';
+        const s = String(value).slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return String(value);
+        const p = s.split('-');
+        const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function fmtNum(value) {
+        if (value === null || value === undefined || value === '') return '';
+        const n = parseFloat(value);
+        return Number.isNaN(n) ? String(value) : String(n);
+    }
+
     /* =====================================================
        SPK SEARCH
     ===================================================== */
@@ -685,7 +700,7 @@
             document.getElementById('s-address').textContent = fullAddress || '-';
             document.getElementById('location-address').value = fullAddress;
             document.getElementById('s-car').textContent = [data.car_brand, data.car_model].filter(Boolean).join(' ') || '-';
-            document.getElementById('s-date').textContent = data.installation_date || '-';
+            document.getElementById('s-date').textContent = fmtDate(data.installation_date);
             document.getElementById('customer-phone').value =
                 normalizePhoneInput(data.cell_phone || data.home_phone || data.office_phone);
             document.getElementById('customer-email').value = data.customer_email || '';
@@ -745,7 +760,7 @@
                     <div class="ss-number">${row.spk_no || ''}</div>
                     <div class="ss-sub">
                         <span>👤 ${row.customer_name || '-'}</span>
-                        <span>📅 ${row.installation_date || '-'}</span>
+                        <span>📅 ${fmtDate(row.installation_date)}</span>
                     </div>`;
                 li.addEventListener('click', () => {
                     selectedSpk.set(row);
@@ -806,13 +821,13 @@
                 html += td(i + 1, 'left', false);
                 html += td(d.inventory_name || '-', 'left', true);
                 if (isSize) {
-                    html += td(d.width || '-', 'right', false);
-                    html += td(d.length || '-', 'right', false);
+                    html += td(fmtNum(d.width), 'right', false);
+                    html += td(fmtNum(d.length), 'right', false);
                 } else {
                     html += td(d.window_position || '-', 'left', false);
                     html += td(d.window_position_detail || '-', 'left', false);
                 }
-                html += td(d.qty || '-', 'right', true);
+                html += td(fmtNum(d.qty), 'right', true);
                 html += '</tr>';
             });
 

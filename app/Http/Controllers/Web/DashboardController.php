@@ -16,6 +16,7 @@ use App\Modules\Legacy\Services\LegacyDataSourceService;
 use App\Modules\Legacy\Services\LegacyTechnicianImporter;
 use App\Modules\Legacy\Services\LegacyWorkOrderService;
 use App\Modules\Legacy\Support\LegacyRowFormatter;
+use App\Modules\Legacy\Support\SalesDetailMapper;
 use App\Modules\Tracking\Models\TrackingSession;
 use App\Modules\Tracking\Enums\TrackingSessionStatus;
 use App\Modules\Tracking\Enums\TrackingTokenStatus;
