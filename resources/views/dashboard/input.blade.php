@@ -34,6 +34,7 @@
         gap: 20px;
         align-items: start;
     }
+    .input-layout > * { min-width: 0; }
     @media (max-width: 960px) { .input-layout { grid-template-columns: 1fr; } }
 
     /* ---- Section cards ---- */
@@ -137,6 +138,7 @@
     .sp-clear:hover { background: rgba(200,16,46,.10); color: var(--red-500,#c8102e); }
     .sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .sp-field { font-size: 13px; }
+    .sp-val { overflow-wrap: anywhere; }
     .sp-label { color: var(--muted,#64748b); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
     .sp-val { font-weight: 600; color: var(--ink-2,#2c3e65); margin-top: 2px; }
 
@@ -407,7 +409,7 @@
 
     /* ---- Mobile friendly ---- */
     @media (max-width: 640px) {
-        .content { padding: 14px; }
+        .content { padding: 14px; overflow-x: hidden; }
         .input-hero { padding: 18px 16px; }
         .input-hero h2 { font-size: 17px; }
         .sec-card-body { padding: 14px; }
@@ -485,7 +487,7 @@
                     <div class="sales-detail-head" style="font-weight:800;font-size:13px;color:var(--navy-700,#112b5c);margin-bottom:8px;">
                         🪟 Detail Item Pemasangan
                     </div>
-                    <div id="sales-detail-body" style="border:1px solid var(--line,#e2e8f4);border-radius:10px;overflow-x:auto;"></div>
+                    <div id="sales-detail-body" style="border:1px solid var(--line,#e2e8f4);border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
                 </div>
             </div>
         </div>

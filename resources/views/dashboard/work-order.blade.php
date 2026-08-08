@@ -11,6 +11,7 @@
         gap: 20px;
         align-items: start;
     }
+    .wo-layout > * { min-width: 0; }
     @media (max-width: 960px) { .wo-layout { grid-template-columns: 1fr; } }
 
     /* ---- Page header ---- */
@@ -92,7 +93,7 @@
         flex-shrink: 0;
     }
     .info-card-head h3 { margin: 0; font-size: 14px; font-weight: 800; color: var(--ink,#0d1b35); }
-    .info-card-body { padding: 18px 20px; }
+    .info-card-body { padding: 18px 20px; -webkit-overflow-scrolling: touch; }
 
     /* ---- KV rows ---- */
     .kv-list { display: flex; flex-direction: column; gap: 0; }
@@ -107,7 +108,7 @@
     }
     .kv-row:last-child { border-bottom: 0; padding-bottom: 0; }
     .kv-row .kv-k { color: var(--muted,#64748b); font-size: 13px; flex-shrink: 0; min-width: 120px; }
-    .kv-row .kv-v { font-weight: 600; color: var(--ink-2,#2c3e65); text-align: right; }
+    .kv-row .kv-v { font-weight: 600; color: var(--ink-2,#2c3e65); text-align: right; overflow-wrap: anywhere; }
 
     /* ---- Timeline ---- */
     .timeline { display: flex; flex-direction: column; gap: 0; }
@@ -327,7 +328,7 @@
 
     /* ---- Mobile friendly ---- */
     @media (max-width: 640px) {
-        .content { padding: 14px; }
+        .content { padding: 14px; overflow-x: hidden; }
         .wo-page-header { flex-direction: column; align-items: stretch; padding: 18px 16px; }
         .wo-hdr-right { text-align: left; }
         .wo-hdr-number { font-size: 19px; }
