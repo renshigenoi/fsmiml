@@ -404,6 +404,18 @@
         font-weight: 900;
         flex-shrink: 0;
     }
+
+    /* ---- Mobile friendly ---- */
+    @media (max-width: 640px) {
+        .content { padding: 14px; }
+        .input-hero { padding: 18px 16px; }
+        .input-hero h2 { font-size: 17px; }
+        .sec-card-body { padding: 14px; }
+        .sp-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+        .field-2col { grid-template-columns: 1fr !important; }
+    }
 </style>
 
 {{-- Hero --}}
@@ -473,7 +485,7 @@
                     <div class="sales-detail-head" style="font-weight:800;font-size:13px;color:var(--navy-700,#112b5c);margin-bottom:8px;">
                         🪟 Detail Item Pemasangan
                     </div>
-                    <div id="sales-detail-body" style="border:1px solid var(--line,#e2e8f4);border-radius:10px;overflow:hidden;"></div>
+                    <div id="sales-detail-body" style="border:1px solid var(--line,#e2e8f4);border-radius:10px;overflow-x:auto;"></div>
                 </div>
             </div>
         </div>
@@ -807,7 +819,7 @@
             const td = (value, align, bold) =>
                 `<td style="padding:9px 10px;text-align:${align || 'left'};${bold ? 'font-weight:700;' : ''}">${escHtml(value) || '—'}</td>`;
 
-            let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+            let html = '<table style="width:100%;min-width:520px;border-collapse:collapse;font-size:13px;">';
             html += '<thead><tr>';
             html += th('No');
             html += th('Inventory');

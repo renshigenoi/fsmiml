@@ -324,6 +324,30 @@
         cursor: pointer;
     }
     .ew-tech-item:hover { background: var(--surface-2,#f6f9ff); }
+
+    /* ---- Mobile friendly ---- */
+    @media (max-width: 640px) {
+        .content { padding: 14px; }
+        .wo-page-header { flex-direction: column; align-items: stretch; padding: 18px 16px; }
+        .wo-hdr-right { text-align: left; }
+        .wo-hdr-number { font-size: 19px; }
+        .wo-hdr-actions { justify-content: flex-start; }
+        .info-card-body { padding: 14px 16px; }
+        .kv-row { flex-direction: column; align-items: flex-start; gap: 3px; }
+        .kv-row .kv-k { min-width: 0; }
+        .kv-row .kv-v { text-align: left; }
+        .wo-layout { gap: 14px; }
+        .modal-overlay { padding: 14px; }
+        .modal-box { padding: 20px 16px; }
+        .ew-popup {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: min(300px, calc(100vw - 32px));
+            z-index: 400;
+        }
+    }
 </style>
 
 {{-- ===== Page Header ===== --}}
@@ -475,7 +499,7 @@
                 <h3>Detail Item Pemasangan</h3>
             </div>
             <div class="info-card-body" style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+                <table style="width:100%;min-width:560px;border-collapse:collapse;font-size:13.5px;">
                     <thead>
                         <tr style="background:var(--surface-2,#f6f9ff);">
                             <th style="padding:9px 10px;text-align:left;color:var(--muted,#64748b);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;">No</th>
