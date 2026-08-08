@@ -172,7 +172,12 @@ class LegacyDataSourceService
             'SELECT inventory_name, window_position, window_position_detail, width, length_, qty
              FROM "SHOW_SalesDetail"
              WHERE sales_serial = ?
-             ORDER BY created_date ASC, serial ASC',
+             ORDER BY
+                 NULLIF(btrim(window_position), \'\')::int NULLS LAST,
+                 NULLIF(btrim(window_position_detail), \'\')::int NULLS LAST,
+                 inventory_category ASC NULLS LAST,
+                 NULLIF(btrim(item_group), \'\')::int NULLS LAST,
+                 inventory_name ASC NULLS LAST',
             [$salesSerial],
         );
     }
