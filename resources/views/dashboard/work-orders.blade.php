@@ -212,6 +212,17 @@
                 </option>
             @endforeach
         </select>
+        <select name="range" id="range" onchange="this.form.submit()">
+            <option value="all" @selected($selectedRange === null)>📅 Semua Tanggal</option>
+            <option value="7" @selected($selectedRange === 7)>7 Hari Terakhir</option>
+            <option value="14" @selected($selectedRange === 14)>14 Hari Terakhir</option>
+        </select>
+        <select name="per_page" id="per_page" onchange="this.form.submit()">
+            <option value="10" @selected($selectedPerPage === 10)>10 / halaman</option>
+            <option value="25" @selected($selectedPerPage === 25)>25 / halaman</option>
+            <option value="50" @selected($selectedPerPage === 50)>50 / halaman</option>
+            <option value="all" @selected($selectedPerPage === 'all')>Semua</option>
+        </select>
         <div class="filter-count">
             📊 {{ $workOrders->total() }} work order
         </div>

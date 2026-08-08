@@ -73,6 +73,21 @@ class DashboardController extends Controller
     public function workOrders(Request $request): View
     {
         $statusParam = $request->query('status');
+        $rangeParam = $request->query('range');
+        $perPageParam = $request->query('per_page');
+
+        $perPage = match (strtolower((string) $perPageParam)) {
+            '25' => 25,
+            '50' => 50,
+            'all' => 100000,
+            default => 10,
+        };
+
+        $selectedRange = match ((string) $rangeParam) {
+            '7' => 7,
+            '14' => 14,
+            default => null,
+        };
 
         $single = null;
         $multi = [];
@@ -98,8 +113,9 @@ class DashboardController extends Controller
             ->with(['customer', 'assignments.technician.user', 'trackingSessions.tokens'])
             ->when($single !== null, fn ($query) => $query->where('status', $single))
             ->when($multi !== [], fn ($query) => $query->whereIn('status', $multi))
+            ->when($selectedRange !== null, fn ($query) => $query->where('created_at', '>=', now()->subDays($selectedRange)))
             ->latest('scheduled_start_at')
-            ->paginate(20);
+            ->paginate($perPage);
 
         $trackingLinks = [];
 
@@ -138,6 +154,10 @@ class DashboardController extends Controller
             'selectedStatus' => $selected,
             'statuses' => WorkOrderStatus::cases(),
             'trackingLinks' => $trackingLinks,
+            'selectedRange' => $selectedRange,
+            'selectedPerPage' => $perPageParam !== null && strtolower((string) $perPageParam) === 'all'
+                ? 'all'
+                : $perPage,
         ]);
     }
 

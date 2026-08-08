@@ -464,6 +464,21 @@
             right: 20px;
             bottom: 84px;
             z-index: 90;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: opacity .2s, transform .2s;
+        }
+        .back-to-top.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .btt-btn {
             width: 44px;
             height: 44px;
             border-radius: 50%;
@@ -476,15 +491,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transform: translateY(10px);
-            pointer-events: none;
-            transition: opacity .2s, transform .2s;
+            padding: 0;
         }
-        .back-to-top.show {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
+        .btt-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            background: rgba(17, 43, 92, .85);
+            padding: 3px 9px;
+            border-radius: 999px;
+            white-space: nowrap;
         }
 
         /* Content */
@@ -1132,7 +1148,10 @@
     @endauth
 
     @auth
-        <button type="button" id="back-to-top" class="back-to-top" aria-label="Kembali ke atas">↑</button>
+        <div id="back-to-top" class="back-to-top">
+            <button type="button" class="btt-btn" aria-label="Kembali ke atas">↑</button>
+            <span class="btt-label">Kembali ke atas</span>
+        </div>
     @endauth
 
     <script>
