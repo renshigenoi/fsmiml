@@ -57,6 +57,9 @@ final class NotificationContentBuilder
         $car = trim(
             trim((string) ($payload['car_brand'] ?? '')).' '.trim((string) ($payload['car_model'] ?? ''))
         );
+        $chassis = trim((string) ($payload['chassis_no'] ?? ''));
+        $police = trim((string) ($payload['police_no'] ?? ''));
+        $film = trim((string) ($payload['window_film_desc'] ?? ''));
         $number = $workOrder?->number ?? '-';
 
         $lines = [
@@ -68,6 +71,17 @@ final class NotificationContentBuilder
 
         if ($car !== '') {
             $lines[] = "🚘 Kendaraan: {$car}";
+        }
+
+        if ($chassis !== '' || $police !== '') {
+            $lines[] = '🔢 Chassis # / Police #: '
+                .($chassis !== '' ? $chassis : '-')
+                .' / '
+                .($police !== '' ? $police : '-');
+        }
+
+        if ($film !== '') {
+            $lines[] = "🪟 Window Film: {$film}";
         }
 
         $lines[] = '';
