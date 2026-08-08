@@ -85,9 +85,10 @@ class DashboardController extends Controller
         };
 
         $selectedRange = match ((string) $rangeParam) {
+            'all', '0' => null,
             '7' => 7,
             '14' => 14,
-            default => null,
+            default => 3, // default: 3 hari terakhir
         };
 
         $single = null;
@@ -157,7 +158,7 @@ class DashboardController extends Controller
             }
         }
 
-        return view('dashboard.work-orders', [
+        $data = [
             'workOrders' => $workOrders,
             'selectedStatus' => $selected,
             'statuses' => WorkOrderStatus::cases(),
@@ -167,7 +168,13 @@ class DashboardController extends Controller
                 ? 'all'
                 : $perPage,
             'search' => $searchParam,
-        ]);
+        ];
+
+        if ($request->query('partial') === '1') {
+            return view('dashboard.work-orders-table', $data);
+        }
+
+        return view('dashboard.work-orders', $data);
     }
 
     public function technicians(Request $request): View
