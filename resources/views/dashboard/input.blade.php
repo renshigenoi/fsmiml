@@ -462,7 +462,6 @@
                         <button type="button" class="sp-clear" id="btn-clear-spk">✕ Ganti SPK</button>
                     </div>
                     <div class="sp-grid">
-                        <div class="sp-field"><div class="sp-label">Jenis Film</div><div class="sp-val" id="s-film">—</div></div>
                         <div class="sp-field"><div class="sp-label">Customer</div><div class="sp-val" id="s-customer">—</div></div>
                         <div class="sp-field"><div class="sp-label">Kendaraan</div><div class="sp-val" id="s-car">—</div></div>
                         <div class="sp-field"><div class="sp-label">Tanggal Pasang (Sumber)</div><div class="sp-val" id="s-date">—</div></div>
@@ -687,7 +686,6 @@
             document.getElementById('location-address').value = fullAddress;
             document.getElementById('s-car').textContent = [data.car_brand, data.car_model].filter(Boolean).join(' ') || '-';
             document.getElementById('s-date').textContent = data.installation_date || '-';
-            document.getElementById('s-film').textContent = data.window_film_desc || '-';
             document.getElementById('customer-phone').value =
                 normalizePhoneInput(data.cell_phone || data.home_phone || data.office_phone);
             document.getElementById('customer-email').value = data.customer_email || '';
@@ -745,7 +743,6 @@
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div class="ss-number">${row.spk_no || ''}</div>
-                    <div class="ss-sub"><span>🪟 ${row.window_film_desc || '-'}</span></div>
                     <div class="ss-sub">
                         <span>👤 ${row.customer_name || '-'}</span>
                         <span>📅 ${row.installation_date || '-'}</span>

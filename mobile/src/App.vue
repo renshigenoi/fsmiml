@@ -476,7 +476,6 @@
                                 <div v-for="it in current.items" :key="it.id" class="wo-item">
                                     <div>
                                         <div class="wo-item-name">{{ it.product_name || '-' }}</div>
-                                        <div v-if="it.window_film_desc" class="wo-item-film">🪟 {{ it.window_film_desc }}</div>
                                     </div>
                                     <span class="wo-item-qty">× {{ it.quantity }}</span>
                                 </div>
@@ -3129,12 +3128,6 @@ export default {
         .wo-item-name {
             font-weight: 700;
             color: var(--ink-2);
-        }
-
-        .wo-item-film {
-            font-size: 12.5px;
-            color: var(--muted);
-            margin-top: 3px;
         }
 
         .wo-item-qty {

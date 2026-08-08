@@ -438,7 +438,7 @@
 
         {{-- Car Info (dari data sales legacy) --}}
         @if (!empty($carInfo['brand']) || !empty($carInfo['model']) || !empty($carInfo['chassis_no'])
-            || !empty($carInfo['police_no']) || !empty($carInfo['installation_type']) || !empty($carInfo['window_film_desc']))
+            || !empty($carInfo['police_no']) || !empty($carInfo['installation_type']))
         <div class="info-card">
             <div class="info-card-head">
                 <div class="ic-ico">🚗</div>
@@ -462,12 +462,6 @@
                     <span class="kv-k">Installation Type</span>
                     <span class="kv-v" style="text-align:right;">{{ $carInfo['installation_type'] ?: '—' }}</span>
                 </div>
-                @if (!empty($carInfo['window_film_desc']))
-                    <div class="kv-row">
-                        <span class="kv-k">Jenis Film</span>
-                        <span class="kv-v" style="text-align:right;">{{ $carInfo['window_film_desc'] }}</span>
-                    </div>
-                @endif
             </div>
         </div>
         @endif
@@ -671,9 +665,6 @@
                     <div style="padding:8px 6px;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line,#e2e8f4);">
                         <div>
                             <div style="font-weight:700;font-size:14px;">{{ $item->product_name }}</div>
-                            @if ($item->window_film_desc)
-                                <div style="font-size:12.5px;color:var(--muted,#64748b);margin-top:2px;">🪟 Jenis Film: {{ $item->window_film_desc }}</div>
-                            @endif
                         </div>
                         <div style="flex-shrink:0;font-weight:800;color:var(--navy-700,#112b5c);">× {{ $item->quantity }}</div>
                     </div>

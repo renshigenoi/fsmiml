@@ -279,7 +279,6 @@ class DashboardController extends Controller
             'installation_type' => SalesDetailMapper::installationTypeLabel(
                 $salesPayload['installation_type'] ?? null,
             ),
-            'window_film_desc' => $salesPayload['window_film_desc'] ?? null,
         ];
 
         return view('dashboard.work-order', [
