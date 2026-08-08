@@ -251,23 +251,23 @@
             <table>
                 <thead>
                 <tr>
+                    <th></th>
                     <th>Nomor SPK</th>
                     <th>Customer</th>
                     <th>Tanggal Pasang</th>
                     <th>Teknisi</th>
-                    <th></th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach ($pending as $workOrder)
                     <tr>
+                        <td style="white-space:nowrap;">
+                            <a href="{{ route('dashboard.work-orders.show', $workOrder) }}" class="btn btn-sm btn-navy">Detail →</a>
+                        </td>
                         <td><strong style="color:var(--navy-700,#112b5c);">{{ $workOrder->number }}</strong></td>
                         <td>{{ $workOrder->customer?->name ?? '-' }}</td>
                         <td>{{ $workOrder->scheduled_start_at?->format('d M Y, H:i') ?? '-' }}</td>
                         <td>{{ $workOrder->assignments->pluck('technician.user.name')->filter()->implode(', ') ?: '-' }}</td>
-                        <td style="white-space:nowrap;">
-                            <a href="{{ route('dashboard.work-orders.show', $workOrder) }}" class="btn btn-sm btn-navy">Detail →</a>
-                        </td>
                     </tr>
                 @endforeach
                 </tbody>
