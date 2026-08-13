@@ -12,6 +12,7 @@ class WorkOrderPhoto extends Model
     protected $fillable = [
         'work_order_id',
         'uploaded_by',
+        'stage',
         'disk',
         'path',
         'original_name',

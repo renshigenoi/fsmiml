@@ -627,7 +627,57 @@
                 </div>
             </div>
 
-            <!-- ========== MODAL SELESAIKAN PEMASANGAN (FOTO) ========== -->
+                        <!-- ========== MODAL MULAI PEMASANGAN (FOTO SEBELUM) ========== -->
+            <div v-if="startSheet.show" class="modal-backdrop" @click.self="closeStartSheet">
+                <div class="modal">
+                    <div class="modal-grip"></div>
+                    <div class="modal-head">
+                        <div class="modal-title-box">
+                            <div class="modal-icon-badge">📸</div>
+                            <div>
+                                <h3>Mulai Pemasangan</h3>
+                                <p class="desc">Lampirkan foto kondisi sebelum pemasangan (min. 1, maks. {{ maxPhotos }}) sebagai dokumentasi.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="photo-grid">
+                        <div v-for="(p, i) in startSheet.photos" :key="i" class="photo-thumb">
+                            <img :src="p.preview" alt="foto">
+                            <button type="button" class="photo-del" @click="removeStartPhoto(i)" title="Hapus">✕</button>
+                        </div>
+                        <button v-if="startSheet.photos.length < maxPhotos" type="button" class="photo-add"
+                            @click="addStartPhoto('camera')">
+                            <span>📷</span><span>Kamera</span>
+                        </button>
+                        <button v-if="startSheet.photos.length < maxPhotos" type="button" class="photo-add"
+                            @click="addStartPhoto('gallery')">
+                            <span>🖼️</span><span>Galeri</span>
+                        </button>
+                    </div>
+                    <p style="font-size:12px;color:var(--ink-2);margin:0 0 12px;">
+                        {{ startSheet.photos.length }} / {{ maxPhotos }} foto dipilih
+                    </p>
+
+                    <div class="reason-box">
+                        <textarea v-model="startSheet.note" rows="2"
+                            placeholder="Catatan kondisi awal (opsional)…"></textarea>
+                    </div>
+
+                    <div v-if="startSheet.error"
+                        style="background:var(--red-100); color:var(--red-700); padding:10px 12px; border-radius:var(--r-sm); font-size:12.5px; margin-bottom:12px; border:1px solid #fecdd3;">
+                        ⚠️ {{ startSheet.error }}
+                    </div>
+                    <div class="modal-actions">
+                        <button class="cancel" type="button" :disabled="startSheet.uploading" @click="closeStartSheet">Batal</button>
+                        <button class="ok-amber" type="button"
+                            :disabled="startSheet.uploading || startSheet.photos.length < 1" @click="submitStart">
+                            {{ startSheet.uploading ? 'Mengunggah…' : '🔧 Mulai Pemasangan' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+<!-- ========== MODAL SELESAIKAN PEMASANGAN (FOTO) ========== -->
             <div v-if="finishSheet.show" class="modal-backdrop" @click.self="closeFinishSheet">
                 <div class="modal">
                     <div class="modal-grip"></div>
@@ -937,7 +987,13 @@ export default {
                             chips: [],
                             error: ''
                         },
-                        finishSheet: {
+                        startSheet: {
+                            show: false,
+                            photos: [],
+                            note: '',
+                            error: '',
+                            uploading: false,
+                        },                        finishSheet: {
                             show: false,
                             photos: [],
                             note: '',
@@ -2068,6 +2124,10 @@ export default {
                             this.askConfirm('Konfirmasi Kedatangan', 'Yakin kamu sudah tiba di lokasi pelanggan? 📍', () => this.executeAction(act));
                             return;
                         }
+                        if (act.key === 'start-installation') {
+                            this.openStartSheet();
+                            return;
+                        }
                         if (act.key === 'finish') {
                             this.openFinishSheet();
                             return;
@@ -2086,7 +2146,19 @@ export default {
                             this.busy = false;
                         }
                     },
-                    openFinishSheet() {
+                    openStartSheet() {
+                        this.startSheet = {
+                            show: true,
+                            photos: [],
+                            note: '',
+                            error: '',
+                            uploading: false,
+                        };
+                    },
+                    closeStartSheet() {
+                        if (this.startSheet.uploading) return;
+                        this.startSheet.show = false;
+                    },                    openFinishSheet() {
                         this.finishSheet = {
                             show: true,
                             photos: [],
@@ -2099,7 +2171,41 @@ export default {
                         if (this.finishSheet.uploading) return;
                         this.finishSheet.show = false;
                     },
-                    async addFinishPhoto(source) {
+                    async addStartPhoto(source) {
+                        if (this.startSheet.photos.length >= this.maxPhotos) {
+                            this.startSheet.error = 'Maksimal ' + this.maxPhotos + ' foto.';
+                            return;
+                        }
+                        this.startSheet.error = '';
+                        try {
+                            if (this.isNativeApp) {
+                                const photo = await Camera.getPhoto({
+                                    quality: 60,
+                                    width: 1280,
+                                    correctOrientation: true,
+                                    resultType: CameraResultType.DataUrl,
+                                    source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos,
+                                });
+                                const blob = this.dataUrlToBlob(photo.dataUrl);
+                                this.pushStartPhoto(blob, 'foto.' + (photo.format || 'jpeg'));
+                            } else {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                if (source === 'camera') input.capture = 'environment';
+                                input.onchange = async () => {
+                                    const file = input.files && input.files[0];
+                                    if (file) {
+                                        const compressed = await this.compressImage(file);
+                                        this.pushStartPhoto(compressed, file.name || 'foto.jpg');
+                                    }
+                                };
+                                input.click();
+                            }
+                        } catch (err) {
+                            // User batal ambil foto - abaikan.
+                        }
+                    },                    async addFinishPhoto(source) {
                         if (this.finishSheet.photos.length >= this.maxPhotos) {
                             this.finishSheet.error = 'Maksimal ' + this.maxPhotos + ' foto.';
                             return;
@@ -2135,7 +2241,20 @@ export default {
                             // User batal ambil foto — abaikan.
                         }
                     },
-                    pushFinishPhoto(blob, name) {
+                    pushStartPhoto(blob, name) {
+                        if (!blob) return;
+                        if (this.startSheet.photos.length >= this.maxPhotos) {
+                            this.startSheet.error = 'Maksimal ' + this.maxPhotos + ' foto.';
+                            return;
+                        }
+                        const preview = URL.createObjectURL(blob);
+                        this.startSheet.photos.push({ blob, name, preview });
+                    },
+                    removeStartPhoto(idx) {
+                        const p = this.startSheet.photos[idx];
+                        if (p && p.preview) URL.revokeObjectURL(p.preview);
+                        this.startSheet.photos.splice(idx, 1);
+                    },                    pushFinishPhoto(blob, name) {
                         if (!blob) return;
                         if (this.finishSheet.photos.length >= this.maxPhotos) {
                             this.finishSheet.error = 'Maksimal ' + this.maxPhotos + ' foto.';
@@ -2207,7 +2326,31 @@ export default {
                             this.busy = false;
                         }
                     },
-                    async submitReason() {
+                    async submitStart() {
+                        if (this.startSheet.uploading) return;
+                        if (this.startSheet.photos.length < 1) {
+                            this.startSheet.error = 'Minimal 1 foto kondisi awal wajib dilampirkan.';
+                            return;
+                        }
+                        this.startSheet.uploading = true;
+                        this.startSheet.error = '';
+                        this.busy = true;
+                        try {
+                            const form = new FormData();
+                            this.startSheet.photos.forEach((p) => form.append('photos[]', p.blob, p.name));
+                            if (this.startSheet.note.trim()) form.append('note', this.startSheet.note.trim());
+                            await this.apiUpload('/work-orders/' + this.current.id + '/start-installation', form);
+                            this.startSheet.photos.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
+                            this.startSheet.show = false;
+                            this.showToast('Pemasangan dimulai! 🔧', 'success');
+                            await this.reloadDetail();
+                        } catch (err) {
+                            this.startSheet.error = err.message || 'Gagal memulai pekerjaan.';
+                        } finally {
+                            this.startSheet.uploading = false;
+                            this.busy = false;
+                        }
+                    },                    async submitReason() {
                         const reason = this.modal.reason.trim();
                         if (!reason || this.busy) return;
                         this.busy = true;
@@ -3840,7 +3983,9 @@ export default {
             box-shadow: 0 4px 14px rgba(200, 16, 46, .28);
         }
 
-        .modal-actions .ok-green {
+        .modal-actions .ok-amber {
+            background: #d97706;
+        }        .modal-actions .ok-green {
             background: linear-gradient(135deg, #059669 0%, #10b981 100%);
             color: #fff;
             box-shadow: 0 4px 14px rgba(5, 150, 105, .28);

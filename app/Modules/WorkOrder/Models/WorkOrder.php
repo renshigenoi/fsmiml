@@ -32,6 +32,7 @@ class WorkOrder extends Model
         'cancelled_reason',
         'failed_reason',
         'completion_note',
+        'installation_note',
         'created_by',
     ];
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\FinishWorkOrderRequest;
+use App\Http\Requests\Api\V1\StartInstallationRequest;
 use App\Http\Requests\Api\V1\ReasonRequest;
 use App\Http\Requests\Api\V1\StoreWorkOrderRequest;
 use App\Http\Resources\Api\V1\WorkOrderResource;
@@ -125,9 +126,36 @@ class WorkOrderController extends Controller
         return $this->transition($workOrder, WorkOrderStatus::Arrived, $transitions);
     }
 
-    public function startInstallation(WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
+    public function startInstallation(StartInstallationRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
     {
-        return $this->transition($workOrder, WorkOrderStatus::Installation, $transitions);
+        /** @var User $actor */
+        $actor = $request->user();
+        $this->authorize('view', $workOrder);
+
+        $result = DB::transaction(function () use ($request, $workOrder, $transitions, $actor): WorkOrder {
+            if ($request->filled('note')) {
+                $workOrder->installation_note = $request->input('note');
+                $workOrder->save();
+            }
+
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('work-orders/' . $workOrder->id . '/before-installation', 'public');
+
+                $workOrder->photos()->create([
+                    'uploaded_by' => $actor->id,
+                    'stage' => 'before_installation',
+                    'disk' => 'public',
+                    'path' => $path,
+                    'original_name' => $photo->getClientOriginalName(),
+                    'mime_type' => $photo->getMimeType(),
+                    'size_bytes' => $photo->getSize(),
+                ]);
+            }
+
+            return $transitions->transition($workOrder, WorkOrderStatus::Installation, $actor);
+        });
+
+        return new WorkOrderResource($result->load('photos'));
     }
 
     public function finish(FinishWorkOrderRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
