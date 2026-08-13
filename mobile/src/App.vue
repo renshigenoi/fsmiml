@@ -574,12 +574,13 @@
 
                     <div v-if="view === 'attendance'" class="attendance-view">
                         <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendance" title="Muat ulang">⟳</button></div></div>
-                        <div class="greet-band att-greet-band"><h2>Absensi</h2><p>Catat kehadiran Anda hari ini.</p></div>
-                        <div class="attendance-page">
+                        <div class="greet-band att-greet-band"><h2>Halo, {{ firstName }}! 👋</h2><p>Catat kehadiran Anda hari ini.</p></div>
+                        <div class="tab-switcher-wrapper attendance-tab-wrapper"><div class="tab-switcher attendance-single-tab"><button type="button" class="tab-btn active"><span>🚀 Aktivitas Hari Ini</span></button></div></div>
+                        <div class="attendance-page attendance-content">
                         <div v-if="attendance.loading" class="empty">Memuat data absensi…</div>
                         <template v-else>
                             <div v-if="attendance.leave && attendance.leave.status === 'approved'" class="att-status leave-status"><strong>Sedang {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }}</strong><p>{{ attendance.leave.note || 'Tidak ada catatan.' }}</p></div>
-                            <template v-else><section class="attendance-activity-card"><div class="activity-switcher"><span class="active">🚀 Aktivitas Hari Ini</span><span>📍 Lokasi Kerja</span></div><div class="activity-card-content"><span class="activity-date">{{ attendanceServerDate() }}</span><strong>{{ attendanceServerTime() }}</strong><div class="activity-location"><span>📍</span><b>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name : 'Lokasi fleksibel' }}</b></div><small>{{ attendance.policy && attendance.policy.location_name ? 'Lokasi kerja terdaftar' : 'Foto dan GPS wajib direkam.' }}</small></div></section><div class="att-actions"><button type="button" class="btn-att-primary" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">{{ attendance.record && attendance.record.check_in_at ? 'Datang tercatat' : 'Absen datang' }}</button><button type="button" class="btn-att-secondary" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">{{ attendance.record && attendance.record.check_out_at ? 'Pulang tercatat' : 'Absen pulang' }}</button></div></template>
+                            <template v-else><section class="attendance-activity-card"><span class="activity-date">{{ attendanceServerDate() }}</span><strong>{{ attendanceServerTime() }}</strong><div class="activity-location"><span>📍</span><b>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name : 'Lokasi fleksibel' }}</b></div></section><div class="att-actions"><button type="button" class="btn-att-primary" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">{{ attendance.record && attendance.record.check_in_at ? 'Datang tercatat' : 'Absen datang' }}</button><button type="button" class="btn-att-secondary" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">{{ attendance.record && attendance.record.check_out_at ? 'Pulang tercatat' : 'Absen pulang' }}</button></div></template>
                             <button type="button" class="att-outline" @click="openLeaveSheet">Cuti / Izin</button><button type="button" class="att-outline" style="margin-top:10px" @click="openAttendanceCalendar">Kalender</button>
                             <h3 class="att-section-title">Absensi hari ini</h3><div class="att-list" v-if="!(attendance.leave && attendance.leave.status === 'approved')"><div><span>Absen datang</span><strong>{{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}</strong></div><div><span>Absen pulang</span><strong>{{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}</strong></div></div>
                             <div v-if="attendance.leave && attendance.leave.status === 'pending'" class="att-pending">Pengajuan {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }} menunggu persetujuan.</div>
@@ -587,9 +588,9 @@
                         </div>
                     </div>
                     <div v-if="view === 'attendance-calendar'" class="attendance-view">
-                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="view = 'attendance'" title="Kembali ke absensi">‹</button></div></div>
+                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendanceCalendar" title="Muat ulang">⟳</button></div></div>
                         <div class="greet-band att-greet-band"><h2>Kalender absensi</h2><p>Lihat riwayat kehadiran per hari.</p></div>
-                        <div class="attendance-page calendar-page">
+                        <div class="attendance-page calendar-page"><button type="button" class="calendar-back-link" @click="view = 'attendance'">‹ Kembali</button>
                         <section class="attendance-calendar-card">
                             <div class="calendar-month-nav"><button type="button" aria-label="Bulan sebelumnya" :disabled="attendance.calendarLoading" @click="changeAttendanceMonth(-1)">‹</button><strong>{{ attendance.calendarMonthLabel || 'Memuat…' }}</strong><button type="button" aria-label="Bulan berikutnya" :disabled="attendance.calendarLoading" @click="changeAttendanceMonth(1)">›</button></div>
                             <div class="calendar-week"><span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span></div>
@@ -657,7 +658,7 @@
                 </div>
             </div>
 
-                        <!-- ========== MODAL MULAI PEMASANGAN (FOTO SEBELUM) ========== -->
+			<!-- ========== MODAL MULAI PEMASANGAN (FOTO SEBELUM) ========== -->
             <div v-if="startSheet.show" class="modal-backdrop" @click.self="closeStartSheet">
                 <div class="modal">
                     <div class="modal-grip"></div>
@@ -707,7 +708,7 @@
                     </div>
                 </div>
             </div>
-<!-- ========== MODAL SELESAIKAN PEMASANGAN (FOTO) ========== -->
+			<!-- ========== MODAL SELESAIKAN PEMASANGAN (FOTO) ========== -->
             <div v-if="finishSheet.show" class="modal-backdrop" @click.self="closeFinishSheet">
                 <div class="modal">
                     <div class="modal-grip"></div>
@@ -3672,8 +3673,13 @@ export default {
         }
 
         .attendance-page { min-height:calc(100vh - 120px); padding:18px 20px calc(92px + env(safe-area-inset-bottom)); background:var(--bg); }
-        .att-greet-band { padding-bottom:24px; }
+        /* Absensi memakai ukuran switcher Beranda yang sama agar perpindahan view konsisten. */
+        .attendance-tab-wrapper { margin-top:-20px; }
+        .attendance-single-tab .tab-btn { flex:1; }
+        .attendance-content { padding-top:18px; }
+        .att-greet-band { padding-bottom:28px; }
         .calendar-page { background:var(--bg); }
+        .calendar-back-link { margin:0 0 12px; padding:0; border:0; color:var(--navy-700); background:transparent; font:inherit; font-size:13px; font-weight:800; }
         .attendance-calendar-card { padding:18px 16px 20px; border-radius:16px; background:#fff; box-shadow:0 8px 22px rgba(11,32,68,.15); }
         .calendar-month-nav { display:grid; grid-template-columns:34px 1fr 34px; align-items:center; padding-bottom:15px; border-bottom:1px solid #e7edf4; text-align:center; }
         .calendar-month-nav strong { color:var(--navy-900); font-size:14px; letter-spacing:.04em; }
@@ -3702,11 +3708,7 @@ export default {
         .att-head p { margin:3px 0 0; font-size:13px; color:var(--muted); }
         .att-back { width:34px; height:34px; border:0; border-radius:10px; color:var(--navy-700); background:var(--navy-100); font-size:29px; line-height:1; }
         .att-status, .att-list { border:1px solid var(--line); border-radius:var(--r-md); background:#fff; box-shadow:var(--shadow-sm); }
-        .attendance-activity-card { overflow:hidden; border-radius:var(--r-md); background:#fff; box-shadow:0 7px 18px rgba(11,32,68,.12); }
-        .activity-switcher { display:grid; grid-template-columns:1.25fr 1fr; gap:4px; padding:4px; background:#fff; }
-        .activity-switcher span { display:flex; align-items:center; justify-content:center; min-height:32px; border-radius:9px; color:#627797; font-size:10px; font-weight:800; white-space:nowrap; }
-        .activity-switcher span.active { color:#fff; background:var(--navy-700); box-shadow:0 3px 8px rgba(11,32,68,.22); }
-        .activity-card-content { padding:12px 16px 14px; text-align:center; border-top:1px solid #edf0f5; }
+        .attendance-activity-card { padding:12px 16px 14px; border-radius:0 0 var(--r-md) var(--r-md); background:#fff; text-align:center; box-shadow:0 7px 18px rgba(11,32,68,.12); }
         .attendance-activity-card .activity-date { display:block; color:#536b91; font-size:12px; font-weight:700; }
         .attendance-activity-card > strong { display:block; margin:3px 0 10px; color:var(--navy-900); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:27px; font-weight:800; letter-spacing:.04em; }
         .activity-location { display:flex; align-items:center; justify-content:center; gap:7px; padding-top:9px; border-top:1px solid #e6ebf3; color:var(--navy-800); font-size:13px; }.activity-location span { font-size:14px; }.attendance-activity-card small { display:block; margin-top:4px; color:var(--muted); font-size:10px; }
