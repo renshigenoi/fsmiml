@@ -326,6 +326,69 @@
     }
     .ew-tech-item:hover { background: var(--surface-2,#f6f9ff); }
 
+    /* ---- Photo gallery ---- */
+    .photo-group-label {
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--muted,#64748b);
+        margin: 0 0 10px;
+    }
+    .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .photo-grid:last-child { margin-bottom: 0; }
+    .photo-thumb {
+        aspect-ratio: 1;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1.5px solid var(--line,#e2e8f4);
+        cursor: zoom-in;
+        background: var(--surface-2,#f6f9ff);
+        transition: transform .15s, box-shadow .15s;
+    }
+    .photo-thumb:hover { transform: scale(1.03); box-shadow: 0 6px 20px rgba(11,32,68,.14); }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-empty { color: var(--muted,#64748b); font-size: 13px; font-style: italic; }
+    .photo-divider { border: none; border-top: 1px solid var(--line,#e2e8f4); margin: 16px 0; }
+
+    /* Lightbox */
+    #photo-lightbox {
+        position: fixed; inset: 0;
+        background: rgba(6,20,41,.88);
+        z-index: 500;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+    #photo-lightbox.open { display: flex; }
+    #photo-lightbox img {
+        max-width: min(900px, 100%);
+        max-height: 88vh;
+        border-radius: 12px;
+        box-shadow: 0 24px 80px rgba(0,0,0,.5);
+        object-fit: contain;
+    }
+    #photo-lightbox-close {
+        position: absolute; top: 18px; right: 22px;
+        background: rgba(255,255,255,.15);
+        border: none; border-radius: 50%;
+        width: 38px; height: 38px;
+        color: #fff; font-size: 22px;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    #photo-lightbox-caption {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,.55); color: #fff;
+        font-size: 12.5px; border-radius: 999px; padding: 5px 16px;
+        white-space: nowrap;
+    }
+
     /* ---- Mobile friendly ---- */
     @media (max-width: 640px) {
         .content { padding: 14px; overflow-x: hidden; }
@@ -535,6 +598,69 @@
             </div>
         </div>
         @endif
+
+        {{-- Foto Pekerjaan --}}
+        @php
+            $photosBefore = $workOrder->photos->where('stage', 'before_installation')->values();
+            $photosAfter  = $workOrder->photos->where('stage', 'after_installation')->values();
+        @endphp
+        @if ($workOrder->photos->isNotEmpty())
+        <div class="info-card">
+            <div class="info-card-head">
+                <div class="ic-ico" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">📷</div>
+                <div>
+                    <div class="ic-title">Foto Pekerjaan</div>
+                    <div class="ic-sub">{{ $workOrder->photos->count() }} foto tersimpan</div>
+                </div>
+            </div>
+            <div class="info-card-body">
+
+                {{-- Pemasangan --}}
+                <p class="photo-group-label">Pemasangan</p>
+                @if ($photosBefore->isEmpty())
+                    <p class="photo-empty">Belum ada foto pemasangan.</p>
+                @else
+                    <div class="photo-grid">
+                        @foreach ($photosBefore as $photo)
+                            <div class="photo-thumb"
+                                 onclick="openLightbox('{{ Storage::url($photo->path) }}', '{{ addslashes($photo->original_name) }}')">
+                                <img src="{{ Storage::url($photo->path) }}"
+                                     alt="{{ $photo->original_name }}"
+                                     loading="lazy">
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <hr class="photo-divider">
+
+                {{-- Selesai Pasang --}}
+                <p class="photo-group-label">Selesai Pasang</p>
+                @if ($photosAfter->isEmpty())
+                    <p class="photo-empty">Belum ada foto selesai pasang.</p>
+                @else
+                    <div class="photo-grid">
+                        @foreach ($photosAfter as $photo)
+                            <div class="photo-thumb"
+                                 onclick="openLightbox('{{ Storage::url($photo->path) }}', '{{ addslashes($photo->original_name) }}')">
+                                <img src="{{ Storage::url($photo->path) }}"
+                                     alt="{{ $photo->original_name }}"
+                                     loading="lazy">
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+            </div>
+        </div>
+        @endif
+
+        {{-- Lightbox --}}
+        <div id="photo-lightbox" onclick="closeLightbox(event)">
+            <button id="photo-lightbox-close" onclick="closeLightbox()">&#x2715;</button>
+            <img id="photo-lightbox-img" src="" alt="">
+            <span id="photo-lightbox-caption"></span>
+        </div>
 
         {{-- Status History Timeline --}}
         <div class="info-card">
@@ -785,6 +911,24 @@
 
 @push('scripts')
     <script>
+        // Lightbox foto pekerjaan
+        function openLightbox(url, caption) {
+            document.getElementById('photo-lightbox-img').src = url;
+            document.getElementById('photo-lightbox-caption').textContent = caption;
+            document.getElementById('photo-lightbox').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeLightbox(e) {
+            if (e && e.target !== document.getElementById('photo-lightbox')
+                   && e.target !== document.getElementById('photo-lightbox-close')) return;
+            document.getElementById('photo-lightbox').classList.remove('open');
+            document.getElementById('photo-lightbox-img').src = '';
+            document.body.style.overflow = '';
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
         document.getElementById('btn-edit-wo').addEventListener('click', function () {
             document.getElementById('edit-wo-modal').style.display = 'flex';
             setTimeout(function () {

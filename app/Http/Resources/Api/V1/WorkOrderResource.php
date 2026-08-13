@@ -40,13 +40,23 @@ class WorkOrderResource extends JsonResource
             'car_info' => $this->car_info ?? null,
             'items' => $this->whenLoaded('items'),
             'sales_details' => $this->sales_details ?? [],
-            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($photo) => [
-                'id' => $photo->id,
-                'stage' => $photo->stage,
-                'url' => $photo->url,
-                'original_name' => $photo->original_name,
-                'uploaded_at' => $photo->created_at?->toISOString(),
-            ])),
+            'photos' => $this->whenLoaded('photos', function () {
+                $grouped = $this->photos->groupBy('stage');
+                return [
+                    'before_installation' => $grouped->get('before_installation', collect())->map(fn ($photo) => [
+                        'id' => $photo->id,
+                        'url' => $photo->url,
+                        'original_name' => $photo->original_name,
+                        'uploaded_at' => $photo->created_at?->toISOString(),
+                    ])->values(),
+                    'after_installation' => $grouped->get('after_installation', collect())->map(fn ($photo) => [
+                        'id' => $photo->id,
+                        'url' => $photo->url,
+                        'original_name' => $photo->original_name,
+                        'uploaded_at' => $photo->created_at?->toISOString(),
+                    ])->values(),
+                ];
+            }),
             'assignments' => AssignmentResource::collection($this->whenLoaded('assignments')),
             'tracking_sessions' => $this->whenLoaded('trackingSessions'),
             'status_histories' => $this->whenLoaded('statusHistories'),

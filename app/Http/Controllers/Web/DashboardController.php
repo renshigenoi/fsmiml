@@ -286,6 +286,7 @@ class DashboardController extends Controller
             'assignments.technician.user',
             'statusHistories',
             'trackingSessions',
+            'photos',
         ]);
 
         $activeSession = $workOrder->trackingSessions

@@ -91,6 +91,7 @@ class WorkOrderController extends Controller
             'assignments',
             'statusHistories',
             'trackingSessions',
+            'photos',
         ]);
 
         $payload = $workOrder->salesOrder?->source_payload ?? [];
