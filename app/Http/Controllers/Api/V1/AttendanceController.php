@@ -9,12 +9,38 @@ use App\Modules\Attendance\Models\LeaveRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
     private const TIMEZONE = 'Asia/Jakarta';
+
+
+
+	private function getAddressFromCoords(float $lat, float $lng): ?string
+	{
+		try {
+			// Panggil OpenStreetMap Nominatim API
+			$response = Http::withHeaders([
+				'User-Agent' => 'IML-FSM-App/1.0 (admin@indomotorlestari.co.id)' // Wajib isi User-Agent
+			])->get('https://nominatim.openstreetmap.org/reverse', [
+				'format' => 'jsonv2',
+				'lat' => $lat,
+				'lon' => $lng,
+				'zoom' => 18,
+			]);
+
+			if ($response->successful()) {
+				return $response->json('display_name');
+			}
+		} catch (\Throwable $e) {
+			// Jika API error/timeout, abaikan agar absen tetap berhasil disimpan
+		}
+
+		return null;
+	}
 
     public function today(Request $request): JsonResponse
     {
@@ -72,11 +98,15 @@ class AttendanceController extends Controller
 
         $path = $request->file('photo')->store('attendance/'.Carbon::parse($date)->format('Y/m'), 'public');
         $prefix = $type === 'check-in' ? 'check_in' : 'check_out';
+		// Konversi Lat & Lng menjadi Alamat String
+		$address = $this->getAddressFromCoords((float) $data['latitude'], (float) $data['longitude']);
+
         $record->fill([
             $prefix.'_at' => $now,
             $prefix.'_photo_path' => $path,
             $prefix.'_latitude' => $data['latitude'],
             $prefix.'_longitude' => $data['longitude'],
+			$prefix.'_address' => $address, // 👈 Tersimpan otomatis!
             $prefix.'_accuracy_meters' => $data['accuracy_meters'] ?? null,
             $prefix.'_distance_meters' => $location['distance_meters'],
             $prefix.'_location_status' => $location['status'],

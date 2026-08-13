@@ -15,6 +15,7 @@ class AttendanceRecord extends Model
         'check_in_photo_path',
         'check_in_latitude',
         'check_in_longitude',
+		'check_in_address', // 👈 Tambahkan ini
         'check_in_accuracy_meters',
         'check_in_distance_meters',
         'check_in_location_status',
@@ -22,6 +23,7 @@ class AttendanceRecord extends Model
         'check_out_photo_path',
         'check_out_latitude',
         'check_out_longitude',
+		'check_out_address', // 👈 Dan ini
         'check_out_accuracy_meters',
         'check_out_distance_meters',
         'check_out_location_status',
