@@ -136,10 +136,27 @@ class AttendanceController extends Controller
         return $earth * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
-    private function recordPayload(?AttendanceRecord $record): ?array
+	private function recordPayload(?AttendanceRecord $record): ?array
     {
         if (! $record) return null;
-        return ['id' => $record->id, 'date' => $record->attendance_date->toDateString(), 'check_in_at' => $record->check_in_at?->toIso8601String(), 'check_out_at' => $record->check_out_at?->toIso8601String(), 'check_in_status' => $record->check_in_location_status, 'check_out_status' => $record->check_out_location_status];
+
+        return [
+            'id' => $record->id,
+            'date' => $record->attendance_date->toDateString(),
+            'check_in_at' => $record->check_in_at?->toIso8601String(),
+            'check_in_photo' => $record->check_in_photo_path ? Storage::disk('public')->url($record->check_in_photo_path) : null,
+            'check_in_latitude' => $record->check_in_latitude,
+            'check_in_longitude' => $record->check_in_longitude,
+            'check_in_status' => $record->check_in_location_status,
+            'check_in_distance' => $record->check_in_distance_meters,
+
+            'check_out_at' => $record->check_out_at?->toIso8601String(),
+            'check_out_photo' => $record->check_out_photo_path ? Storage::disk('public')->url($record->check_out_photo_path) : null,
+            'check_out_latitude' => $record->check_out_latitude,
+            'check_out_longitude' => $record->check_out_longitude,
+            'check_out_status' => $record->check_out_location_status,
+            'check_out_distance' => $record->check_out_distance_meters,
+        ];
     }
 
     private function leavePayload(?LeaveRequest $leave): ?array

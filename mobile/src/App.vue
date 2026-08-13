@@ -582,7 +582,30 @@
                             <div v-if="attendance.leave && attendance.leave.status === 'approved'" class="att-status leave-status"><strong>Sedang {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }}</strong><p>{{ attendance.leave.note || 'Tidak ada catatan.' }}</p></div>
                             <template v-else><section class="attendance-activity-card"><span class="activity-date">{{ attendanceServerDate() }}</span><strong>{{ attendanceServerTime() }}</strong><div class="activity-location"><span>📍</span><b>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name : 'Lokasi fleksibel' }}</b></div></section><div class="att-actions"><button type="button" class="btn-att-primary" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">{{ attendance.record && attendance.record.check_in_at ? 'Datang tercatat' : 'Absen datang' }}</button><button type="button" class="btn-att-secondary" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">{{ attendance.record && attendance.record.check_out_at ? 'Pulang tercatat' : 'Absen pulang' }}</button></div></template>
                             <button type="button" class="att-outline" @click="openLeaveSheet">Cuti / Izin</button><button type="button" class="att-outline" style="margin-top:10px" @click="openAttendanceCalendar">Kalender</button>
-                            <h3 class="att-section-title">Absensi hari ini</h3><div class="att-list" v-if="!(attendance.leave && attendance.leave.status === 'approved')"><div><span>Absen datang</span><strong>{{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}</strong></div><div><span>Absen pulang</span><strong>{{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}</strong></div></div>
+							<h3 class="att-section-title">Absensi hari ini</h3>
+							<div class="att-list" v-if="!(attendance.leave && attendance.leave.status === 'approved')">
+								<div>
+									<div>
+										<span>Absen datang</span><br>
+										<small v-if="attendance.record && attendance.record.check_in_status" 
+											   :class="attendance.record.check_in_status === 'valid' ? 'text-success' : 'text-primary'">
+											● {{ attendance.record.check_in_status === 'valid' ? 'Di Lokasi Valid' : 'Luar Lokasi Diizinkan' }}
+										</small>
+									</div>
+									<strong>{{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}</strong>
+								</div>
+
+								<div>
+									<div>
+										<span>Absen pulang</span><br>
+										<small v-if="attendance.record && attendance.record.check_out_status" 
+											   :class="attendance.record.check_out_status === 'valid' ? 'text-success' : 'text-primary'">
+											● {{ attendance.record.check_out_status === 'valid' ? 'Di Lokasi Valid' : 'Luar Lokasi Diizinkan' }}
+										</small>
+									</div>
+									<strong>{{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}</strong>
+								</div>
+							</div>
                             <div v-if="attendance.leave && attendance.leave.status === 'pending'" class="att-pending">Pengajuan {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }} menunggu persetujuan.</div>
                         </template>
                         </div>
