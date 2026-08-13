@@ -1,83 +1,26 @@
 @extends('layouts.app')
 
-@section('title', 'Absensi')
+@section('title', 'Manajemen Absensi')
 
 @section('content')
 <style>
-    .attendance-admin-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-bottom:18px; }
-    .attendance-admin-grid .card { padding:20px; }
-    .attendance-admin-grid h3, .attendance-section h3 { margin:0 0 14px; color:var(--ink); font-size:16px; }
-    .attendance-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-    .attendance-form-grid .full { grid-column:1/-1; }
-    .attendance-form-grid input, .attendance-form-grid select { width:100%; margin:0; }
-    .attendance-section { padding:20px; margin-bottom:18px; }
-    .attendance-section .table-wrap { border:1px solid var(--line); }
-    .small-form { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .small-form select,.small-form input { margin:0; padding:7px 8px; font-size:12px; }
-    .status-pending { color:#92400e; background:#fef3c7; }.status-approved { color:#065f46; background:#d1fae5; }.status-rejected { color:#9f1239; background:#ffe4e6; }
-    @media(max-width:850px){ .attendance-admin-grid{grid-template-columns:1fr}.attendance-form-grid{grid-template-columns:1fr}.attendance-form-grid .full{grid-column:auto} }
+    .att-hero { background:linear-gradient(135deg,var(--navy-900,#061429),var(--navy-700,#112b5c)); border-radius:18px; padding:22px 26px; color:#fff; margin-bottom:24px; box-shadow:0 8px 32px rgba(11,32,68,.20); position:relative; overflow:hidden; }
+    .att-hero:before { content:''; position:absolute; width:240px; height:240px; border-radius:50%; background:radial-gradient(circle,rgba(200,16,46,.16),transparent 70%); right:0; top:-80px; }.att-hero h2,.att-hero p { position:relative; z-index:1; }.att-hero h2 { margin:0 0 5px; font-size:20px; font-weight:900; }.att-hero p { margin:0; color:rgba(255,255,255,.6); font-size:13.5px; }
+    .att-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }.att-full{grid-column:1/-1}.sec-card { background:#fff; border:1px solid var(--line,#e2e8f4); border-radius:16px; overflow:hidden; box-shadow:0 1px 4px rgba(11,32,68,.06); }.sec-card-head { display:flex; gap:12px; align-items:center; padding:15px 20px; background:var(--surface-2,#f6f9ff); border-bottom:1px solid var(--line,#e2e8f4); }.sec-ico { width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--navy-700),var(--navy-600));display:grid;place-items:center;box-shadow:0 3px 8px rgba(11,32,68,.18); }.sec-card-head h3{margin:0;font-size:14.5px;color:var(--ink);}.sec-card-head p{margin:2px 0 0;font-size:12px;color:var(--muted);}.sec-card-body{padding:20px;}
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}.field-grid .wide{grid-column:1/-1}.field-grid input,.field-grid select{width:100%;margin:0}.form-action{display:flex;justify-content:flex-end;margin-top:18px}.location-list{display:grid;gap:10px}.location-item{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2)}.location-item strong{color:var(--navy-700)}.location-meta{margin:4px 0 10px;color:var(--muted);font-size:12px}.location-edit{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:8px}.location-edit input,.location-edit select{padding:8px;margin:0;font-size:12px}.compact-table td{vertical-align:top}.compact-table select,.compact-table input{margin:0;width:100%;padding:8px;font-size:12px}.review-box{display:grid;gap:8px}.table-card .sec-card-body{padding:0}.table-card .table-wrap{border:0;border-radius:0}.status-pending{background:#fef3c7;color:#92400e}.status-valid{background:#d1fae5;color:#065f46}.status-outside{background:#dbeafe;color:#1e40af}@media(max-width:960px){.att-layout{grid-template-columns:1fr}.att-full{grid-column:auto}}@media(max-width:650px){.field-grid,.location-edit{grid-template-columns:1fr}.field-grid .wide{grid-column:auto}.location-edit{gap:7px}.sec-card-body{padding:14px}}
 </style>
 
-<div class="dash-hero">
-    <div class="dash-hero-text"><h2>🕘 Manajemen Absensi</h2><p>Kelola lokasi kerja, aturan karyawan, pengajuan cuti/izin, dan kehadiran hari ini.</p></div>
+<div class="att-hero"><h2>🕘 Manajemen Absensi</h2><p>Atur lokasi kerja, kebijakan kehadiran, serta tinjau pengajuan dan absensi karyawan.</p></div>
+
+<div class="att-layout">
+    <section class="sec-card"><div class="sec-card-head"><div class="sec-ico">📍</div><div><h3>Tambah Lokasi Kerja</h3><p>Tentukan titik GPS dan radius validasi absensi.</p></div></div><div class="sec-card-body"><form method="POST" action="{{ route('dashboard.attendance.locations.store') }}">@csrf<div class="field-grid"><div class="wide"><label>Nama Lokasi</label><input name="name" placeholder="Contoh: Kantor Pusat" required></div><div class="wide"><label>Alamat</label><input name="address" placeholder="Alamat lokasi (opsional)"></div><div><label>Latitude</label><input name="latitude" type="number" step="0.0000001" placeholder="-6.175392" required></div><div><label>Longitude</label><input name="longitude" type="number" step="0.0000001" placeholder="106.827153" required></div><div><label>Radius (meter)</label><input name="radius_meters" type="number" min="10" value="150" required></div></div><div class="form-action"><button class="btn" type="submit">📍 Tambah Lokasi</button></div></form></div></section>
+
+    <section class="sec-card"><div class="sec-card-head"><div class="sec-ico">🗺️</div><div><h3>Master Lokasi</h3><p>Ubah data, radius, atau status lokasi yang sudah ada.</p></div></div><div class="sec-card-body"><div class="location-list">@forelse($locations as $location)<div class="location-item"><strong>{{ $location->name }}</strong><div class="location-meta">{{ $location->address ?: 'Alamat belum diisi' }} · Radius {{ $location->radius_meters }} m</div><form method="POST" action="{{ route('dashboard.attendance.locations.update',$location) }}">@csrf<input type="hidden" name="name" value="{{ $location->name }}"><input type="hidden" name="address" value="{{ $location->address }}"><div class="location-edit"><input name="latitude" type="number" step="0.0000001" value="{{ $location->latitude }}" required><input name="longitude" type="number" step="0.0000001" value="{{ $location->longitude }}" required><input name="radius_meters" type="number" min="10" value="{{ $location->radius_meters }}" required><select name="is_active"><option value="1" @selected($location->is_active)>Aktif</option><option value="0" @selected(!$location->is_active)>Nonaktif</option></select><button class="btn btn-sm" type="submit">Simpan</button></div></form></div>@empty<div class="empty">Belum ada lokasi kerja.</div>@endforelse</div></div></section>
+
+    <section class="sec-card att-full table-card"><div class="sec-card-head"><div class="sec-ico">👷</div><div><h3>Aturan Absensi per Karyawan</h3><p>Pilih lokasi kerja, mode validasi, dan radius khusus bila diperlukan.</p></div></div><div class="sec-card-body"><div class="table-wrap"><table class="compact-table"><thead><tr><th>Karyawan</th><th>Lokasi Kerja</th><th>Mode Absensi</th><th>Radius Khusus</th><th>Aksi</th></tr></thead><tbody>@forelse($technicians as $technician)<tr><td><strong>{{ $technician->user?->name ?? $technician->employee_code }}</strong><br><small class="muted">{{ $technician->employee_code }}</small></td><td colspan="4"><form method="POST" action="{{ route('dashboard.attendance.technicians.update',$technician) }}" class="field-grid" style="grid-template-columns:1fr 1fr 140px auto">@csrf<select name="work_location_id"><option value="">Tidak ditetapkan</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected($technician->work_location_id===$location->id)>{{ $location->name }}</option>@endforeach</select><select name="attendance_mode"><option value="anywhere" @selected($technician->attendance_mode==='anywhere')>Bebas lokasi</option><option value="required_location" @selected($technician->attendance_mode==='required_location')>Wajib di lokasi</option><option value="allowed_outside" @selected($technician->attendance_mode==='allowed_outside')>Luar lokasi diizinkan</option></select><input name="attendance_radius_override" type="number" min="10" value="{{ $technician->attendance_radius_override }}" placeholder="Ikuti lokasi"><button class="btn btn-sm" type="submit">Simpan</button></form></td></tr>@empty<tr><td colspan="5" class="empty">Belum ada karyawan yang dapat diatur.</td></tr>@endforelse</tbody></table></div></div></section>
+
+    <section class="sec-card table-card att-full"><div class="sec-card-head"><div class="sec-ico">📝</div><div><h3>Pengajuan Cuti / Izin</h3><p>Pengajuan yang menunggu persetujuan admin.</p></div></div><div class="sec-card-body"><div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>Jenis & Waktu</th><th>Catatan</th><th>Keputusan</th></tr></thead><tbody>@forelse($leaveRequests as $leave)<tr><td><strong>{{ $leave->user?->name ?? '-' }}</strong></td><td><span class="badge status-pending">{{ $leave->type==='leave'?'Cuti':'Izin' }}</span><br>{{ $leave->leave_date->format('d M Y') }}{{ $leave->leave_end_date&&!$leave->leave_end_date->isSameDay($leave->leave_date)?' — '.$leave->leave_end_date->format('d M Y'):'' }}{{ $leave->start_time?' · '.$leave->start_time.'–'.$leave->end_time:'' }}</td><td>{{ $leave->note?:'-' }}</td><td><form class="review-box" method="POST" action="{{ route('dashboard.attendance.leaves.review',$leave) }}">@csrf<input name="review_note" placeholder="Catatan keputusan (opsional)"><div><button class="btn btn-sm" name="status" value="approved">Setujui</button> <button class="btn btn-danger btn-sm" name="status" value="rejected">Tolak</button></div></form></td></tr>@empty<tr><td colspan="4" class="empty">Tidak ada pengajuan yang menunggu.</td></tr>@endforelse</tbody></table></div></div></section>
+
+    <section class="sec-card table-card att-full"><div class="sec-card-head"><div class="sec-ico">📋</div><div><h3>Absensi Hari Ini</h3><p>Rekap datang, pulang, dan hasil validasi lokasi.</p></div></div><div class="sec-card-body"><div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>Datang</th><th>Pulang</th><th>Status Lokasi</th></tr></thead><tbody>@forelse($records as $record)<tr><td><strong>{{ $record->user?->name??'-' }}</strong></td><td>{{ $record->check_in_at?->timezone('Asia/Jakarta')->format('H:i:s')??'-' }}</td><td>{{ $record->check_out_at?->timezone('Asia/Jakarta')->format('H:i:s')??'-' }}</td><td>@if($record->check_in_location_status==='valid')<span class="badge status-valid">Valid</span>@elseif($record->check_in_location_status==='outside_allowed')<span class="badge status-outside">Luar lokasi diizinkan</span>@else - @endif</td></tr>@empty<tr><td colspan="4" class="empty">Belum ada absensi hari ini.</td></tr>@endforelse</tbody></table></div></div></section>
 </div>
-
-<div class="attendance-admin-grid">
-    <section class="card">
-        <h3>Tambah lokasi kerja</h3>
-        <form method="POST" action="{{ route('dashboard.attendance.locations.store') }}" class="attendance-form-grid">@csrf
-            <input class="full" name="name" placeholder="Nama lokasi, misalnya Kantor Pusat" required>
-            <input class="full" name="address" placeholder="Alamat (opsional)">
-            <input name="latitude" type="number" step="0.0000001" placeholder="Latitude" required>
-            <input name="longitude" type="number" step="0.0000001" placeholder="Longitude" required>
-            <input name="radius_meters" type="number" min="10" value="150" placeholder="Radius (meter)" required>
-            <button class="btn" type="submit">Tambah lokasi</button>
-        </form>
-    </section>
-    <section class="card">
-        <h3>Master lokasi</h3>
-        @forelse($locations as $location)
-            <form method="POST" action="{{ route('dashboard.attendance.locations.update', $location) }}" class="small-form" style="padding:9px 0;border-bottom:1px solid var(--line)">@csrf
-                <input name="name" value="{{ $location->name }}" required>
-                <input name="address" value="{{ $location->address }}" placeholder="Alamat">
-                <input name="latitude" type="number" step="0.0000001" value="{{ $location->latitude }}" required>
-                <input name="longitude" type="number" step="0.0000001" value="{{ $location->longitude }}" required>
-                <input name="radius_meters" type="number" min="10" value="{{ $location->radius_meters }}" style="width:90px" required>
-                <select name="is_active"><option value="1" @selected($location->is_active)>Aktif</option><option value="0" @selected(!$location->is_active)>Nonaktif</option></select>
-                <button class="btn btn-sm" type="submit">Simpan</button>
-            </form>
-        @empty <div class="empty">Belum ada lokasi kerja.</div> @endforelse
-    </section>
-</div>
-
-<section class="card attendance-section">
-    <h3>Aturan absensi per karyawan</h3>
-    <div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>Lokasi kerja</th><th>Mode absensi</th><th>Radius khusus</th><th></th></tr></thead><tbody>
-    @forelse($technicians as $technician)
-        <tr><form method="POST" action="{{ route('dashboard.attendance.technicians.update', $technician) }}">@csrf
-            <td><strong>{{ $technician->user?->name ?? $technician->employee_code }}</strong><br><small class="muted">{{ $technician->employee_code }}</small></td>
-            <td><select name="work_location_id"><option value="">Tidak ditetapkan</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected($technician->work_location_id === $location->id)>{{ $location->name }}</option>@endforeach</select></td>
-            <td><select name="attendance_mode"><option value="anywhere" @selected($technician->attendance_mode === 'anywhere')>Bebas lokasi</option><option value="required_location" @selected($technician->attendance_mode === 'required_location')>Wajib di lokasi</option><option value="allowed_outside" @selected($technician->attendance_mode === 'allowed_outside')>Luar lokasi diizinkan</option></select></td>
-            <td><input name="attendance_radius_override" type="number" min="10" placeholder="Ikuti lokasi" value="{{ $technician->attendance_radius_override }}"></td>
-            <td><button class="btn btn-sm" type="submit">Simpan</button></td>
-        </form></tr>
-    @empty <tr><td colspan="5" class="empty">Belum ada karyawan yang dapat diatur.</td></tr> @endforelse
-    </tbody></table></div>
-</section>
-
-<section class="card attendance-section">
-    <h3>Pengajuan cuti / izin menunggu persetujuan</h3>
-    <div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>Jenis & tanggal</th><th>Catatan</th><th>Keputusan</th></tr></thead><tbody>
-    @forelse($leaveRequests as $leave)<tr><td>{{ $leave->user?->name ?? '-' }}</td><td><span class="badge status-pending">{{ $leave->type === 'leave' ? 'Cuti' : 'Izin' }}</span><br>{{ $leave->leave_date->format('d M Y') }}{{ $leave->leave_end_date && !$leave->leave_end_date->isSameDay($leave->leave_date) ? ' — '.$leave->leave_end_date->format('d M Y') : '' }}{{ $leave->start_time ? ' · '.$leave->start_time.'–'.$leave->end_time : '' }}</td><td>{{ $leave->note ?: '-' }}</td><td><form class="small-form" method="POST" action="{{ route('dashboard.attendance.leaves.review', $leave) }}">@csrf<input name="review_note" placeholder="Catatan (opsional)"><button class="btn btn-sm" name="status" value="approved">Setujui</button><button class="btn btn-danger btn-sm" name="status" value="rejected">Tolak</button></form></td></tr>
-    @empty <tr><td colspan="4" class="empty">Tidak ada pengajuan yang menunggu.</td></tr> @endforelse
-    </tbody></table></div>
-</section>
-
-<section class="card attendance-section">
-    <h3>Absensi hari ini</h3>
-    <div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>Datang</th><th>Pulang</th><th>Status lokasi</th></tr></thead><tbody>
-    @forelse($records as $record)<tr><td>{{ $record->user?->name ?? '-' }}</td><td>{{ $record->check_in_at?->timezone('Asia/Jakarta')->format('H:i:s') ?? '-' }}</td><td>{{ $record->check_out_at?->timezone('Asia/Jakarta')->format('H:i:s') ?? '-' }}</td><td>{{ $record->check_in_location_status === 'valid' ? 'Valid' : ($record->check_in_location_status === 'outside_allowed' ? 'Luar lokasi diizinkan' : '-') }}</td></tr>
-    @empty <tr><td colspan="4" class="empty">Belum ada absensi hari ini.</td></tr> @endforelse
-    </tbody></table></div>
-</section>
 @endsection
