@@ -4,6 +4,7 @@ namespace App\Modules\Identity\Models;
 
 use App\Models\User;
 use App\Modules\Assignment\Models\Assignment;
+use App\Modules\Attendance\Models\WorkLocation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,10 +16,13 @@ class Technician extends Model
 
     protected $fillable = [
         'user_id',
+        'work_location_id',
         'employee_code',
         'external_serial',
         'phone',
         'is_active',
+        'attendance_mode',
+        'attendance_radius_override',
     ];
 
     protected function casts(): array
@@ -36,5 +40,10 @@ class Technician extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class);
+    }
+
+    public function workLocation(): BelongsTo
+    {
+        return $this->belongsTo(WorkLocation::class);
     }
 }

@@ -572,12 +572,26 @@
                         </div>
                     </div>
 
+                    <div v-if="view === 'attendance'" class="attendance-page">
+                        <div class="att-head"><button type="button" class="att-back" @click="view = 'home'">‹</button><div><h2>Absensi</h2><p>{{ todayLabel }}</p></div></div>
+                        <div v-if="attendance.loading" class="empty">Memuat data absensi…</div>
+                        <template v-else>
+                            <div v-if="attendance.leave && attendance.leave.status === 'approved'" class="att-status leave-status"><strong>Sedang {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }}</strong><p>{{ attendance.leave.note || 'Tidak ada catatan.' }}</p></div>
+                            <template v-else><div class="att-status"><strong>Hari kerja</strong><span>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name + ' · Radius ' + attendance.policy.radius_meters + ' m' : 'Foto dan GPS wajib direkam.' }}</span></div><div class="att-actions"><button type="button" class="btn-att-primary" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">{{ attendance.record && attendance.record.check_in_at ? 'Datang tercatat' : 'Absen datang' }}</button><button type="button" class="btn-att-secondary" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">{{ attendance.record && attendance.record.check_out_at ? 'Pulang tercatat' : 'Absen pulang' }}</button></div></template>
+                            <button type="button" class="att-outline" @click="openLeaveSheet">Cuti / Izin</button><button type="button" class="att-outline" style="margin-top:10px" @click="openAttendanceCalendar">Kalender</button>
+                            <h3 class="att-section-title">Absensi hari ini</h3><div class="att-list" v-if="!(attendance.leave && attendance.leave.status === 'approved')"><div><span>Absen datang</span><strong>{{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}</strong></div><div><span>Absen pulang</span><strong>{{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}</strong></div></div>
+                            <div v-if="attendance.leave && attendance.leave.status === 'pending'" class="att-pending">Pengajuan {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }} menunggu persetujuan.</div>
+                        </template>
+                    </div>
+                    <div v-if="view === 'attendance-calendar'" class="attendance-page"><div class="att-head"><button type="button" class="att-back" @click="view = 'attendance'">‹</button><div><h2>Kalender absensi</h2><p>{{ attendance.calendarMonthLabel }}</p></div></div><div class="calendar-week"><span>Sn</span><span>Sl</span><span>Rb</span><span>Km</span><span>Jm</span><span>Sb</span><span>Mg</span></div><div class="calendar-days"><span v-for="blank in attendance.calendarStartOffset" :key="'blank-'+blank"></span><button v-for="day in attendance.calendar" :key="day.date" type="button" class="calendar-day" :class="attendanceDayClass(day)" @click="showAttendanceDay(day)">{{ new Date(day.date + 'T00:00:00').getDate() }}</button></div><div class="att-legend"><span class="present">● Hadir</span><span class="leave">● Cuti/Izin</span><span class="incomplete">● Belum lengkap</span><span class="missing">● Tidak ada data</span></div></div>
+
                     <!-- ========== BOTTOM NAVIGATION BAR ========== -->
-                    <nav class="bottom-nav" v-if="view === 'home'">
-                        <button class="nav-item active">
+                    <nav class="bottom-nav" v-if="view === 'home' || view === 'attendance' || view === 'attendance-calendar'">
+                        <button class="nav-item" :class="{ active: view === 'home' }" @click="view = 'home'">
                             <span class="nav-icon">🏠</span>
                             <span>Beranda</span>
                         </button>
+                        <button class="nav-item" :class="{ active: view === 'attendance' || view === 'attendance-calendar' }" @click="openAttendance"><span class="nav-icon">🕘</span><span>Absen</span></button>
                         <button class="nav-item" @click="view = 'security'">
                             <span class="nav-icon">🔐</span>
                             <span>Keamanan</span>
@@ -592,6 +606,8 @@
 
             <!-- TOAST -->
             <div v-if="toast.show" class="toast" :class="toast.type">{{ toast . message }}</div>
+
+            <div v-if="leaveSheet.show" class="modal-backdrop" @click.self="leaveSheet.show = false"><form class="modal att-modal" @submit.prevent="submitLeave"><div class="modal-grip"></div><div class="modal-head"><h3>Pengajuan cuti / izin</h3></div><label>Jenis</label><select v-model="leaveSheet.type"><option value="leave">Cuti</option><option value="permission">Izin</option></select><label>Tanggal</label><input v-model="leaveSheet.date" type="date" required><label>Catatan</label><textarea v-model.trim="leaveSheet.note" rows="3" placeholder="Tulis catatan singkat"></textarea><p v-if="leaveSheet.error" class="att-error">{{ leaveSheet.error }}</p><div class="modal-actions"><button class="cancel" type="button" @click="leaveSheet.show = false">Batal</button><button class="ok-red" type="submit" :disabled="busy">{{ busy ? 'Mengirim…' : 'Kirim' }}</button></div></form></div>
 
             <!-- ========== MODAL ALASAN (TOLAK / KENDALA) ========== -->
             <div v-if="modal.show" class="modal-backdrop" @click.self="modal.show = false">
@@ -761,6 +777,7 @@ import { BatteryOptimization } from '@capawesome-team/capacitor-android-battery-
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Geolocation } from '@capacitor/geolocation';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { FileOpener } from '@capacitor-community/file-opener';
 import { registerPlugin } from '@capacitor/core';
@@ -1014,6 +1031,8 @@ export default {
                         mapInstance: null,
                         mapMarker: null,
                         mapPosMarker: null,
+                        attendance: { loading: false, record: null, leave: null, policy: null, calendar: [], calendarMonthLabel: '', calendarStartOffset: 0 },
+                        leaveSheet: { show: false, type: 'leave', date: new Date().toISOString().slice(0, 10), note: '', error: '' },
                     };
                 },
                 computed: {
@@ -1342,6 +1361,74 @@ export default {
                         const data = await res.json().catch(() => ({}));
                         if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan.');
                         return data;
+                    },
+                    attendanceTime(value) {
+                        return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    },
+                    async openAttendance() {
+                        this.view = 'attendance';
+                        await this.loadAttendance();
+                    },
+                    async loadAttendance() {
+                        if (!this.token) return;
+                        this.attendance.loading = true;
+                        try {
+                            const res = await this.api('/attendance/today');
+                            Object.assign(this.attendance, res.data || res);
+                        } catch (err) { this.showToast(err.message, 'error'); }
+                        finally { this.attendance.loading = false; }
+                    },
+                    async attendancePhoto() {
+                        if (this.isNativeApp) {
+                            const photo = await Camera.getPhoto({ quality: 65, width: 1280, correctOrientation: true, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
+                            return { blob: this.dataUrlToBlob(photo.dataUrl), name: 'absensi.' + (photo.format || 'jpeg') };
+                        }
+                        return new Promise((resolve, reject) => {
+                            const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
+                            input.onchange = async () => { const file = input.files && input.files[0]; if (!file) return reject(new Error('Foto wajib diambil.')); resolve({ blob: await this.compressImage(file), name: file.name || 'absensi.jpg' }); };
+                            input.click();
+                        });
+                    },
+                    async attendancePosition() {
+                        if (this.isNativeApp) {
+                            const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 20000 });
+                            return pos.coords;
+                        }
+                        return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((pos) => resolve(pos.coords), () => reject(new Error('Lokasi tidak dapat diambil. Aktifkan izin lokasi.')), { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }));
+                    },
+                    async submitAttendance(type) {
+                        if (this.busy) return;
+                        this.busy = true;
+                        try {
+                            const [photo, coords] = await Promise.all([this.attendancePhoto(), this.attendancePosition()]);
+                            const form = new FormData(); form.append('photo', photo.blob, photo.name); form.append('latitude', String(coords.latitude)); form.append('longitude', String(coords.longitude)); if (coords.accuracy != null) form.append('accuracy_meters', String(coords.accuracy));
+                            await this.apiUpload('/attendance/' + type, form);
+                            this.showToast(type === 'check-in' ? 'Absen datang berhasil.' : 'Absen pulang berhasil.', 'success');
+                            await this.loadAttendance();
+                        } catch (err) { this.showToast(err.message || 'Absensi gagal disimpan.', 'error'); }
+                        finally { this.busy = false; }
+                    },
+                    openLeaveSheet() { this.leaveSheet = { show: true, type: 'leave', date: new Date().toISOString().slice(0, 10), note: '', error: '' }; },
+                    async submitLeave() {
+                        if (this.busy) return; this.busy = true; this.leaveSheet.error = '';
+                        try { await this.api('/leave-requests', { method: 'POST', body: { type: this.leaveSheet.type, leave_date: this.leaveSheet.date, note: this.leaveSheet.note } }); this.leaveSheet.show = false; this.showToast('Pengajuan cuti/izin berhasil dikirim.', 'success'); await this.loadAttendance(); }
+                        catch (err) { this.leaveSheet.error = err.message || 'Pengajuan gagal dikirim.'; }
+                        finally { this.busy = false; }
+                    },
+                    async openAttendanceCalendar() {
+                        const month = new Date().toISOString().slice(0, 7); this.view = 'attendance-calendar';
+                        try { const res = await this.api('/attendance/calendar?month=' + month); this.attendance.calendar = res.data || []; const first = new Date(month + '-01T00:00:00'); this.attendance.calendarStartOffset = (first.getDay() + 6) % 7; this.attendance.calendarMonthLabel = first.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }); }
+                        catch (err) { this.showToast(err.message, 'error'); }
+                    },
+                    attendanceDayClass(day) {
+                        if (day.leave && day.leave.status === 'approved') return 'leave';
+                        if (day.record && day.record.check_in_at && day.record.check_out_at) return 'present';
+                        if (day.record && day.record.check_in_at) return 'incomplete';
+                        return 'missing';
+                    },
+                    showAttendanceDay(day) {
+                        const text = day.leave ? ((day.leave.type === 'leave' ? 'Cuti' : 'Izin') + ': ' + (day.leave.note || day.leave.status)) : (day.record ? ('Datang ' + (day.record.check_in_at ? this.attendanceTime(day.record.check_in_at) : '-') + ' · Pulang ' + (day.record.check_out_at ? this.attendanceTime(day.record.check_out_at) : '-')) : 'Tidak ada data absensi.');
+                        this.showToast(text, 'info');
                     },
                     showToast(msg, type = 'info') {
                         this.toast = {
@@ -3528,6 +3615,16 @@ export default {
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(200, 16, 46, .12);
         }
+
+        .attendance-page { min-height:100vh; padding:calc(env(safe-area-inset-top, 16px) + 16px) 20px calc(92px + env(safe-area-inset-bottom)); background:var(--bg); }
+        .att-head { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+        .att-head h2 { margin:0; font-size:22px; color:var(--ink); }
+        .att-head p { margin:3px 0 0; font-size:13px; color:var(--muted); }
+        .att-back { width:34px; height:34px; border:0; border-radius:10px; color:var(--navy-700); background:var(--navy-100); font-size:29px; line-height:1; }
+        .att-status, .att-list { border:1px solid var(--line); border-radius:var(--r-md); background:#fff; box-shadow:var(--shadow-sm); }
+        .att-status { display:flex; flex-wrap:wrap; gap:8px; padding:16px; }
+        .att-status strong { color:var(--ink); font-size:15px; }.att-status span { font-size:12px; color:var(--muted); }.att-status p { width:100%; margin:0; font-size:12px; color:var(--muted); }
+        .leave-status { border-left:4px solid #3a6bc8; }.att-actions { display:flex; gap:10px; margin:14px 0; }.btn-att-primary,.btn-att-secondary,.att-outline { min-height:46px; border-radius:var(--r-sm); font-weight:700; font-family:inherit; cursor:pointer; }.btn-att-primary,.btn-att-secondary { flex:1; }.btn-att-primary { border:0; background:var(--red-500); color:#fff; }.btn-att-secondary,.att-outline { border:1px solid var(--line); background:#fff; color:var(--ink-2); }.att-outline { width:100%; }.btn-att-primary:disabled,.btn-att-secondary:disabled { opacity:.55; cursor:not-allowed; }.att-section-title { margin:22px 0 10px; font-size:15px; color:var(--ink); }.att-list div { display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid var(--line); font-size:14px; }.att-list div:last-child { border-bottom:0; }.att-list span { color:var(--muted); }.att-list strong { color:var(--ink); }.att-pending { margin-top:12px; padding:11px; border-radius:var(--r-sm); background:#fff7df; color:#8a6100; font-size:12px; }.att-modal label { display:block; margin:13px 0 6px; font-size:12px; color:var(--muted); }.att-modal select,.att-modal input,.att-modal textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:var(--r-sm); font:inherit; }.att-error { color:var(--red-700); font-size:12px; }.calendar-week,.calendar-days { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; }.calendar-week { color:var(--muted); font-size:11px; margin:12px 0 4px; }.calendar-day { aspect-ratio:1; margin:2px; border:0; border-radius:50%; background:transparent; color:var(--ink); font:inherit; }.calendar-day.present { background:#dff5e7; color:#19713c; }.calendar-day.leave { background:#e3edff; color:#2451a0; }.calendar-day.incomplete { background:#fff0c8; color:#996400; }.calendar-day.missing { background:#fee5e7; color:#bb1f38; }.att-legend { display:flex; flex-wrap:wrap; gap:10px; margin:16px 2px; font-size:11px; color:var(--muted); }.att-legend .present { color:#19713c; }.att-legend .leave { color:#2451a0; }.att-legend .incomplete { color:#996400; }.att-legend .missing { color:#bb1f38; }
 
         .bottom-nav {
             position: fixed;

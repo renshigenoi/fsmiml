@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AssignmentController;
+use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AppVersionController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeviceTokenController;
@@ -43,6 +44,10 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:tracking');
         Route::post('tracking-sessions/{trackingSession}/tokens', [TrackingTokenController::class, 'store']);
         Route::post('device-tokens', [DeviceTokenController::class, 'store']);
+        Route::get('attendance/today', [AttendanceController::class, 'today']);
+        Route::post('attendance/{type}', [AttendanceController::class, 'store'])->whereIn('type', ['check-in', 'check-out']);
+        Route::get('attendance/calendar', [AttendanceController::class, 'calendar']);
+        Route::post('leave-requests', [AttendanceController::class, 'storeLeave']);
         Route::get('legacy/technicians', [LegacyController::class, 'technicians']);
         Route::get('legacy/sales', [LegacyController::class, 'sales']);
         Route::post('legacy/work-orders', [LegacyController::class, 'storeWorkOrder']);

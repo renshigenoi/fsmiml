@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Modules\Assignment\Models\Assignment;
+use App\Modules\Attendance\Models\AttendanceRecord;
+use App\Modules\Attendance\Models\LeaveRequest;
 use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Identity\Models\Technician;
 use App\Modules\Identity\Models\UserDeviceToken;
@@ -91,4 +93,7 @@ class User extends Authenticatable
     {
         return $this->hasMany(Notification::class);
     }
+
+    public function attendanceRecords(): HasMany { return $this->hasMany(AttendanceRecord::class); }
+    public function leaveRequests(): HasMany { return $this->hasMany(LeaveRequest::class); }
 }
