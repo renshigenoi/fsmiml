@@ -337,9 +337,12 @@
     }
     .photo-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        grid-template-columns: repeat(5, 1fr);
         gap: 10px;
         margin-bottom: 18px;
+    }
+    @media (max-width: 640px) {
+        .photo-grid { grid-template-columns: repeat(3, 1fr); }
     }
     .photo-grid:last-child { margin-bottom: 0; }
     .photo-thumb {
