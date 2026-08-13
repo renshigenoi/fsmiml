@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\AttendanceAdminController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\MobileController;
 use App\Http\Controllers\Web\ProfileController;
@@ -26,6 +27,11 @@ Route::middleware('auth')->group(function (): void {
     Route::get('dashboard/input', [DashboardController::class, 'input'])->name('dashboard.input');
     Route::get('dashboard/work-orders', [DashboardController::class, 'workOrders'])->name('dashboard.work-orders');
     Route::get('dashboard/technicians', [DashboardController::class, 'technicians'])->name('dashboard.technicians');
+    Route::get('dashboard/attendance', [AttendanceAdminController::class, 'index'])->name('dashboard.attendance');
+    Route::post('dashboard/attendance/locations', [AttendanceAdminController::class, 'storeLocation'])->name('dashboard.attendance.locations.store');
+    Route::post('dashboard/attendance/locations/{location}', [AttendanceAdminController::class, 'updateLocation'])->name('dashboard.attendance.locations.update');
+    Route::post('dashboard/attendance/technicians/{technician}', [AttendanceAdminController::class, 'updateTechnician'])->name('dashboard.attendance.technicians.update');
+    Route::post('dashboard/attendance/leaves/{leaveRequest}', [AttendanceAdminController::class, 'reviewLeave'])->name('dashboard.attendance.leaves.review');
     Route::get('dashboard/reset-pin', [DashboardController::class, 'resetPinForm'])->name('dashboard.reset-pin');
     Route::post('dashboard/reset-pin', [DashboardController::class, 'resetPin']);
     Route::get('dashboard/api/sales', [DashboardController::class, 'searchSales']);

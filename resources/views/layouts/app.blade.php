@@ -1066,6 +1066,11 @@
                     <span class="nav-ico">👷</span>
                     Teknisi
                 </a>
+                <a href="{{ route('dashboard.attendance') }}"
+                    class="{{ request()->routeIs('dashboard.attendance*') ? 'active' : '' }}">
+                    <span class="nav-ico">🕘</span>
+                    Absensi
+                </a>
                 <a href="{{ route('dashboard.reset-pin') }}"
                     class="{{ request()->routeIs('dashboard.reset-pin') ? 'active' : '' }}" id="nav-reset-pin">
                     <span class="nav-ico">🔑</span>
