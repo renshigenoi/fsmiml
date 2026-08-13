@@ -128,16 +128,104 @@
         font-family: inherit;
     }
 
-    /* Badges */
+    /* Badges & Custom Attendance Display */
     .review-box { display: grid; gap: 8px; }
     .table-card .sec-card-body { padding: 12px; }
     .status-pending { background: #fef3c7; color: #92400e; }
     .status-valid { background: #d1fae5; color: #065f46; }
     .status-outside { background: #dbeafe; color: #1e40af; }
 
-    /* =========================================================
-       CUSTOM DATATABLE & PAGINATION STYLING
-    ========================================================= */
+    /* Absensi Hari Ini Custom Columns */
+    .time-badge-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--surface-2, #f6f9ff);
+        border: 1px solid var(--line, #e2e8f4);
+        padding: 4px 8px;
+        border-radius: 6px;
+        color: var(--navy-700, #112b5c);
+        font-weight: 800;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all .15s;
+        text-decoration: none;
+    }
+    .time-badge-btn:hover {
+        background: var(--navy-700, #112b5c);
+        color: #fff;
+        border-color: var(--navy-700, #112b5c);
+    }
+    .location-subtext {
+        font-size: 11.5px;
+        color: var(--muted, #64748b);
+        margin-top: 3px;
+    }
+
+    /* Photo Modal Overlay */
+    .photo-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 20, 41, .75);
+        z-index: 1050;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+    }
+    .photo-modal-box {
+        background: #fff;
+        border-radius: 16px;
+        max-width: 420px;
+        width: 100%;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(6, 20, 41, .40);
+        animation: modalUp .2s ease-out;
+    }
+    @keyframes modalUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .photo-modal-head {
+        padding: 14px 18px;
+        background: var(--surface-2, #f6f9ff);
+        border-bottom: 1px solid var(--line, #e2e8f4);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .photo-modal-head h4 { margin: 0; font-size: 14px; font-weight: 800; color: var(--navy-700, #112b5c); }
+    .photo-modal-close {
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        font-weight: 800;
+        cursor: pointer;
+        color: var(--muted, #64748b);
+    }
+    .photo-modal-body { padding: 16px; text-align: center; }
+    .photo-modal-img {
+        width: 100%;
+        max-height: 320px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid var(--line, #e2e8f4);
+        margin-bottom: 12px;
+    }
+    .photo-modal-meta {
+        text-align: left;
+        font-size: 12.5px;
+        color: var(--muted, #64748b);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background: var(--surface-2, #f6f9ff);
+        padding: 10px 12px;
+        border-radius: 8px;
+    }
+
+    /* Custom DataTables */
     table.dataTable { border-collapse: collapse !important; width: 100% !important; }
     table.dataTable thead th {
         background: var(--surface-2, #f6f9ff);
@@ -169,21 +257,10 @@
         outline: none;
         background: var(--surface-2, #f6f9ff);
     }
-    .dataTables_wrapper .dataTables_filter input:focus {
-        border-color: var(--navy-700, #112b5c);
-        background: #fff;
-    }
-    .dataTables_wrapper .dataTables_length select {
-        border: 1.5px solid var(--line, #e2e8f4);
-        border-radius: 6px;
-        padding: 4px 8px;
-    }
+    .dataTables_wrapper .dataTables_filter input:focus { border-color: var(--navy-700, #112b5c); background: #fff; }
+    .dataTables_wrapper .dataTables_length select { border: 1.5px solid var(--line, #e2e8f4); border-radius: 6px; padding: 4px 8px; }
 
-    .dataTables_wrapper .dataTables_info {
-        padding: 12px 16px !important;
-        font-size: 12px;
-        color: var(--muted, #64748b) !important;
-    }
+    .dataTables_wrapper .dataTables_info { padding: 12px 16px !important; font-size: 12px; color: var(--muted, #64748b) !important; }
     .dataTables_wrapper .dataTables_paginate { padding: 10px 16px !important; }
     .dataTables_wrapper .dataTables_paginate .paginate_button {
         border-radius: 8px !important;
@@ -328,7 +405,7 @@
         </div>
     </section>
 
-    {{-- ATURAN ABSENSI PER KARYAWAN (FIXED DATATABLES HTML) --}}
+    {{-- ATURAN ABSENSI PER KARYAWAN --}}
     <section class="sec-card att-full table-card">
         <div class="sec-card-head">
             <div class="sec-ico">👷</div>
@@ -355,8 +432,6 @@
                                 <strong>{{ $technician->user?->name ?? $technician->employee_code }}</strong><br>
                                 <small class="muted">{{ $technician->employee_code }}</small>
                             </td>
-                            
-                            {{-- Form diletakkan di dalam TD tanpa menyatukan kolom dengan colspan --}}
                             <td>
                                 <select form="form-tech-{{ $technician->id }}" name="work_location_id" class="form-control-custom" style="padding: 6px;">
                                     <option value="">Tidak ditetapkan</option>
@@ -376,7 +451,6 @@
                                 <input form="form-tech-{{ $technician->id }}" name="attendance_radius_override" type="number" min="10" class="form-control-custom" style="padding: 6px;" value="{{ $technician->attendance_radius_override }}" placeholder="Ikuti lokasi">
                             </td>
                             <td style="text-align: center;">
-                                {{-- Form ID dihubungkan dengan atribut form="" pada input di atas --}}
                                 <form id="form-tech-{{ $technician->id }}" method="POST" action="{{ route('dashboard.attendance.technicians.update', $technician) }}">
                                     @csrf
                                     <button class="btn btn-sm" type="submit">Simpan</button>
@@ -434,40 +508,92 @@
         </div>
     </section>
 
-    {{-- ABSENSI HARI INI --}}
+    {{-- ABSENSI HARI INI (FORMAT: DATANG | PULANG + POPUP FOTO) --}}
     <section class="sec-card table-card att-full">
         <div class="sec-card-head">
             <div class="sec-ico">📋</div>
             <div>
                 <h3>Absensi Hari Ini</h3>
-                <p>Rekap datang, pulang, dan hasil validasi lokasi.</p>
+                <p>Rekap datang, pulang, dan hasil validasi lokasi. Klik jam untuk melihat foto.</p>
             </div>
         </div>
         <div class="sec-card-body">
             <table id="table-records" class="dataTable">
                 <thead>
                     <tr>
-                        <th>Karyawan</th>
-                        <th>Datang</th>
-                        <th>Pulang</th>
-                        <th>Status Lokasi</th>
+                        <th style="width: 30%;">Karyawan</th>
+                        <th style="width: 35%;">Datang</th>
+                        <th style="width: 35%;">Pulang</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($records as $record)
                         <tr>
-                            <td><strong>{{ $record->user?->name ?? '-' }}</strong></td>
-                            <td>{{ $record->check_in_at?->timezone('Asia/Jakarta')->format('H:i:s') ?? '-' }}</td>
-                            <td>{{ $record->check_out_at?->timezone('Asia/Jakarta')->format('H:i:s') ?? '-' }}</td>
                             <td>
-                                @if($record->check_in_location_status === 'valid')
-                                    <span class="badge status-valid">Valid</span>
-                                @elseif($record->check_in_location_status === 'outside_allowed')
-                                    <span class="badge status-outside">Luar lokasi diizinkan</span>
-                                @else 
-                                    - 
-                                @endif
+                                <strong>{{ $record->user?->name ?? '-' }}</strong>
                             </td>
+
+							{{-- KOLOM DATANG --}}
+							<td>
+								@if($record->check_in_at)
+									<button type="button" class="time-badge-btn"
+											onclick="openPhotoModal(
+												'{{ $record->user?->name ?? 'Karyawan' }}',
+												'Absen Datang',
+												'{{ $record->check_in_at->timezone('Asia/Jakarta')->format('H:i:s') }} WIB',
+												'{{ $record->check_in_photo_path ? asset('storage/' . $record->check_in_photo_path) : '' }}',
+												'{{ $record->check_in_latitude }}',
+												'{{ $record->check_in_longitude }}',
+												'{{ $record->check_in_location_status }}'
+											)">
+										📷 {{ $record->check_in_at->timezone('Asia/Jakarta')->format('H:i') }}
+									</button>
+
+									<div class="location-subtext">
+										@if($record->check_in_location_status === 'valid')
+											<span class="badge status-valid" style="padding: 2px 6px; font-size: 10px;">Valid</span>
+										@elseif($record->check_in_location_status === 'outside_allowed')
+											<span class="badge status-outside" style="padding: 2px 6px; font-size: 10px;">Luar Lokasi</span>
+										@endif
+										@if($record->check_in_latitude)
+											· <a href="https://www.google.com/maps?q={{ $record->check_in_latitude }},{{ $record->check_in_longitude }}" target="_blank" style="color:var(--navy-700);text-decoration:none;">📍 Maps</a>
+										@endif
+									</div>
+								@else
+									<span style="color: var(--muted);">-</span>
+								@endif
+							</td>
+
+							{{-- KOLOM PULANG --}}
+							<td>
+								@if($record->check_out_at)
+									<button type="button" class="time-badge-btn"
+											onclick="openPhotoModal(
+												'{{ $record->user?->name ?? 'Karyawan' }}',
+												'Absen Pulang',
+												'{{ $record->check_out_at->timezone('Asia/Jakarta')->format('H:i:s') }} WIB',
+												'{{ $record->check_out_photo_path ? asset('storage/' . $record->check_out_photo_path) : '' }}',
+												'{{ $record->check_out_latitude }}',
+												'{{ $record->check_out_longitude }}',
+												'{{ $record->check_out_location_status }}'
+											)">
+										📷 {{ $record->check_out_at->timezone('Asia/Jakarta')->format('H:i') }}
+									</button>
+
+									<div class="location-subtext">
+										@if($record->check_out_location_status === 'valid')
+											<span class="badge status-valid" style="padding: 2px 6px; font-size: 10px;">Valid</span>
+										@elseif($record->check_out_location_status === 'outside_allowed')
+											<span class="badge status-outside" style="padding: 2px 6px; font-size: 10px;">Luar Lokasi</span>
+										@endif
+										@if($record->check_out_latitude)
+											· <a href="https://www.google.com/maps?q={{ $record->check_out_latitude }},{{ $record->check_out_longitude }}" target="_blank" style="color:var(--navy-700);text-decoration:none;">📍 Maps</a>
+										@endif
+									</div>
+								@else
+									<span style="color: var(--muted);">-</span>
+								@endif
+							</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -477,6 +603,28 @@
 
 </div>
 
+{{-- MODAL POPUP FOTO ABSENSI --}}
+<div id="photoModal" class="photo-modal-overlay" style="display: none;" onclick="closePhotoModal(event)">
+    <div class="photo-modal-box">
+        <div class="photo-modal-head">
+            <h4 id="modalTitle">Bukti Absensi</h4>
+            <button type="button" class="photo-modal-close" onclick="document.getElementById('photoModal').style.display='none'">✕</button>
+        </div>
+        <div class="photo-modal-body">
+            <div id="modalImageContainer">
+                <img id="modalImage" src="" alt="Foto Absensi" class="photo-modal-img">
+            </div>
+            <div class="photo-modal-meta">
+                <div><strong>Karyawan:</strong> <span id="modalEmployeeName">-</span></div>
+                <div><strong>Tipe:</strong> <span id="modalType">-</span></div>
+                <div><strong>Waktu:</strong> <span id="modalTime">-</span></div>
+                <div><strong>Status Lokasi:</strong> <span id="modalStatus">-</span></div>
+                <div id="modalGpsRow"><strong>GPS:</strong> <a id="modalGpsLink" href="#" target="_blank" style="color:var(--navy-700);font-weight:700;">Lihat di Google Maps ↗</a></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- DataTables JS & Inisialisasi Script -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
@@ -484,33 +632,56 @@
     $(document).ready(function() {
         const dtLanguage = {
             search: "Cari:",
-            lengthMenu: "Tampilkan _MENU_",
+            lengthMenu: "Tampilkan _MENU_ data",
             info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
             infoEmpty: "Data kosong",
             zeroRecords: "Tidak ada data yang cocok",
-            paginate: {
-                previous: "‹",
-                next: "›"
-            }
+            paginate: { previous: "‹", next: "›" }
         };
 
-        $('#table-technicians').DataTable({
-            pageLength: 5,
-            language: dtLanguage,
-            ordering: false
-        });
-
-        $('#table-leaves').DataTable({
-            pageLength: 5,
-            language: dtLanguage,
-            ordering: false
-        });
-
-        $('#table-records').DataTable({
-            pageLength: 5,
-            language: dtLanguage,
-            ordering: false
-        });
+        $('#table-technicians').DataTable({ pageLength: 10, language: dtLanguage, ordering: false });
+        $('#table-leaves').DataTable({ pageLength: 10, language: dtLanguage, ordering: false });
+        $('#table-records').DataTable({ pageLength: 10, language: dtLanguage, ordering: false });
     });
+
+    // Function Pop-up Modal Foto Absensi
+    function openPhotoModal(name, type, time, photoUrl, lat, lng, status) {
+        document.getElementById('modalEmployeeName').innerText = name;
+        document.getElementById('modalType').innerText = type;
+        document.getElementById('modalTime').innerText = time;
+        document.getElementById('modalTitle').innerText = 'Bukti Foto ' + type;
+        
+        // Status Lokasi Text
+        let statusTxt = '-';
+        if (status === 'valid') statusTxt = 'Valid (Di Dalam Radius)';
+        else if (status === 'outside_allowed') statusTxt = 'Luar Lokasi (Diizinkan)';
+        document.getElementById('modalStatus').innerText = statusTxt;
+
+        // Foto Handle
+        const imgEl = document.getElementById('modalImage');
+        if (photoUrl && photoUrl.trim() !== '') {
+            imgEl.src = photoUrl;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+
+        // GPS Link Handle
+        const gpsRow = document.getElementById('modalGpsRow');
+        if (lat && lng) {
+            gpsRow.style.display = 'block';
+            document.getElementById('modalGpsLink').href = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+        } else {
+            gpsRow.style.display = 'none';
+        }
+
+        document.getElementById('photoModal').style.display = 'flex';
+    }
+
+    function closePhotoModal(event) {
+        if (event.target.id === 'photoModal') {
+            document.getElementById('photoModal').style.display = 'none';
+        }
+    }
 </script>
 @endsection
