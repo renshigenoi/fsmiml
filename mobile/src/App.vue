@@ -572,8 +572,10 @@
                         </div>
                     </div>
 
-                    <div v-if="view === 'attendance'" class="attendance-page">
-                        <div class="att-head"><button type="button" class="att-back" @click="view = 'home'">‹</button><div><h2>Absensi</h2><p>{{ todayLabel }}</p></div></div>
+                    <div v-if="view === 'attendance'" class="attendance-view">
+                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendance" title="Muat ulang">⟳</button></div></div>
+                        <div class="greet-band att-greet-band"><h2>Absensi</h2><p>Catat kehadiran Anda hari ini.</p></div>
+                        <div class="attendance-page">
                         <div v-if="attendance.loading" class="empty">Memuat data absensi…</div>
                         <template v-else>
                             <div v-if="attendance.leave && attendance.leave.status === 'approved'" class="att-status leave-status"><strong>Sedang {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }}</strong><p>{{ attendance.leave.note || 'Tidak ada catatan.' }}</p></div>
@@ -582,8 +584,20 @@
                             <h3 class="att-section-title">Absensi hari ini</h3><div class="att-list" v-if="!(attendance.leave && attendance.leave.status === 'approved')"><div><span>Absen datang</span><strong>{{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}</strong></div><div><span>Absen pulang</span><strong>{{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}</strong></div></div>
                             <div v-if="attendance.leave && attendance.leave.status === 'pending'" class="att-pending">Pengajuan {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }} menunggu persetujuan.</div>
                         </template>
+                        </div>
                     </div>
-                    <div v-if="view === 'attendance-calendar'" class="attendance-page"><div class="att-head"><button type="button" class="att-back" @click="view = 'attendance'">‹</button><div><h2>Kalender absensi</h2><p>{{ attendance.calendarMonthLabel }}</p></div></div><div class="calendar-week"><span>Sn</span><span>Sl</span><span>Rb</span><span>Km</span><span>Jm</span><span>Sb</span><span>Mg</span></div><div class="calendar-days"><span v-for="blank in attendance.calendarStartOffset" :key="'blank-'+blank"></span><button v-for="day in attendance.calendar" :key="day.date" type="button" class="calendar-day" :class="attendanceDayClass(day)" @click="showAttendanceDay(day)">{{ new Date(day.date + 'T00:00:00').getDate() }}</button></div><div class="att-legend"><span class="present">● Hadir</span><span class="leave">● Cuti/Izin</span><span class="incomplete">● Belum lengkap</span><span class="missing">● Tidak ada data</span></div></div>
+                    <div v-if="view === 'attendance-calendar'" class="attendance-view">
+                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="view = 'attendance'" title="Kembali ke absensi">‹</button></div></div>
+                        <div class="greet-band att-greet-band"><h2>Kalender absensi</h2><p>Lihat riwayat kehadiran per hari.</p></div>
+                        <div class="attendance-page calendar-page">
+                        <section class="attendance-calendar-card">
+                            <div class="calendar-month-nav"><button type="button" aria-label="Bulan sebelumnya" :disabled="attendance.calendarLoading" @click="changeAttendanceMonth(-1)">‹</button><strong>{{ attendance.calendarMonthLabel || 'Memuat…' }}</strong><button type="button" aria-label="Bulan berikutnya" :disabled="attendance.calendarLoading" @click="changeAttendanceMonth(1)">›</button></div>
+                            <div class="calendar-week"><span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span></div>
+                            <div class="calendar-days"><span v-for="blank in attendance.calendarStartOffset" :key="'blank-'+blank"></span><button v-for="day in attendance.calendar" :key="day.date" type="button" class="calendar-day" :class="attendanceDayClass(day)" @click="showAttendanceDay(day)"><span>{{ new Date(day.date + 'T00:00:00').getDate() }}</span></button></div>
+                        </section>
+                        <div class="att-legend"><span class="present">● Hadir</span><span class="leave">● Cuti/Izin</span><span class="incomplete">● Belum lengkap</span><span>○ Belum ada data</span></div>
+                        </div>
+                    </div>
 
                     <!-- ========== BOTTOM NAVIGATION BAR ========== -->
                     <nav class="bottom-nav" v-if="view === 'home' || view === 'attendance' || view === 'attendance-calendar'">
@@ -607,7 +621,7 @@
             <!-- TOAST -->
             <div v-if="toast.show" class="toast" :class="toast.type">{{ toast . message }}</div>
 
-            <div v-if="leaveSheet.show" class="modal-backdrop" @click.self="leaveSheet.show = false"><form class="modal att-modal" @submit.prevent="submitLeave"><div class="modal-grip"></div><div class="modal-head"><h3>Pengajuan cuti / izin</h3></div><label>Jenis</label><select v-model="leaveSheet.type"><option value="leave">Cuti</option><option value="permission">Izin</option></select><label>Tanggal</label><input v-model="leaveSheet.date" type="date" required><label>Catatan</label><textarea v-model.trim="leaveSheet.note" rows="3" placeholder="Tulis catatan singkat"></textarea><p v-if="leaveSheet.error" class="att-error">{{ leaveSheet.error }}</p><div class="modal-actions"><button class="cancel" type="button" @click="leaveSheet.show = false">Batal</button><button class="ok-red" type="submit" :disabled="busy">{{ busy ? 'Mengirim…' : 'Kirim' }}</button></div></form></div>
+            <div v-if="leaveSheet.show" class="modal-backdrop" @click.self="leaveSheet.show = false"><form class="modal att-modal" @submit.prevent="submitLeave"><div class="modal-grip"></div><div class="modal-head"><h3>Pengajuan cuti / izin</h3><p class="desc">Pilih jenis pengajuan terlebih dahulu.</p></div><div class="leave-type-toggle"><button type="button" :class="{ active: leaveSheet.type === 'leave' }" @click="leaveSheet.type = 'leave'">🌴 Cuti</button><button type="button" :class="{ active: leaveSheet.type === 'permission' }" @click="leaveSheet.type = 'permission'">🕘 Izin</button></div><template v-if="leaveSheet.type === 'leave'"><label>Tanggal mulai</label><input v-model="leaveSheet.date" type="date" required><label>Tanggal selesai</label><input v-model="leaveSheet.endDate" type="date" :min="leaveSheet.date" required></template><template v-else><label>Tanggal izin</label><input v-model="leaveSheet.date" type="date" required><div class="leave-time-row"><div><label>Jam mulai</label><input v-model="leaveSheet.startTime" type="time" required></div><div><label>Jam selesai</label><input v-model="leaveSheet.endTime" type="time" required></div></div></template><label>Catatan</label><textarea v-model.trim="leaveSheet.note" rows="3" placeholder="Tulis catatan singkat"></textarea><p v-if="leaveSheet.error" class="att-error">{{ leaveSheet.error }}</p><div class="modal-actions"><button class="cancel" type="button" @click="leaveSheet.show = false">Batal</button><button class="ok-red" type="submit" :disabled="busy">{{ busy ? 'Mengirim…' : 'Kirim' }}</button></div></form></div>
 
             <!-- ========== MODAL ALASAN (TOLAK / KENDALA) ========== -->
             <div v-if="modal.show" class="modal-backdrop" @click.self="modal.show = false">
@@ -1031,8 +1045,8 @@ export default {
                         mapInstance: null,
                         mapMarker: null,
                         mapPosMarker: null,
-                        attendance: { loading: false, record: null, leave: null, policy: null, calendar: [], calendarMonthLabel: '', calendarStartOffset: 0 },
-                        leaveSheet: { show: false, type: 'leave', date: new Date().toISOString().slice(0, 10), note: '', error: '' },
+                        attendance: { loading: false, calendarLoading: false, record: null, leave: null, policy: null, calendar: [], calendarMonth: '', calendarMonthLabel: '', calendarStartOffset: 0, selectedDate: '' },
+                        leaveSheet: { show: false, type: 'leave', date: '', endDate: '', startTime: '', endTime: '', note: '', error: '' },
                     };
                 },
                 computed: {
@@ -1408,25 +1422,46 @@ export default {
                         } catch (err) { this.showToast(err.message || 'Absensi gagal disimpan.', 'error'); }
                         finally { this.busy = false; }
                     },
-                    openLeaveSheet() { this.leaveSheet = { show: true, type: 'leave', date: new Date().toISOString().slice(0, 10), note: '', error: '' }; },
+                    localDateString(date = new Date()) {
+                        const offset = date.getTimezoneOffset() * 60000;
+                        return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+                    },
+                    openLeaveSheet() { const today = this.localDateString(); this.leaveSheet = { show: true, type: 'leave', date: today, endDate: today, startTime: '08:00', endTime: '17:00', note: '', error: '' }; },
                     async submitLeave() {
                         if (this.busy) return; this.busy = true; this.leaveSheet.error = '';
-                        try { await this.api('/leave-requests', { method: 'POST', body: { type: this.leaveSheet.type, leave_date: this.leaveSheet.date, note: this.leaveSheet.note } }); this.leaveSheet.show = false; this.showToast('Pengajuan cuti/izin berhasil dikirim.', 'success'); await this.loadAttendance(); }
+                        try { await this.api('/leave-requests', { method: 'POST', body: { type: this.leaveSheet.type, leave_date: this.leaveSheet.date, leave_end_date: this.leaveSheet.type === 'leave' ? this.leaveSheet.endDate : null, start_time: this.leaveSheet.type === 'permission' ? this.leaveSheet.startTime : null, end_time: this.leaveSheet.type === 'permission' ? this.leaveSheet.endTime : null, note: this.leaveSheet.note } }); this.leaveSheet.show = false; this.showToast('Pengajuan cuti/izin berhasil dikirim.', 'success'); await this.loadAttendance(); }
                         catch (err) { this.leaveSheet.error = err.message || 'Pengajuan gagal dikirim.'; }
                         finally { this.busy = false; }
                     },
                     async openAttendanceCalendar() {
-                        const month = new Date().toISOString().slice(0, 7); this.view = 'attendance-calendar';
-                        try { const res = await this.api('/attendance/calendar?month=' + month); this.attendance.calendar = res.data || []; const first = new Date(month + '-01T00:00:00'); this.attendance.calendarStartOffset = (first.getDay() + 6) % 7; this.attendance.calendarMonthLabel = first.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }); }
+                        this.attendance.calendarMonth = this.localDateString().slice(0, 7); this.attendance.selectedDate = this.localDateString(); this.view = 'attendance-calendar';
+                        await this.loadAttendanceCalendar();
+                    },
+                    async changeAttendanceMonth(direction) {
+                        const date = new Date(this.attendance.calendarMonth + '-01T12:00:00');
+                        date.setMonth(date.getMonth() + direction);
+                        this.attendance.calendarMonth = this.localDateString(date).slice(0, 7);
+                        await this.loadAttendanceCalendar();
+                    },
+                    async loadAttendanceCalendar() {
+                        const month = this.attendance.calendarMonth;
+                        this.attendance.calendarLoading = true; this.attendance.calendar = [];
+                        try { const res = await this.api('/attendance/calendar?month=' + month); if (this.attendance.calendarMonth !== month) return; this.attendance.calendar = res.data || []; const first = new Date(month + '-01T12:00:00'); this.attendance.calendarStartOffset = first.getDay(); this.attendance.calendarMonthLabel = first.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }).toUpperCase(); }
                         catch (err) { this.showToast(err.message, 'error'); }
+                        finally { if (this.attendance.calendarMonth === month) this.attendance.calendarLoading = false; }
                     },
                     attendanceDayClass(day) {
-                        if (day.leave && day.leave.status === 'approved') return 'leave';
-                        if (day.record && day.record.check_in_at && day.record.check_out_at) return 'present';
-                        if (day.record && day.record.check_in_at) return 'incomplete';
-                        return 'missing';
+                        const current = new Date(day.date + 'T00:00:00');
+                        return {
+                            weekend: current.getDay() === 0 || current.getDay() === 6,
+                            selected: day.date === this.attendance.selectedDate,
+                            leave: !!(day.leave && day.leave.status === 'approved'),
+                            present: !!(day.record && day.record.check_in_at && day.record.check_out_at),
+                            incomplete: !!(day.record && day.record.check_in_at && !day.record.check_out_at),
+                        };
                     },
                     showAttendanceDay(day) {
+                        this.attendance.selectedDate = day.date;
                         const text = day.leave ? ((day.leave.type === 'leave' ? 'Cuti' : 'Izin') + ': ' + (day.leave.note || day.leave.status)) : (day.record ? ('Datang ' + (day.record.check_in_at ? this.attendanceTime(day.record.check_in_at) : '-') + ' · Pulang ' + (day.record.check_out_at ? this.attendanceTime(day.record.check_out_at) : '-')) : 'Tidak ada data absensi.');
                         this.showToast(text, 'info');
                     },
@@ -3616,7 +3651,32 @@ export default {
             box-shadow: 0 0 0 3px rgba(200, 16, 46, .12);
         }
 
-        .attendance-page { min-height:100vh; padding:calc(env(safe-area-inset-top, 16px) + 16px) 20px calc(92px + env(safe-area-inset-bottom)); background:var(--bg); }
+        .attendance-page { min-height:calc(100vh - 120px); padding:18px 20px calc(92px + env(safe-area-inset-bottom)); background:var(--bg); }
+        .att-greet-band { padding-bottom:24px; }
+        .calendar-page { background:var(--bg); }
+        .attendance-calendar-card { padding:18px 16px 20px; border-radius:16px; background:#fff; box-shadow:0 8px 22px rgba(11,32,68,.15); }
+        .calendar-month-nav { display:grid; grid-template-columns:34px 1fr 34px; align-items:center; padding-bottom:15px; border-bottom:1px solid #e7edf4; text-align:center; }
+        .calendar-month-nav strong { color:var(--navy-900); font-size:14px; letter-spacing:.04em; }
+        .calendar-month-nav button { width:24px; height:24px; justify-self:center; border:0; border-radius:5px; color:#fff; background:#5ca7ef; font-size:24px; line-height:18px; box-shadow:0 2px 5px rgba(48,129,215,.3); }
+        .calendar-week { margin:17px 0 8px; color:#8396b4; font-size:10px; font-weight:800; text-transform:uppercase; }
+        .calendar-week span:first-child,.calendar-week span:last-child { color:#ef3444; }
+        .calendar-days { row-gap:3px; }
+        .calendar-day { position:relative; min-width:0; margin:0; color:var(--navy-900); font-size:13px; font-weight:700; }
+        .calendar-day.weekend { color:#f02e3d; }
+        .calendar-day.present,.calendar-day.leave,.calendar-day.incomplete { background:transparent; }
+        .calendar-day.present::after,.calendar-day.leave::after,.calendar-day.incomplete::after { content:''; position:absolute; width:6px; height:6px; left:50%; bottom:5px; transform:translateX(-50%); border-radius:50%; }
+        .calendar-day.present::after { background:#08b77a; }
+        .calendar-day.leave::after { background:#4285e8; }
+        .calendar-day.incomplete::after { background:#e7a21a; }
+        .calendar-day.selected { color:#fff; background:var(--navy-900); box-shadow:0 4px 10px rgba(6,20,41,.28); }
+        .calendar-day.selected::after { background:#09bd7d; }
+        .att-legend { justify-content:center; padding:13px 10px; border-radius:12px; background:rgba(255,255,255,.72); }
+        .leave-type-toggle { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px; border-radius:12px; background:var(--bg-2); }
+        .leave-type-toggle button { min-height:44px; border:0; border-radius:9px; background:transparent; color:var(--muted); font:inherit; font-size:13px; font-weight:700; }
+        .leave-type-toggle button.active { color:#fff; background:var(--navy-700); box-shadow:0 3px 8px rgba(11,32,68,.2); }
+        .leave-time-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .leave-time-row label { margin-top:13px; }
+        .calendar-month-nav button:disabled { opacity:.45; }
         .att-head { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
         .att-head h2 { margin:0; font-size:22px; color:var(--ink); }
         .att-head p { margin:3px 0 0; font-size:13px; color:var(--muted); }

@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeaveRequest extends Model
 {
-    protected $fillable = ['user_id', 'type', 'leave_date', 'note', 'status'];
+    protected $fillable = ['user_id', 'type', 'leave_date', 'leave_end_date', 'start_time', 'end_time', 'note', 'status'];
 
     protected function casts(): array
     {
-        return ['leave_date' => 'date', 'reviewed_at' => 'datetime'];
+        return ['leave_date' => 'date', 'leave_end_date' => 'date', 'reviewed_at' => 'datetime'];
     }
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }

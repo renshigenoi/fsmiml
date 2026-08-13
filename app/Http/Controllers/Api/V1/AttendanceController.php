@@ -26,7 +26,7 @@ class AttendanceController extends Controller
             'data' => [
                 'date' => $date,
                 'record' => $this->recordPayload(AttendanceRecord::query()->where('user_id', $user->id)->whereDate('attendance_date', $date)->first()),
-                'leave' => $this->leavePayload(LeaveRequest::query()->where('user_id', $user->id)->whereDate('leave_date', $date)->latest()->first()),
+                'leave' => $this->leavePayload(LeaveRequest::query()->where('user_id', $user->id)->where('leave_date', '<=', $date)->where(fn ($query) => $query->whereNull('leave_end_date')->orWhere('leave_end_date', '>=', $date))->latest()->first()),
                 'policy' => $this->policyPayload($user),
             ],
         ]);
@@ -49,7 +49,7 @@ class AttendanceController extends Controller
         $now = now(self::TIMEZONE);
         $date = $now->toDateString();
 
-        $approvedLeave = LeaveRequest::query()->where('user_id', $user->id)->whereDate('leave_date', $date)->where('status', 'approved')->exists();
+        $approvedLeave = LeaveRequest::query()->where('user_id', $user->id)->where('leave_date', '<=', $date)->where(fn ($query) => $query->whereNull('leave_end_date')->orWhere('leave_end_date', '>=', $date))->where('status', 'approved')->exists();
         if ($approvedLeave) {
             throw ValidationException::withMessages(['attendance' => 'Anda sedang cuti/izin yang telah disetujui hari ini.']);
         }
@@ -90,18 +90,21 @@ class AttendanceController extends Controller
         $month = Carbon::createFromFormat('Y-m', $request->query('month', now(self::TIMEZONE)->format('Y-m')), self::TIMEZONE);
         $start = $month->copy()->startOfMonth(); $end = $month->copy()->endOfMonth();
         $records = AttendanceRecord::query()->where('user_id', $user->id)->whereBetween('attendance_date', [$start->toDateString(), $end->toDateString()])->get()->keyBy(fn (AttendanceRecord $r) => $r->attendance_date->toDateString());
-        $leaves = LeaveRequest::query()->where('user_id', $user->id)->whereBetween('leave_date', [$start->toDateString(), $end->toDateString()])->get()->keyBy(fn (LeaveRequest $r) => $r->leave_date->toDateString());
+        $leaves = LeaveRequest::query()->where('user_id', $user->id)->where('leave_date', '<=', $end->toDateString())->where(fn ($query) => $query->whereNull('leave_end_date')->orWhere('leave_end_date', '>=', $start->toDateString()))->get();
         $days = [];
         for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
             $key = $day->toDateString();
-            $days[] = ['date' => $key, 'record' => $this->recordPayload($records->get($key)), 'leave' => $this->leavePayload($leaves->get($key))];
+            $leave = $leaves->first(fn (LeaveRequest $item) => $item->leave_date->toDateString() <= $key && (! $item->leave_end_date || $item->leave_end_date->toDateString() >= $key));
+            $days[] = ['date' => $key, 'record' => $this->recordPayload($records->get($key)), 'leave' => $this->leavePayload($leave)];
         }
         return response()->json(['data' => $days]);
     }
 
     public function storeLeave(Request $request): JsonResponse
     {
-        $data = $request->validate(['type' => ['required', 'in:leave,permission'], 'leave_date' => ['required', 'date'], 'note' => ['nullable', 'string', 'max:1000']]);
+        $data = $request->validate(['type' => ['required', 'in:leave,permission'], 'leave_date' => ['required', 'date'], 'leave_end_date' => ['nullable', 'date', 'after_or_equal:leave_date'], 'start_time' => ['nullable', 'date_format:H:i'], 'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'], 'note' => ['nullable', 'string', 'max:1000']]);
+        if ($data['type'] === 'leave') { $data['leave_end_date'] = $data['leave_end_date'] ?? $data['leave_date']; $data['start_time'] = null; $data['end_time'] = null; }
+        if ($data['type'] === 'permission' && (! isset($data['start_time']) || ! isset($data['end_time']))) throw ValidationException::withMessages(['start_time' => 'Jam mulai dan jam selesai izin wajib diisi.']);
         /** @var User $user */
         $user = $request->user();
         $leave = LeaveRequest::query()->create([...$data, 'user_id' => $user->id, 'status' => 'pending']);
@@ -140,6 +143,6 @@ class AttendanceController extends Controller
     private function leavePayload(?LeaveRequest $leave): ?array
     {
         if (! $leave) return null;
-        return ['id' => $leave->id, 'type' => $leave->type, 'date' => $leave->leave_date->toDateString(), 'note' => $leave->note, 'status' => $leave->status];
+        return ['id' => $leave->id, 'type' => $leave->type, 'date' => $leave->leave_date->toDateString(), 'end_date' => $leave->leave_end_date?->toDateString(), 'start_time' => $leave->start_time, 'end_time' => $leave->end_time, 'note' => $leave->note, 'status' => $leave->status];
     }
 }
