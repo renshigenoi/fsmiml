@@ -25,6 +25,8 @@ class AttendanceController extends Controller
         return response()->json([
             'data' => [
                 'date' => $date,
+                'server_now' => now(self::TIMEZONE)->toIso8601String(),
+                'timezone' => self::TIMEZONE,
                 'record' => $this->recordPayload(AttendanceRecord::query()->where('user_id', $user->id)->whereDate('attendance_date', $date)->first()),
                 'leave' => $this->leavePayload(LeaveRequest::query()->where('user_id', $user->id)->where('leave_date', '<=', $date)->where(fn ($query) => $query->whereNull('leave_end_date')->orWhere('leave_end_date', '>=', $date))->latest()->first()),
                 'policy' => $this->policyPayload($user),

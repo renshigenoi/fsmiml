@@ -579,7 +579,7 @@
                         <div v-if="attendance.loading" class="empty">Memuat data absensi…</div>
                         <template v-else>
                             <div v-if="attendance.leave && attendance.leave.status === 'approved'" class="att-status leave-status"><strong>Sedang {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }}</strong><p>{{ attendance.leave.note || 'Tidak ada catatan.' }}</p></div>
-                            <template v-else><div class="att-status"><strong>Hari kerja</strong><span>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name + ' · Radius ' + attendance.policy.radius_meters + ' m' : 'Foto dan GPS wajib direkam.' }}</span></div><div class="att-actions"><button type="button" class="btn-att-primary" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">{{ attendance.record && attendance.record.check_in_at ? 'Datang tercatat' : 'Absen datang' }}</button><button type="button" class="btn-att-secondary" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">{{ attendance.record && attendance.record.check_out_at ? 'Pulang tercatat' : 'Absen pulang' }}</button></div></template>
+                            <template v-else><section class="attendance-activity-card"><div class="activity-switcher"><span class="active">🚀 Aktivitas Hari Ini</span><span>📍 Lokasi Kerja</span></div><div class="activity-card-content"><span class="activity-date">{{ attendanceServerDate() }}</span><strong>{{ attendanceServerTime() }}</strong><div class="activity-location"><span>📍</span><b>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name : 'Lokasi fleksibel' }}</b></div><small>{{ attendance.policy && attendance.policy.location_name ? 'Lokasi kerja terdaftar' : 'Foto dan GPS wajib direkam.' }}</small></div></section><div class="att-actions"><button type="button" class="btn-att-primary" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">{{ attendance.record && attendance.record.check_in_at ? 'Datang tercatat' : 'Absen datang' }}</button><button type="button" class="btn-att-secondary" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">{{ attendance.record && attendance.record.check_out_at ? 'Pulang tercatat' : 'Absen pulang' }}</button></div></template>
                             <button type="button" class="att-outline" @click="openLeaveSheet">Cuti / Izin</button><button type="button" class="att-outline" style="margin-top:10px" @click="openAttendanceCalendar">Kalender</button>
                             <h3 class="att-section-title">Absensi hari ini</h3><div class="att-list" v-if="!(attendance.leave && attendance.leave.status === 'approved')"><div><span>Absen datang</span><strong>{{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}</strong></div><div><span>Absen pulang</span><strong>{{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}</strong></div></div>
                             <div v-if="attendance.leave && attendance.leave.status === 'pending'" class="att-pending">Pengajuan {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }} menunggu persetujuan.</div>
@@ -1045,7 +1045,8 @@ export default {
                         mapInstance: null,
                         mapMarker: null,
                         mapPosMarker: null,
-                        attendance: { loading: false, calendarLoading: false, record: null, leave: null, policy: null, calendar: [], calendarMonth: '', calendarMonthLabel: '', calendarStartOffset: 0, selectedDate: '' },
+                        attendance: { loading: false, calendarLoading: false, record: null, leave: null, policy: null, calendar: [], calendarMonth: '', calendarMonthLabel: '', calendarStartOffset: 0, selectedDate: '', serverNowMs: 0, serverClockStartedAt: 0, serverClockTick: 0 },
+                        attendanceClockTimer: null,
                         leaveSheet: { show: false, type: 'leave', date: '', endDate: '', startTime: '', endTime: '', note: '', error: '' },
                     };
                 },
@@ -1389,8 +1390,27 @@ export default {
                         try {
                             const res = await this.api('/attendance/today');
                             Object.assign(this.attendance, res.data || res);
+                            const payload = res.data || res;
+                            this.attendance.serverNowMs = new Date(payload.server_now).getTime();
+                            this.attendance.serverClockStartedAt = performance.now();
+                            this.startAttendanceClock();
                         } catch (err) { this.showToast(err.message, 'error'); }
                         finally { this.attendance.loading = false; }
+                    },
+                    startAttendanceClock() {
+                        if (this.attendanceClockTimer) return;
+                        this.attendanceClockTimer = setInterval(() => { this.attendance.serverClockTick += 1; }, 1000);
+                    },
+                    attendanceServerNow() {
+                        this.attendance.serverClockTick;
+                        if (!this.attendance.serverNowMs) return new Date();
+                        return new Date(this.attendance.serverNowMs + Math.max(0, performance.now() - this.attendance.serverClockStartedAt));
+                    },
+                    attendanceServerTime() {
+                        return this.attendanceServerNow().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    },
+                    attendanceServerDate() {
+                        return this.attendanceServerNow().toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
                     },
                     async attendancePhoto() {
                         if (this.isNativeApp) {
@@ -3682,6 +3702,14 @@ export default {
         .att-head p { margin:3px 0 0; font-size:13px; color:var(--muted); }
         .att-back { width:34px; height:34px; border:0; border-radius:10px; color:var(--navy-700); background:var(--navy-100); font-size:29px; line-height:1; }
         .att-status, .att-list { border:1px solid var(--line); border-radius:var(--r-md); background:#fff; box-shadow:var(--shadow-sm); }
+        .attendance-activity-card { overflow:hidden; border-radius:var(--r-md); background:#fff; box-shadow:0 7px 18px rgba(11,32,68,.12); }
+        .activity-switcher { display:grid; grid-template-columns:1.25fr 1fr; gap:4px; padding:4px; background:#fff; }
+        .activity-switcher span { display:flex; align-items:center; justify-content:center; min-height:32px; border-radius:9px; color:#627797; font-size:10px; font-weight:800; white-space:nowrap; }
+        .activity-switcher span.active { color:#fff; background:var(--navy-700); box-shadow:0 3px 8px rgba(11,32,68,.22); }
+        .activity-card-content { padding:12px 16px 14px; text-align:center; border-top:1px solid #edf0f5; }
+        .attendance-activity-card .activity-date { display:block; color:#536b91; font-size:12px; font-weight:700; }
+        .attendance-activity-card > strong { display:block; margin:3px 0 10px; color:var(--navy-900); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:27px; font-weight:800; letter-spacing:.04em; }
+        .activity-location { display:flex; align-items:center; justify-content:center; gap:7px; padding-top:9px; border-top:1px solid #e6ebf3; color:var(--navy-800); font-size:13px; }.activity-location span { font-size:14px; }.attendance-activity-card small { display:block; margin-top:4px; color:var(--muted); font-size:10px; }
         .att-status { display:flex; flex-wrap:wrap; gap:8px; padding:16px; }
         .att-status strong { color:var(--ink); font-size:15px; }.att-status span { font-size:12px; color:var(--muted); }.att-status p { width:100%; margin:0; font-size:12px; color:var(--muted); }
         .leave-status { border-left:4px solid #3a6bc8; }.att-actions { display:flex; gap:10px; margin:14px 0; }.btn-att-primary,.btn-att-secondary,.att-outline { min-height:46px; border-radius:var(--r-sm); font-weight:700; font-family:inherit; cursor:pointer; }.btn-att-primary,.btn-att-secondary { flex:1; }.btn-att-primary { border:0; background:var(--red-500); color:#fff; }.btn-att-secondary,.att-outline { border:1px solid var(--line); background:#fff; color:var(--ink-2); }.att-outline { width:100%; }.btn-att-primary:disabled,.btn-att-secondary:disabled { opacity:.55; cursor:not-allowed; }.att-section-title { margin:22px 0 10px; font-size:15px; color:var(--ink); }.att-list div { display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid var(--line); font-size:14px; }.att-list div:last-child { border-bottom:0; }.att-list span { color:var(--muted); }.att-list strong { color:var(--ink); }.att-pending { margin-top:12px; padding:11px; border-radius:var(--r-sm); background:#fff7df; color:#8a6100; font-size:12px; }.att-modal label { display:block; margin:13px 0 6px; font-size:12px; color:var(--muted); }.att-modal select,.att-modal input,.att-modal textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:var(--r-sm); font:inherit; }.att-error { color:var(--red-700); font-size:12px; }.calendar-week,.calendar-days { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; }.calendar-week { color:var(--muted); font-size:11px; margin:12px 0 4px; }.calendar-day { aspect-ratio:1; margin:2px; border:0; border-radius:50%; background:transparent; color:var(--ink); font:inherit; }.calendar-day.present { background:#dff5e7; color:#19713c; }.calendar-day.leave { background:#e3edff; color:#2451a0; }.calendar-day.incomplete { background:#fff0c8; color:#996400; }.calendar-day.missing { background:#fee5e7; color:#bb1f38; }.att-legend { display:flex; flex-wrap:wrap; gap:10px; margin:16px 2px; font-size:11px; color:var(--muted); }.att-legend .present { color:#19713c; }.att-legend .leave { color:#2451a0; }.att-legend .incomplete { color:#996400; }.att-legend .missing { color:#bb1f38; }
