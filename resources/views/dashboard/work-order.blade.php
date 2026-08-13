@@ -602,7 +602,7 @@
         {{-- Foto Pekerjaan --}}
         @php
             $photosBefore = $workOrder->photos->where('stage', 'before_installation')->values();
-            $photosAfter  = $workOrder->photos->where('stage', 'after_installation')->values();
+            $photosAfter  = $workOrder->photos->whereNotIn('stage', ['before_installation'])->values();
         @endphp
         @if ($workOrder->photos->isNotEmpty())
         <div class="info-card">
