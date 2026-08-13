@@ -13,7 +13,7 @@
         border-radius: 18px; 
         padding: 22px 26px; 
         color: #fff; 
-        margin-bottom: 24px; 
+        margin-bottom: 20px; 
         box-shadow: 0 8px 32px rgba(11, 32, 68, .20); 
         position: relative; 
         overflow: hidden; 
@@ -31,6 +31,33 @@
     .att-hero h2, .att-hero p { position: relative; z-index: 1; }
     .att-hero h2 { margin: 0 0 5px; font-size: 20px; font-weight: 900; }
     .att-hero p { margin: 0; color: rgba(255, 255, 255, .6); font-size: 13.5px; }
+
+    /* Quick Stats Grid */
+    .att-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+    .stat-card {
+        background: #fff;
+        border: 1px solid var(--line, #e2e8f4);
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 4px rgba(11, 32, 68, .06);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .stat-ico {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+    .stat-val { font-size: 18px; font-weight: 900; color: var(--navy-700, #112b5c); line-height: 1.2; }
+    .stat-lbl { font-size: 11.5px; color: var(--muted, #64748b); font-weight: 600; }
 
     .att-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
     .att-full { grid-column: 1 / -1; }
@@ -139,11 +166,11 @@
     .time-badge-btn {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        background: var(--surface-2, #f6f9ff);
-        border: 1px solid var(--line, #e2e8f4);
-        padding: 4px 8px;
-        border-radius: 6px;
+        gap: 6px;
+        background: #fff;
+        border: 1.5px solid var(--line, #e2e8f4);
+        padding: 5px 10px;
+        border-radius: 8px;
         color: var(--navy-700, #112b5c);
         font-weight: 800;
         font-size: 13px;
@@ -159,7 +186,8 @@
     .location-subtext {
         font-size: 11.5px;
         color: var(--muted, #64748b);
-        margin-top: 3px;
+        margin-top: 5px;
+        line-height: 1.3;
     }
 
     /* Photo Modal Overlay */
@@ -177,7 +205,7 @@
     .photo-modal-box {
         background: #fff;
         border-radius: 16px;
-        max-width: 420px;
+        max-width: 440px;
         width: 100%;
         overflow: hidden;
         box-shadow: 0 20px 60px rgba(6, 20, 41, .40);
@@ -219,10 +247,11 @@
         color: var(--muted, #64748b);
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
         background: var(--surface-2, #f6f9ff);
-        padding: 10px 12px;
-        border-radius: 8px;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid var(--line, #e2e8f4);
     }
 
     /* Custom DataTables */
@@ -292,18 +321,55 @@
         cursor: not-allowed !important;
     }
 
-    @media(max-width: 960px) { .att-layout { grid-template-columns: 1fr; } .att-full { grid-column: auto; } }
+    @media(max-width: 960px) { 
+        .att-layout { grid-template-columns: 1fr; } 
+        .att-full { grid-column: auto; }
+        .att-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
     @media(max-width: 650px) { 
         .field-grid, .location-edit-row { grid-template-columns: 1fr; } 
         .field-grid .wide { grid-column: auto; } 
         .location-edit-row { gap: 7px; } 
         .sec-card-body { padding: 14px; } 
+        .att-stats-grid { grid-template-columns: 1fr; }
     }
 </style>
 
 <div class="att-hero">
     <h2>🕘 Manajemen Absensi</h2>
     <p>Atur lokasi kerja, kebijakan kehadiran, serta tinjau pengajuan dan absensi karyawan.</p>
+</div>
+
+{{-- WIDGET RINGKASAN CEPAT (STATS) --}}
+<div class="att-stats-grid">
+    <div class="stat-card">
+        <div class="stat-ico" style="background:#d1fae5; color:#065f46;">📋</div>
+        <div>
+            <div class="stat-val">{{ $records->count() }}</div>
+            <div class="stat-lbl">Hadir Hari Ini</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico" style="background:#dbeafe; color:#1e40af;">📍</div>
+        <div>
+            <div class="stat-val">{{ $records->where('check_in_location_status', 'valid')->count() }}</div>
+            <div class="stat-lbl">Tepat di Lokasi</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico" style="background:#fef3c7; color:#92400e;">🌴</div>
+        <div>
+            <div class="stat-val">{{ $leaveRequests->count() }}</div>
+            <div class="stat-lbl">Pengajuan Cuti/Izin</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico" style="background:#f3e8ff; color:#6b21a8;">👷</div>
+        <div>
+            <div class="stat-val">{{ $technicians->count() }}</div>
+            <div class="stat-lbl">Total Karyawan</div>
+        </div>
+    </div>
 </div>
 
 <div class="att-layout">
@@ -508,22 +574,22 @@
         </div>
     </section>
 
-    {{-- ABSENSI HARI INI (FORMAT: DATANG | PULANG + POPUP FOTO) --}}
+    {{-- ABSENSI HARI INI (FORMAT: DATANG | PULANG + ALAMAT & POPUP FOTO) --}}
     <section class="sec-card table-card att-full">
         <div class="sec-card-head">
             <div class="sec-ico">📋</div>
             <div>
                 <h3>Absensi Hari Ini</h3>
-                <p>Rekap datang, pulang, dan hasil validasi lokasi. Klik jam untuk melihat foto.</p>
+                <p>Rekap kedatangan, kepulangan, dan lokasi. Klik jam untuk melihat bukti foto.</p>
             </div>
         </div>
         <div class="sec-card-body">
             <table id="table-records" class="dataTable">
                 <thead>
                     <tr>
-                        <th style="width: 30%;">Karyawan</th>
-                        <th style="width: 35%;">Datang</th>
-                        <th style="width: 35%;">Pulang</th>
+                        <th style="width: 25%;">Karyawan</th>
+                        <th style="width: 37.5%;">Datang</th>
+                        <th style="width: 37.5%;">Pulang</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -533,67 +599,75 @@
                                 <strong>{{ $record->user?->name ?? '-' }}</strong>
                             </td>
 
-							{{-- KOLOM DATANG --}}
-							<td>
-								@if($record->check_in_at)
-									<button type="button" class="time-badge-btn"
-											onclick="openPhotoModal(
-												'{{ $record->user?->name ?? 'Karyawan' }}',
-												'Absen Datang',
-												'{{ $record->check_in_at->timezone('Asia/Jakarta')->format('H:i:s') }} WIB',
-												'{{ $record->check_in_photo_path ? asset('storage/' . $record->check_in_photo_path) : '' }}',
-												'{{ $record->check_in_latitude }}',
-												'{{ $record->check_in_longitude }}',
-												'{{ $record->check_in_location_status }}'
-											)">
-										📷 {{ $record->check_in_at->timezone('Asia/Jakarta')->format('H:i') }}
-									</button>
+                            {{-- KOLOM DATANG --}}
+                            <td>
+                                @if($record->check_in_at)
+                                    <button type="button" class="time-badge-btn"
+                                            onclick="openPhotoModal(
+                                                '{{ $record->user?->name ?? 'Karyawan' }}',
+                                                'Absen Datang',
+                                                '{{ $record->check_in_at->timezone('Asia/Jakarta')->format('H:i:s') }} WIB',
+                                                '{{ $record->check_in_photo_path ? asset('storage/' . $record->check_in_photo_path) : '' }}',
+                                                '{{ $record->check_in_latitude }}',
+                                                '{{ $record->check_in_longitude }}',
+                                                '{{ $record->check_in_location_status }}',
+                                                '{{ addslashes($record->check_in_address ?? '') }}'
+                                            )">
+                                        📷 {{ $record->check_in_at->timezone('Asia/Jakarta')->format('H:i') }}
+                                    </button>
 
-									<div class="location-subtext">
-										@if($record->check_in_location_status === 'valid')
-											<span class="badge status-valid" style="padding: 2px 6px; font-size: 10px;">Valid</span>
-										@elseif($record->check_in_location_status === 'outside_allowed')
-											<span class="badge status-outside" style="padding: 2px 6px; font-size: 10px;">Luar Lokasi</span>
-										@endif
-										@if($record->check_in_latitude)
-											· <a href="https://www.google.com/maps?q={{ $record->check_in_latitude }},{{ $record->check_in_longitude }}" target="_blank" style="color:var(--navy-700);text-decoration:none;">📍 Maps</a>
-										@endif
-									</div>
-								@else
-									<span style="color: var(--muted);">-</span>
-								@endif
-							</td>
+                                    <div class="location-subtext">
+                                        @if($record->check_in_location_status === 'valid')
+                                            <span class="badge status-valid" style="padding: 2px 6px; font-size: 10px;">Valid</span>
+                                        @elseif($record->check_in_location_status === 'outside_allowed')
+                                            <span class="badge status-outside" style="padding: 2px 6px; font-size: 10px;">Luar Lokasi</span>
+                                        @endif
 
-							{{-- KOLOM PULANG --}}
-							<td>
-								@if($record->check_out_at)
-									<button type="button" class="time-badge-btn"
-											onclick="openPhotoModal(
-												'{{ $record->user?->name ?? 'Karyawan' }}',
-												'Absen Pulang',
-												'{{ $record->check_out_at->timezone('Asia/Jakarta')->format('H:i:s') }} WIB',
-												'{{ $record->check_out_photo_path ? asset('storage/' . $record->check_out_photo_path) : '' }}',
-												'{{ $record->check_out_latitude }}',
-												'{{ $record->check_out_longitude }}',
-												'{{ $record->check_out_location_status }}'
-											)">
-										📷 {{ $record->check_out_at->timezone('Asia/Jakarta')->format('H:i') }}
-									</button>
+                                        @if($record->check_in_address)
+                                            <br>📍 {{ Str::limit($record->check_in_address, 45) }}
+                                        @elseif($record->check_in_latitude)
+                                            · <a href="https://www.google.com/maps?q={{ $record->check_in_latitude }},{{ $record->check_in_longitude }}" target="_blank" style="color:var(--navy-700);text-decoration:none;">📍 Maps</a>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span style="color: var(--muted);">-</span>
+                                @endif
+                            </td>
 
-									<div class="location-subtext">
-										@if($record->check_out_location_status === 'valid')
-											<span class="badge status-valid" style="padding: 2px 6px; font-size: 10px;">Valid</span>
-										@elseif($record->check_out_location_status === 'outside_allowed')
-											<span class="badge status-outside" style="padding: 2px 6px; font-size: 10px;">Luar Lokasi</span>
-										@endif
-										@if($record->check_out_latitude)
-											· <a href="https://www.google.com/maps?q={{ $record->check_out_latitude }},{{ $record->check_out_longitude }}" target="_blank" style="color:var(--navy-700);text-decoration:none;">📍 Maps</a>
-										@endif
-									</div>
-								@else
-									<span style="color: var(--muted);">-</span>
-								@endif
-							</td>
+                            {{-- KOLOM PULANG --}}
+                            <td>
+                                @if($record->check_out_at)
+                                    <button type="button" class="time-badge-btn"
+                                            onclick="openPhotoModal(
+                                                '{{ $record->user?->name ?? 'Karyawan' }}',
+                                                'Absen Pulang',
+                                                '{{ $record->check_out_at->timezone('Asia/Jakarta')->format('H:i:s') }} WIB',
+                                                '{{ $record->check_out_photo_path ? asset('storage/' . $record->check_out_photo_path) : '' }}',
+                                                '{{ $record->check_out_latitude }}',
+                                                '{{ $record->check_out_longitude }}',
+                                                '{{ $record->check_out_location_status }}',
+                                                '{{ addslashes($record->check_out_address ?? '') }}'
+                                            )">
+                                        📷 {{ $record->check_out_at->timezone('Asia/Jakarta')->format('H:i') }}
+                                    </button>
+
+                                    <div class="location-subtext">
+                                        @if($record->check_out_location_status === 'valid')
+                                            <span class="badge status-valid" style="padding: 2px 6px; font-size: 10px;">Valid</span>
+                                        @elseif($record->check_out_location_status === 'outside_allowed')
+                                            <span class="badge status-outside" style="padding: 2px 6px; font-size: 10px;">Luar Lokasi</span>
+                                        @endif
+
+                                        @if($record->check_out_address)
+                                            <br>📍 {{ Str::limit($record->check_out_address, 45) }}
+                                        @elseif($record->check_out_latitude)
+                                            · <a href="https://www.google.com/maps?q={{ $record->check_out_latitude }},{{ $record->check_out_longitude }}" target="_blank" style="color:var(--navy-700);text-decoration:none;">📍 Maps</a>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span style="color: var(--muted);">-</span>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -603,7 +677,7 @@
 
 </div>
 
-{{-- MODAL POPUP FOTO ABSENSI --}}
+{{-- MODAL POPUP FOTO & ALAMAT ABSENSI --}}
 <div id="photoModal" class="photo-modal-overlay" style="display: none;" onclick="closePhotoModal(event)">
     <div class="photo-modal-box">
         <div class="photo-modal-head">
@@ -619,7 +693,8 @@
                 <div><strong>Tipe:</strong> <span id="modalType">-</span></div>
                 <div><strong>Waktu:</strong> <span id="modalTime">-</span></div>
                 <div><strong>Status Lokasi:</strong> <span id="modalStatus">-</span></div>
-                <div id="modalGpsRow"><strong>GPS:</strong> <a id="modalGpsLink" href="#" target="_blank" style="color:var(--navy-700);font-weight:700;">Lihat di Google Maps ↗</a></div>
+                <div id="modalAddressRow"><strong>Alamat Lengkap:</strong><br><span id="modalAddress" style="color:var(--ink); font-weight:600;">-</span></div>
+                <div id="modalGpsRow" style="margin-top:4px;"><strong>Koordinat GPS:</strong> <a id="modalGpsLink" href="#" target="_blank" style="color:var(--navy-700);font-weight:700;">Lihat Peta (Google Maps) ↗</a></div>
             </div>
         </div>
     </div>
@@ -644,12 +719,12 @@
         $('#table-records').DataTable({ pageLength: 10, language: dtLanguage, ordering: false });
     });
 
-    // Function Pop-up Modal Foto Absensi
-    function openPhotoModal(name, type, time, photoUrl, lat, lng, status) {
+    // Function Pop-up Modal Foto Absensi Lengkap
+    function openPhotoModal(name, type, time, photoUrl, lat, lng, status, address) {
         document.getElementById('modalEmployeeName').innerText = name;
         document.getElementById('modalType').innerText = type;
         document.getElementById('modalTime').innerText = time;
-        document.getElementById('modalTitle').innerText = 'Bukti Foto ' + type;
+        document.getElementById('modalTitle').innerText = 'Bukti ' + type;
         
         // Status Lokasi Text
         let statusTxt = '-';
@@ -664,6 +739,16 @@
             imgEl.style.display = 'block';
         } else {
             imgEl.style.display = 'none';
+        }
+
+        // Alamat Handle
+        const addrEl = document.getElementById('modalAddress');
+        const addrRow = document.getElementById('modalAddressRow');
+        if (address && address.trim() !== '') {
+            addrEl.innerText = address;
+            addrRow.style.display = 'block';
+        } else {
+            addrRow.style.display = 'none';
         }
 
         // GPS Link Handle
