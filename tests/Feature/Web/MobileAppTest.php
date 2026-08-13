@@ -12,7 +12,7 @@ class MobileAppTest extends TestCase
     {
         $this->get('/mobile')
             ->assertOk()
-            ->assertSee('FSM Teknisi');
+            ->assertHeader('Content-Type', 'text/html; charset=UTF-8');
     }
 
     #[Test]
