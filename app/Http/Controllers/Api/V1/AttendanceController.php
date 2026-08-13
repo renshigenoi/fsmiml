@@ -17,8 +17,6 @@ class AttendanceController extends Controller
 {
     private const TIMEZONE = 'Asia/Jakarta';
 
-
-
 	private function getAddressFromCoords(float $lat, float $lng): ?string
 	{
 		try {
@@ -35,7 +33,7 @@ class AttendanceController extends Controller
 			if ($response->successful()) {
 				return $response->json('display_name');
 			}
-		} catch (\Throwable $e) {
+		} catch (\Throwable) {
 			// Jika API error/timeout, abaikan agar absen tetap berhasil disimpan
 		}
 
@@ -174,14 +172,14 @@ class AttendanceController extends Controller
             'id' => $record->id,
             'date' => $record->attendance_date->toDateString(),
             'check_in_at' => $record->check_in_at?->toIso8601String(),
-            'check_in_photo' => $record->check_in_photo_path ? Storage::disk('public')->url($record->check_in_photo_path) : null,
+            'check_in_photo' => $record->check_in_photo_path ? Storage::url($record->check_in_photo_path) : null,
             'check_in_latitude' => $record->check_in_latitude,
             'check_in_longitude' => $record->check_in_longitude,
             'check_in_status' => $record->check_in_location_status,
             'check_in_distance' => $record->check_in_distance_meters,
 
             'check_out_at' => $record->check_out_at?->toIso8601String(),
-            'check_out_photo' => $record->check_out_photo_path ? Storage::disk('public')->url($record->check_out_photo_path) : null,
+            'check_out_photo' => $record->check_out_photo_path ? Storage::url($record->check_out_photo_path) : null,
             'check_out_latitude' => $record->check_out_latitude,
             'check_out_longitude' => $record->check_out_longitude,
             'check_out_status' => $record->check_out_location_status,
