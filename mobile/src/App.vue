@@ -668,6 +668,20 @@
                             <div class="calendar-days"><span v-for="blank in attendance.calendarStartOffset" :key="'blank-'+blank"></span><button v-for="day in attendance.calendar" :key="day.date" type="button" class="calendar-day" :class="attendanceDayClass(day)" @click="showAttendanceDay(day)"><span>{{ new Date(day.date + 'T00:00:00').getDate() }}</span></button></div>
                         </section>
                         <div class="att-legend"><span class="present">● Hadir</span><span class="leave">● Cuti/Izin</span><span class="incomplete">● Belum lengkap</span><span>○ Belum ada data</span></div>
+                        <section v-if="selectedAttendanceDay && (selectedAttendanceDay.record || selectedAttendanceDay.leave)" class="attendance-day-detail">
+                            <span class="attendance-day-detail-date">{{ fmtDate(selectedAttendanceDay.date + 'T00:00:00') }}</span>
+                            <template v-if="selectedAttendanceDay.leave">
+                                <strong>{{ selectedAttendanceDay.leave.type === 'leave' ? 'Cuti' : 'Izin' }}</strong>
+                                <span>{{ selectedAttendanceDay.leave.note || selectedAttendanceDay.leave.status }}</span>
+                            </template>
+                            <template v-else>
+                                <strong>{{ selectedAttendanceDay.record.check_out_at ? 'Hadir' : 'Absen belum lengkap' }}</strong>
+                                <div class="attendance-day-detail-times">
+                                    <span>Datang <b>{{ selectedAttendanceDay.record.check_in_at ? attendanceTime(selectedAttendanceDay.record.check_in_at) : '-' }}</b></span>
+                                    <span>Pulang <b>{{ selectedAttendanceDay.record.check_out_at ? attendanceTime(selectedAttendanceDay.record.check_out_at) : '-' }}</b></span>
+                                </div>
+                            </template>
+                        </section>
                         </div>
                     </div>
 
@@ -1229,6 +1243,9 @@ export default {
                             return true;
                         }.bind(this));
                     },
+                    selectedAttendanceDay() {
+                        return this.attendance.calendar.find(day => day.date === this.attendance.selectedDate) || null;
+                    },
                     bannerStyle() {
                         const meta = STATUS_META[this.current ? this.current.status : 'draft'] || STATUS_META.draft;
                         return {
@@ -1569,8 +1586,6 @@ export default {
                     },
                     showAttendanceDay(day) {
                         this.attendance.selectedDate = day.date;
-                        const text = day.leave ? ((day.leave.type === 'leave' ? 'Cuti' : 'Izin') + ': ' + (day.leave.note || day.leave.status)) : (day.record ? ('Datang ' + (day.record.check_in_at ? this.attendanceTime(day.record.check_in_at) : '-') + ' · Pulang ' + (day.record.check_out_at ? this.attendanceTime(day.record.check_out_at) : '-')) : 'Tidak ada data absensi.');
-                        this.showToast(text, 'info');
                     },
                     showToast(msg, type = 'info') {
                         this.toast = {
@@ -3437,7 +3452,9 @@ export default {
             border: 1px solid var(--line);
             border-radius: var(--r);
             box-shadow: var(--shadow-sm);
+            max-height: 360px;
             overflow-x: auto;
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
 
@@ -3454,9 +3471,12 @@ export default {
             font-size: 10.5px;
             letter-spacing: .03em;
             padding: 9px 10px;
+            position: sticky;
+            top: 0;
             text-align: left;
             text-transform: uppercase;
             white-space: nowrap;
+            z-index: 1;
         }
 
         .bonus-table td {
@@ -3889,7 +3909,7 @@ export default {
             box-shadow: 0 0 0 3px rgba(200, 16, 46, .12);
         }
 
-        .attendance-page { min-height:calc(100vh - 120px); padding:18px 20px calc(92px + env(safe-area-inset-bottom)); background:var(--bg); }
+        .attendance-page { padding:18px 20px 20px; background:var(--bg); }
         /* Absensi memakai ukuran switcher Beranda yang sama agar perpindahan view konsisten. */
         .attendance-tab-wrapper { margin-top:-20px; }
         .attendance-single-tab .tab-btn { flex:1; }
@@ -3914,6 +3934,12 @@ export default {
         .calendar-day.selected { color:#fff; background:var(--navy-900); box-shadow:0 4px 10px rgba(6,20,41,.28); }
         .calendar-day.selected::after { background:#09bd7d; }
         .att-legend { justify-content:center; padding:13px 10px; border-radius:12px; background:rgba(255,255,255,.72); }
+        .attendance-day-detail { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:14px; padding:14px 16px; border:1px solid var(--line); border-radius:var(--r-md); background:#fff; box-shadow:var(--shadow-sm); }
+        .attendance-day-detail-date { width:100%; color:var(--muted); font-size:12px; font-weight:700; }
+        .attendance-day-detail strong { color:var(--navy-900); font-size:15px; }
+        .attendance-day-detail > span:not(.attendance-day-detail-date) { color:var(--muted); font-size:13px; }
+        .attendance-day-detail-times { display:flex; width:100%; gap:18px; color:var(--muted); font-size:12px; }
+        .attendance-day-detail-times b { color:var(--ink); margin-left:3px; }
         .leave-type-toggle { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px; border-radius:12px; background:var(--bg-2); }
         .leave-type-toggle button { min-height:44px; border:0; border-radius:9px; background:transparent; color:var(--muted); font:inherit; font-size:13px; font-weight:700; }
         .leave-type-toggle button.active { color:#fff; background:var(--navy-700); box-shadow:0 3px 8px rgba(11,32,68,.2); }
