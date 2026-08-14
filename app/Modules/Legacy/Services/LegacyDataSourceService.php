@@ -184,6 +184,21 @@ class LegacyDataSourceService
     }
 
     /**
+     * @return list<object>
+     */
+    public function bonusesForTechnician(string $technicianSerial, string $date): array
+    {
+        return DB::connection('sales')->select(
+            'SELECT teknisi_name, "date", sales_invoice_no_car, sales_invoice_no_building,
+                    sales_invoice_no_materials, total
+             FROM "VIEW_Bonus_Teknisi"
+             WHERE teknisi_serial = ? AND "date" = ?
+             ORDER BY sales_invoice_no_car',
+            [$technicianSerial, $date],
+        );
+    }
+
+    /**
      * Detail item penjualan dari view legacy SHOW_SalesDetail.
      *
      * @return list<object>

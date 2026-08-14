@@ -336,7 +336,7 @@
 
                         <!-- SEGMENTED TABS SWITCHER -->
                         <div class="tab-switcher-wrapper">
-                            <div class="tab-switcher">
+                            <div class="tab-switcher home-tab-switcher">
                                 <button class="tab-btn" :class="{ active: activeTab === 'processing' }"
                                     @click="activeTab = 'processing'">
                                     <span>🚀 Sedang Diproses</span>
@@ -347,11 +347,15 @@
                                     <span>🗂️ Riwayat</span>
                                     <span class="tab-count">{{ historyOrders . length }}</span>
                                 </button>
+                                <button class="tab-btn" :class="{ active: activeTab === 'bonus' }"
+                                    @click="activeTab = 'bonus'">
+                                    <span>💰 Bonus</span>
+                                </button>
                             </div>
                         </div>
 
                         <!-- HORIZONTAL SCROLL CHIP FILTERS (SCROLL-X) -->
-                        <div class="scroll-x-bar">
+                        <div v-if="activeTab !== 'bonus'" class="scroll-x-bar">
                             <button class="filter-chip" :class="{ active: subFilter === 'all' }"
                                 @click="subFilter = 'all'">
                                 Semua ({{ activeOrders.length }})
@@ -442,6 +446,50 @@
                                     <div class="cust">{{ wo . customer ? wo . customer . name : 'Customer' }}</div>
                                     <div class="sub">📅 {{ fmtDate(wo . scheduled_start_at) }}</div>
                                 </button>
+                            </div>
+
+                            <!-- TAB: BONUS -->
+                            <div v-if="activeTab === 'bonus'" class="section bonus-section">
+                                <div class="bonus-filter">
+                                    <label for="bonus-date">Tanggal Bayar Bonus</label>
+                                    <input id="bonus-date" v-model="bonus.date" type="date" @change="loadBonuses">
+                                </div>
+
+                                <div v-if="bonus.error" class="bonus-error">{{ bonus.error }}</div>
+                                <div v-else-if="!bonus.loaded" class="empty">
+                                    <span class="big">💰</span>
+                                    Pilih tanggal untuk melihat bonus.
+                                </div>
+                                <div v-else-if="bonus.rows.length === 0" class="empty">
+                                    <span class="big">📂</span>
+                                    Tidak ada bonus pada tanggal ini.
+                                </div>
+                                <template v-else>
+                                    <div class="bonus-summary">
+                                        <span>Total Bonus</span>
+                                        <strong>{{ fmtMoney(bonus.total) }}</strong>
+                                    </div>
+                                    <div class="bonus-table-scroll">
+                                        <table class="bonus-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Teknisi</th>
+                                                    <th>Tanggal Bayar</th>
+                                                    <th>Invoice</th>
+                                                    <th class="r">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(row, index) in bonus.rows" :key="row.invoice_number + '-' + index">
+                                                    <td>{{ row.technician_name || '-' }}</td>
+                                                    <td>{{ fmtDate(row.payment_date) }}</td>
+                                                    <td>{{ row.invoice_number || '-' }}</td>
+                                                    <td class="r">{{ fmtMoney(row.total) }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                     </div>
@@ -963,6 +1011,14 @@ export default {
                         subFilter: 'all',
                         searchQuery: '',
                         historyRange: '7',
+                        bonus: {
+                            date: '',
+                            rows: [],
+                            total: 0,
+                            loading: false,
+                            loaded: false,
+                            error: ''
+                        },
                         loginForm: {
                             email: '',
                             password: ''
@@ -1333,6 +1389,13 @@ export default {
                             year: 'numeric'
                         }) : '-';
                     },
+                    fmtMoney(value) {
+                        return new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            maximumFractionDigits: 0,
+                        }).format(Number(value) || 0);
+                    },
                     fmtDateTime(val) {
                         if (!val) return '-';
                         const d = new Date(val);
@@ -1572,6 +1635,24 @@ export default {
                             if (!silent) this.showToast(err.message, 'error');
                         } finally {
                             this.loading = false;
+                        }
+                    },
+                    async loadBonuses() {
+                        if (!this.bonus.date) return;
+                        this.bonus.loading = true;
+                        this.bonus.error = '';
+                        try {
+                            const data = await this.api('/bonuses?date=' + encodeURIComponent(this.bonus.date));
+                            this.bonus.rows = data.data || [];
+                            this.bonus.total = Number((data.meta && data.meta.total_bonus) || 0);
+                            this.bonus.loaded = true;
+                        } catch (err) {
+                            this.bonus.rows = [];
+                            this.bonus.total = 0;
+                            this.bonus.loaded = false;
+                            this.bonus.error = err.message;
+                        } finally {
+                            this.bonus.loading = false;
                         }
                     },
                     async refresh() {
@@ -3238,6 +3319,21 @@ export default {
             color: var(--muted);
         }
 
+        .home-tab-switcher {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .home-tab-switcher::-webkit-scrollbar {
+            display: none;
+        }
+
+        .home-tab-switcher .tab-btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
         .scroll-x-bar {
             display: flex;
             gap: 8px;
@@ -3274,6 +3370,104 @@ export default {
         ========================================================= */
         .section {
             padding: 8px 16px;
+        }
+
+        .bonus-section {
+            padding-top: 18px;
+        }
+
+        .bonus-filter {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            box-shadow: var(--shadow-sm);
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .bonus-filter label {
+            display: block;
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .bonus-filter input {
+            box-sizing: border-box;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            color: var(--ink);
+            font: inherit;
+            padding: 10px;
+            width: 100%;
+        }
+
+        .bonus-error {
+            color: var(--red-700);
+            background: var(--red-100);
+            border: 1px solid #fecdd3;
+            border-radius: var(--r-sm);
+            font-size: 13px;
+            padding: 12px;
+        }
+
+        .bonus-summary {
+            align-items: center;
+            background: var(--navy-800);
+            border-radius: var(--r);
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 13px 14px;
+        }
+
+        .bonus-summary span {
+            font-size: 12px;
+            opacity: .8;
+        }
+
+        .bonus-summary strong {
+            font-size: 16px;
+        }
+
+        .bonus-table-scroll {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .bonus-table {
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 610px;
+            width: 100%;
+        }
+
+        .bonus-table th {
+            background: var(--bg-2);
+            color: var(--muted);
+            font-size: 10.5px;
+            letter-spacing: .03em;
+            padding: 9px 10px;
+            text-align: left;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .bonus-table td {
+            border-top: 1px solid var(--bg-2);
+            color: var(--ink-2);
+            padding: 10px;
+            white-space: nowrap;
+        }
+
+        .bonus-table .r {
+            text-align: right;
         }
 
         .wo-card {
