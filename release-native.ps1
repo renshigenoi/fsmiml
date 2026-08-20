@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Build & rilis APK native FSM Teknisi dalam satu perintah.
 
@@ -155,14 +155,29 @@ if (-not $SkipGradle) {
     Write-Host "[6/7] SKIP Gradle build." -ForegroundColor Yellow
 }
 
+$GradleApkDir = Join-Path $AndroidDir 'app\build\outputs\apk\release'
+# Path APK: bisa "app-release.apk" (signed) atau "app-release-unsigned.apk" (belum ada keystore)
+$GradleApk = Join-Path $GradleApkDir 'app-release.apk'
+if (-not (Test-Path $GradleApk)) {
+    $GradleApk = Join-Path $GradleApkDir 'app-release-unsigned.apk'
+}
+
 # ─────────────────────────────────────────────────────────────
 # 7. Copy & rename APK ke apk-output/
 # ─────────────────────────────────────────────────────────────
 Write-Host "[7/8] Copy APK ke apk-output/..." -ForegroundColor Cyan
 
 if (-not (Test-Path $GradleApk)) {
-    throw "APK tidak ditemukan di: $GradleApk`nPastikan Gradle berhasil build atau gunakan -SkipGradle jika sudah ada."
+    throw "APK tidak ditemukan di: $GradleApkDir`nPastikan Gradle berhasil build atau gunakan -SkipGradle jika sudah ada."
 }
+
+$isUnsigned = $GradleApk -like '*unsigned*'
+if ($isUnsigned) {
+    Write-Host "   PERHATIAN: APK belum di-sign (app-release-unsigned.apk)." -ForegroundColor Yellow
+    Write-Host "   APK ini bisa diinstall namun TIDAK bisa publish ke Play Store." -ForegroundColor Yellow
+    Write-Host "   Untuk sign, tambahkan signingConfig di build.gradle." -ForegroundColor Yellow
+}
+
 New-Item -ItemType Directory -Force -Path $ApkOutput | Out-Null
 $ApkName = "fsm-teknisi-$newVer.apk"
 $ApkDest = Join-Path $ApkOutput $ApkName
