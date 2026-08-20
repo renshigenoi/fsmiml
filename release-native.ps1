@@ -213,6 +213,38 @@ Write-Host "   MOBILE_APP_VERSION=$newVer" -ForegroundColor Gray
 Write-Host "   MOBILE_APP_DOWNLOAD_URL=$downloadUrl" -ForegroundColor Gray
 
 # ─────────────────────────────────────────────────────────────
+# 9. Git: add → commit → push
+# ─────────────────────────────────────────────────────────────
+Write-Host "[9/9] Git commit & push..." -ForegroundColor Cyan
+
+Push-Location $Root
+try {
+    # Pastikan ini git repo
+    $isGit = git rev-parse --is-inside-work-tree 2>$null
+    if ($isGit -ne 'true') { throw "Folder ini bukan git repository." }
+
+    git add .
+    if ($LASTEXITCODE -ne 0) { throw "git add gagal (exit $LASTEXITCODE)" }
+
+    $commitMsg = "release: APK native v$newVer - update native build"
+    git commit -m $commitMsg
+    if ($LASTEXITCODE -ne 0) { throw "git commit gagal (exit $LASTEXITCODE)" }
+
+    git push origin main
+    if ($LASTEXITCODE -ne 0) { throw "git push gagal (exit $LASTEXITCODE)" }
+
+    Write-Host "   git push origin main berhasil!" -ForegroundColor Green
+} catch {
+    Write-Host "   GIT ERROR: $_" -ForegroundColor Red
+    Write-Host "   Jalankan manual:" -ForegroundColor Yellow
+    Write-Host "     git add ." -ForegroundColor Yellow
+    Write-Host "     git commit -m 'release: APK native v$newVer'" -ForegroundColor Yellow
+    Write-Host "     git push origin main" -ForegroundColor Yellow
+} finally {
+    Pop-Location
+}
+
+# ─────────────────────────────────────────────────────────────
 # Ringkasan
 # ─────────────────────────────────────────────────────────────
 Write-Host "`n=============================================" -ForegroundColor Green
@@ -223,7 +255,8 @@ Write-Host " APK     : $ApkDest"
 Write-Host " URL     : $downloadUrl"
 Write-Host ""
 Write-Host "Langkah selanjutnya di VPS:" -ForegroundColor Yellow
-Write-Host "  1. Upload APK ke: $($AppUrl.Replace('https://',''))/downloads/apk/$ApkName"
+Write-Host "  1. git pull origin main"
 Write-Host "  2. Salin nilai dari .env.liveserver.example ke .env VPS"
 Write-Host "  3. Jalankan: php artisan config:clear"
+Write-Host "  4. Upload APK ke: public/downloads/apk/$ApkName"
 Write-Host "=============================================" -ForegroundColor Green

@@ -22,3 +22,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# APK build output (file besar, tidak perlu di-commit)
+apk-output/
+public/downloads/apk/*.apk
