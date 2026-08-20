@@ -18,6 +18,7 @@ class TrackingPoint extends Model
         'heading_degrees',
         'recorded_at',
         'received_at',
+        'is_mocked',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class TrackingPoint extends Model
             'heading_degrees' => 'decimal:2',
             'recorded_at' => 'datetime',
             'received_at' => 'datetime',
+            'is_mocked' => 'boolean',
         ];
     }
 

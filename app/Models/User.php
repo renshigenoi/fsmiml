@@ -38,6 +38,7 @@ class User extends Authenticatable
         'password',
         'role',
         'pin_hash',
+        'allow_fake_gps',
     ];
 
     /**
@@ -61,6 +62,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'allow_fake_gps' => 'boolean',
         ];
     }
 

@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('dashboard/attendance/locations', [AttendanceAdminController::class, 'storeLocation'])->name('dashboard.attendance.locations.store');
     Route::post('dashboard/attendance/locations/{location}', [AttendanceAdminController::class, 'updateLocation'])->name('dashboard.attendance.locations.update');
     Route::post('dashboard/attendance/technicians/{technician}', [AttendanceAdminController::class, 'updateTechnician'])->name('dashboard.attendance.technicians.update');
+    Route::post('dashboard/users/{user}/toggle-fake-gps', [DashboardController::class, 'toggleFakeGps'])->name('dashboard.users.toggle-fake-gps');
     Route::post('dashboard/attendance/leaves/{leaveRequest}', [AttendanceAdminController::class, 'reviewLeave'])->name('dashboard.attendance.leaves.review');
     Route::get('dashboard/reset-pin', [DashboardController::class, 'resetPinForm'])->name('dashboard.reset-pin');
     Route::post('dashboard/reset-pin', [DashboardController::class, 'resetPin']);

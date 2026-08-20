@@ -17,6 +17,7 @@ class UserResource extends JsonResource
             'role' => $this->role?->value,
             'technician_id' => $this->technician?->getKey(),
             'has_pin' => ! is_null($this->pin_hash),
+            'allow_fake_gps' => (bool) $this->allow_fake_gps,
         ];
     }
 }

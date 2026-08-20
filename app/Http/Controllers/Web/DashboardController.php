@@ -483,6 +483,14 @@ class DashboardController extends Controller
         return back()->with('success', "PIN akun {$user->email} berhasil direset.");
     }
 
+    public function toggleFakeGps(User $user): RedirectResponse
+    {
+        $this->ensureResetPinAccess();
+        $user->update(['allow_fake_gps' => ! $user->allow_fake_gps]);
+        $status = $user->allow_fake_gps ? 'diizinkan' : 'diblokir';
+        return back()->with('success', "Izin Fake GPS untuk {$user->name} berhasil {$status}.");
+    }
+
     private function ensureResetPinAccess(): void
     {
         abort_unless(

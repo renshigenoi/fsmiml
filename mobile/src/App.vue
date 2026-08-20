@@ -628,39 +628,90 @@
                         <div v-if="attendance.loading" class="empty">Memuat data absensi…</div>
                         <template v-else>
                             <div v-if="attendance.leave && attendance.leave.status === 'approved'" class="att-status leave-status"><strong>Sedang {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }}</strong><p>{{ attendance.leave.note || 'Tidak ada catatan.' }}</p></div>
-                            <template v-else><section class="attendance-activity-card"><span class="activity-date">{{ attendanceServerDate() }}</span><strong>{{ attendanceServerTime() }}</strong><div class="activity-location"><span>📍</span><b>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name : 'Lokasi fleksibel' }}</b></div></section><div class="att-actions"><button type="button" class="btn-att-primary" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">{{ attendance.record && attendance.record.check_in_at ? 'Datang tercatat' : 'Absen datang' }}</button><button type="button" class="btn-att-secondary" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">{{ attendance.record && attendance.record.check_out_at ? 'Pulang tercatat' : 'Absen pulang' }}</button></div></template>
-                            <button type="button" class="att-outline" @click="openLeaveSheet">Cuti / Izin</button><button type="button" class="att-outline" style="margin-top:10px" @click="openAttendanceCalendar">Kalender</button>
-							<h3 class="att-section-title">Absensi hari ini</h3>
-							<div class="att-list" v-if="!(attendance.leave && attendance.leave.status === 'approved')">
-								<div>
-									<div>
-										<span>Absen datang</span><br>
-										<small v-if="attendance.record && attendance.record.check_in_status" 
-											   :class="attendance.record.check_in_status === 'valid' ? 'text-success' : 'text-primary'">
-											● {{ attendance.record.check_in_status === 'valid' ? 'Di Lokasi Valid' : 'Luar Lokasi Diizinkan' }}
-										</small>
-									</div>
-									<strong>{{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}</strong>
-								</div>
+                            <template v-else>
+                                <div v-if="attendance.isMocked" class="alert" style="margin-bottom:16px; background:#fee2e2; border:1px solid #ef4444; border-radius:var(--r); padding:12px; color:#b91c1c; font-size:14px; display:flex; align-items:center; gap:10px; font-weight:600;">
+                                    <span style="font-size:20px;">⚠️</span> Aplikasi mendeteksi lokasi palsu (Fake GPS). Anda tidak dapat absen.
+                                </div>
+                                <section class="attendance-activity-card">
+                                    <span class="activity-date">{{ attendanceServerDate() }}</span>
+                                    <strong>{{ attendanceServerTime() }}</strong>
+                                    <div class="activity-location">
+                                        <span>📍</span><b>{{ attendance.policy && attendance.policy.location_name ? attendance.policy.location_name : 'Lokasi fleksibel' }}</b>
+                                    </div>
+                                </section>
 
-								<div>
-									<div>
-										<span>Absen pulang</span><br>
-										<small v-if="attendance.record && attendance.record.check_out_status" 
-											   :class="attendance.record.check_out_status === 'valid' ? 'text-success' : 'text-primary'">
-											● {{ attendance.record.check_out_status === 'valid' ? 'Di Lokasi Valid' : 'Luar Lokasi Diizinkan' }}
-										</small>
-									</div>
-									<strong>{{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}</strong>
-								</div>
-							</div>
-                            <div v-if="attendance.leave && attendance.leave.status === 'pending'" class="att-pending">Pengajuan {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }} menunggu persetujuan.</div>
+                                <!-- Grid Absen Datang & Pulang -->
+                                <div class="att-grid-2">
+                                    <button type="button" class="att-card-btn att-card-green" :disabled="busy || !!(attendance.record && attendance.record.check_in_at)" @click="submitAttendance('check-in')">
+                                        <div class="att-icon">🕒</div>
+                                        <div class="att-title">{{ attendance.record && attendance.record.check_in_at ? 'Tercatat' : 'Absen Datang' }}</div>
+                                    </button>
+                                    <button type="button" class="att-card-btn att-card-orange" :disabled="busy || !(attendance.record && attendance.record.check_in_at) || !!(attendance.record && attendance.record.check_out_at)" @click="submitAttendance('check-out')">
+                                        <div class="att-icon">🚪</div>
+                                        <div class="att-title">{{ attendance.record && attendance.record.check_out_at ? 'Tercatat' : 'Absen Pulang' }}</div>
+                                    </button>
+                                </div>
+
+                                <div class="att-grid-2" style="margin-top: 12px;">
+                                    <button type="button" class="att-pill-btn" @click="openLeaveSheet('leave')">
+                                        <span class="att-icon-sm">🌴</span> Cuti
+                                    </button>
+                                    <button type="button" class="att-pill-btn" @click="openLeaveSheet('permission')">
+                                        <span class="att-icon-sm">🕘</span> Izin
+                                    </button>
+                                </div>
+                            </template>
+
+                            <!-- Riwayat Hari Ini -->
+                            <h3 class="att-section-title">Riwayat Absen Hari Ini</h3>
+                            <div class="att-history-card" v-if="!(attendance.leave && attendance.leave.status === 'approved')">
+                                <div class="att-history-item">
+                                    <div class="att-history-icon green">🕒</div>
+                                    <div class="att-history-info">
+                                        <span>Datang</span>
+                                        <small v-if="attendance.record && attendance.record.check_in_status" :class="attendance.record.check_in_status === 'valid' ? 'text-success' : 'text-primary'">
+                                            ● {{ attendance.record.check_in_status === 'valid' ? 'Di Lokasi Valid' : 'Luar Lokasi Diizinkan' }}
+                                        </small>
+                                    </div>
+                                    <strong :style="{ color: attendance.record && attendance.record.check_in_at ? 'var(--ink)' : 'var(--muted)' }">
+                                        {{ attendance.record && attendance.record.check_in_at ? attendanceTime(attendance.record.check_in_at) : 'Belum absen' }}
+                                    </strong>
+                                </div>
+                                <div class="att-history-item">
+                                    <div class="att-history-icon orange">🚪</div>
+                                    <div class="att-history-info">
+                                        <span>Pulang</span>
+                                        <small v-if="attendance.record && attendance.record.check_out_status" :class="attendance.record.check_out_status === 'valid' ? 'text-success' : 'text-primary'">
+                                            ● {{ attendance.record.check_out_status === 'valid' ? 'Di Lokasi Valid' : 'Luar Lokasi Diizinkan' }}
+                                        </small>
+                                    </div>
+                                    <strong :style="{ color: attendance.record && attendance.record.check_out_at ? 'var(--ink)' : 'var(--muted)' }">
+                                        {{ attendance.record && attendance.record.check_out_at ? attendanceTime(attendance.record.check_out_at) : 'Belum absen' }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <!-- Cuti Pending Status -->
+                            <div v-if="attendance.leave && attendance.leave.status === 'pending'" class="att-pending">
+                                Pengajuan {{ attendance.leave.type === 'leave' ? 'cuti' : 'izin' }} menunggu persetujuan.
+                            </div>
+
+                            <!-- Kalender & Report Harian -->
+                            <button type="button" class="att-calendar-card" @click="openAttendanceCalendar">
+                                <div class="acc-icon">📅</div>
+                                <div class="acc-text">
+                                    <strong>Kalender & Laporan Harian</strong>
+                                    <span>Lihat riwayat absensi bulanan Anda</span>
+                                </div>
+                                <div class="acc-chevron">›</div>
+                            </button>
                         </template>
                         </div>
                     </div>
                     <div v-if="view === 'attendance-calendar'" class="attendance-view">
-                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendanceCalendar" title="Muat ulang">⟳</button></div></div>
-                        <div class="greet-band att-greet-band"><h2>Kalender absensi</h2><p>Lihat riwayat kehadiran per hari.</p></div>
+                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendance" title="Muat ulang">⟳</button></div></div>
+                        <div class="greet-band att-greet-band"><h2>Halo, {{ firstName }}! 👋</h2><p>Lihat riwayat kehadiran per hari.</p></div>
+                        <div class="tab-switcher-wrapper attendance-tab-wrapper"><div class="tab-switcher attendance-single-tab"><button type="button" class="tab-btn active"><span>📅 Kalender & Laporan Harian</span></button></div></div>
                         <div class="attendance-page calendar-page"><button type="button" class="calendar-back-link" @click="view = 'attendance'">‹ Kembali</button>
                         <section class="attendance-calendar-card">
                             <div class="calendar-month-nav"><button type="button" aria-label="Bulan sebelumnya" :disabled="attendance.calendarLoading" @click="changeAttendanceMonth(-1)">‹</button><strong>{{ attendance.calendarMonthLabel || 'Memuat…' }}</strong><button type="button" aria-label="Bulan berikutnya" :disabled="attendance.calendarLoading" @click="changeAttendanceMonth(1)">›</button></div>
@@ -886,6 +937,7 @@ import { API_V1 } from './composables/api';
 
 // Plugin background geolocation (jalan walau app di-minimize, via foreground service).
 const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
+const MockLocationDetector = registerPlugin('MockLocationDetector');
 
 // Perbaiki ikon marker default Leaflet saat dibundel Vite (URL default-nya tidak resolve).
 delete L.Icon.Default.prototype._getIconUrl;
@@ -1139,7 +1191,7 @@ export default {
                         mapInstance: null,
                         mapMarker: null,
                         mapPosMarker: null,
-                        attendance: { loading: false, calendarLoading: false, record: null, leave: null, policy: null, calendar: [], calendarMonth: '', calendarMonthLabel: '', calendarStartOffset: 0, selectedDate: '', serverNowMs: 0, serverClockStartedAt: 0, serverClockTick: 0 },
+                        attendance: { loading: false, calendarLoading: false, record: null, leave: null, policy: null, isMocked: false, calendar: [], calendarMonth: '', calendarMonthLabel: '', calendarStartOffset: 0, selectedDate: '', serverNowMs: 0, serverClockStartedAt: 0, serverClockTick: 0 },
                         attendanceClockTimer: null,
                         leaveSheet: { show: false, type: 'leave', date: '', endDate: '', startTime: '', endTime: '', note: '', error: '' },
                     };
@@ -1488,9 +1540,18 @@ export default {
                         this.view = 'attendance';
                         await this.loadAttendance();
                     },
+                    async checkMockLocation() {
+                        if (!this.isNativeApp) return false;
+                        try {
+                            const res = await MockLocationDetector.check();
+                            this.attendance.isMocked = res.isMocked;
+                            return res.isMocked;
+                        } catch (e) { return false; }
+                    },
                     async loadAttendance() {
                         if (!this.token) return;
                         this.attendance.loading = true;
+                        this.checkMockLocation();
                         try {
                             const res = await this.api('/attendance/today');
                             Object.assign(this.attendance, res.data || res);
@@ -1536,6 +1597,10 @@ export default {
                     },
                     async submitAttendance(type) {
                         if (this.busy) return;
+                        if (this.attendance.isMocked) {
+                            this.showToast('Lokasi palsu terdeteksi. Matikan Fake GPS.', 'error');
+                            return;
+                        }
                         this.busy = true;
                         try {
                             const [photo, coords] = await Promise.all([this.attendancePhoto(), this.attendancePosition()]);
@@ -1550,7 +1615,7 @@ export default {
                         const offset = date.getTimezoneOffset() * 60000;
                         return new Date(date.getTime() - offset).toISOString().slice(0, 10);
                     },
-                    openLeaveSheet() { const today = this.localDateString(); this.leaveSheet = { show: true, type: 'leave', date: today, endDate: today, startTime: '08:00', endTime: '17:00', note: '', error: '' }; },
+                    openLeaveSheet(type = 'leave') { const today = this.localDateString(); this.leaveSheet = { show: true, type: type, date: today, endDate: today, startTime: '08:00', endTime: '17:00', note: '', error: '' }; },
                     async submitLeave() {
                         if (this.busy) return; this.busy = true; this.leaveSheet.error = '';
                         try { await this.api('/leave-requests', { method: 'POST', body: { type: this.leaveSheet.type, leave_date: this.leaveSheet.date, leave_end_date: this.leaveSheet.type === 'leave' ? this.leaveSheet.endDate : null, start_time: this.leaveSheet.type === 'permission' ? this.leaveSheet.startTime : null, end_time: this.leaveSheet.type === 'permission' ? this.leaveSheet.endTime : null, note: this.leaveSheet.note } }); this.leaveSheet.show = false; this.showToast('Pengajuan cuti/izin berhasil dikirim.', 'success'); await this.loadAttendance(); }
@@ -2795,6 +2860,26 @@ export default {
                     async sendLocation() {
                         const sessionId = this.tripSessionId || (this.activeSession() ? this.activeSession().id : null);
                         if (!sessionId || !this.lastPos) return;
+
+                        // Cek Fake GPS saat tracking
+                        const isMocked = await this.checkMockLocation();
+                        if (isMocked) {
+                            const allowFake = this.user && this.user.allow_fake_gps;
+                            if (!allowFake) {
+                                // Blokir tracking, hentikan GPS
+                                this.stopGps();
+                                this.showToast('Tracking dihentikan: Fake GPS terdeteksi. Matikan aplikasi mock location.', 'error');
+                                return;
+                            }
+                            // allow_fake_gps=true: lanjut tapi beri peringatan sekali
+                            if (!this._mockWarningShown) {
+                                this._mockWarningShown = true;
+                                this.showToast('⚠️ Tracking aktif dengan Fake GPS (dicatat sistem admin).', 'info');
+                            }
+                        } else {
+                            this._mockWarningShown = false;
+                        }
+
                         const pos = this.lastPos.coords;
                         try {
                             await this.api('/tracking-sessions/' + sessionId + '/locations', {
@@ -2806,6 +2891,7 @@ export default {
                                     speed_mps: pos.speed != null ? Math.round(pos.speed * 100) / 100 : null,
                                     heading_degrees: pos.heading != null ? Math.round(pos.heading) : null,
                                     recorded_at: new Date().toISOString(),
+                                    is_mocked: isMocked,
                                 },
                             });
                             this.gpsSentLabel = new Date().toLocaleTimeString('id-ID', {
@@ -3934,7 +4020,7 @@ export default {
         .calendar-day.selected { color:#fff; background:var(--navy-900); box-shadow:0 4px 10px rgba(6,20,41,.28); }
         .calendar-day.selected::after { background:#09bd7d; }
         .att-legend { justify-content:center; padding:13px 10px; border-radius:12px; background:rgba(255,255,255,.72); }
-        .attendance-day-detail { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:14px; padding:14px 16px; border:1px solid var(--line); border-radius:var(--r-md); background:#fff; box-shadow:var(--shadow-sm); }
+        .attendance-day-detail { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:14px; padding:14px 16px; border:1px solid var(--line); border-radius:var(--r); background:#fff; box-shadow:var(--shadow-sm); }
         .attendance-day-detail-date { width:100%; color:var(--muted); font-size:12px; font-weight:700; }
         .attendance-day-detail strong { color:var(--navy-900); font-size:15px; }
         .attendance-day-detail > span:not(.attendance-day-detail-date) { color:var(--muted); font-size:13px; }
@@ -3950,8 +4036,8 @@ export default {
         .att-head h2 { margin:0; font-size:22px; color:var(--ink); }
         .att-head p { margin:3px 0 0; font-size:13px; color:var(--muted); }
         .att-back { width:34px; height:34px; border:0; border-radius:10px; color:var(--navy-700); background:var(--navy-100); font-size:29px; line-height:1; }
-        .att-status, .att-list { border:1px solid var(--line); border-radius:var(--r-md); background:#fff; box-shadow:var(--shadow-sm); }
-        .attendance-activity-card { padding:12px 16px 14px; border-radius:0 0 var(--r-md) var(--r-md); background:#fff; text-align:center; box-shadow:0 7px 18px rgba(11,32,68,.12); }
+        .att-status, .att-list { border:1px solid var(--line); border-radius:var(--r); background:#fff; box-shadow:var(--shadow-sm); }
+        .attendance-activity-card { padding:12px 16px 14px; border-radius:var(--r); background:#fff; text-align:center; box-shadow:0 7px 18px rgba(11,32,68,.12); }
         .attendance-activity-card .activity-date { display:block; color:#536b91; font-size:12px; font-weight:700; }
         .attendance-activity-card > strong { display:block; margin:3px 0 10px; color:var(--navy-900); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:27px; font-weight:800; letter-spacing:.04em; }
         .activity-location { display:flex; align-items:center; justify-content:center; gap:7px; padding-top:9px; border-top:1px solid #e6ebf3; color:var(--navy-800); font-size:13px; }.activity-location span { font-size:14px; }.attendance-activity-card small { display:block; margin-top:4px; color:var(--muted); font-size:10px; }
@@ -4865,4 +4951,34 @@ export default {
         .pin-key-modal:active {
             background: var(--navy-100);
         }
+        /* ================= ATTENDANCE REDESIGN ================= */
+        .att-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+        .att-card-btn { background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: 20px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm); }
+        .att-card-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: grayscale(1); box-shadow: none; }
+        .att-card-btn .att-icon { font-size: 32px; height: 50px; width: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f3f4f6; }
+        .att-card-green:not(:disabled) .att-icon { background: #dcfce7; color: #166534; }
+        .att-card-green:not(:disabled) { border-color: #bbf7d0; box-shadow: 0 4px 12px rgba(22, 101, 52, 0.08); }
+        .att-card-orange:not(:disabled) .att-icon { background: #ffedd5; color: #c2410c; }
+        .att-card-orange:not(:disabled) { border-color: #fed7aa; box-shadow: 0 4px 12px rgba(194, 65, 12, 0.08); }
+        .att-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+        
+        .att-pill-btn { background: #fff; border: 1px solid var(--line); padding: 12px; border-radius: var(--r); font-size: 14px; font-weight: 600; color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: var(--shadow-sm); }
+        .att-icon-sm { font-size: 18px; }
+        
+        .att-history-card { background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: 0 16px; margin-top: 8px; box-shadow: var(--shadow-sm); }
+        .att-history-item { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+        .att-history-item:last-child { border-bottom: none; }
+        .att-history-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .att-history-icon.green { background: #dcfce7; color: #166534; }
+        .att-history-icon.orange { background: #ffedd5; color: #c2410c; }
+        .att-history-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .att-history-info span { font-size: 14px; font-weight: 600; color: var(--ink); }
+        .att-history-info small { font-size: 11px; }
+        
+        .att-calendar-card { width: 100%; background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: 16px; margin-top: 24px; display: flex; align-items: center; gap: 14px; cursor: pointer; text-align: left; box-shadow: var(--shadow-sm); }
+        .acc-icon { font-size: 24px; background: #f3f4f6; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .acc-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .acc-text strong { font-size: 15px; color: var(--ink); }
+        .acc-text span { font-size: 13px; color: var(--muted); }
+        .acc-chevron { font-size: 20px; color: var(--muted); }
 </style>

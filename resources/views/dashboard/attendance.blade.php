@@ -521,6 +521,16 @@
                                     @csrf
                                     <button class="btn btn-sm" type="submit">Simpan</button>
                                 </form>
+                                @if($technician->user)
+                                <form method="POST" action="{{ route('dashboard.users.toggle-fake-gps', $technician->user) }}" style="margin-top:6px;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm {{ $technician->user->allow_fake_gps ? 'btn-danger' : '' }}"
+                                        title="{{ $technician->user->allow_fake_gps ? 'Fake GPS DIIZINKAN (klik untuk blokir)' : 'Fake GPS DIBLOKIR (klik untuk izinkan)' }}"
+                                        style="font-size:11px; padding:3px 8px;">
+                                        {{ $technician->user->allow_fake_gps ? '🟡 Fake GPS: Izin' : '🔒 Fake GPS: Blokir' }}
+                                    </button>
+                                </form>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

@@ -20,6 +20,7 @@ class StoreTrackingLocationRequest extends FormRequest
             'speed_mps' => ['nullable', 'numeric', 'min:0'],
             'heading_degrees' => ['nullable', 'numeric', 'between:0,359.999999'],
             'recorded_at' => ['required', 'date'],
+            'is_mocked' => ['nullable', 'boolean'],
         ];
     }
 }
