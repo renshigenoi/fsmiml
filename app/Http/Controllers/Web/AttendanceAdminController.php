@@ -7,14 +7,17 @@ use App\Modules\Attendance\Models\AttendanceRecord;
 use App\Modules\Attendance\Models\LeaveRequest;
 use App\Modules\Attendance\Models\WorkLocation;
 use App\Modules\Identity\Models\Technician;
+use App\Modules\Identity\Enums\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 
 class AttendanceAdminController extends Controller
 {
-	public function index(): View
+	public function index(Request $request): View
 	{
+		$this->authorizeAttendanceAdmin($request);
 		return view('dashboard.attendance', [
 			'locations' => WorkLocation::query()->orderBy('name')->get(),
 			'technicians' => Technician::query()->with(['user', 'workLocation'])->orderBy('employee_code')->get(),
@@ -25,6 +28,7 @@ class AttendanceAdminController extends Controller
 
     public function storeLocation(Request $request): RedirectResponse
     {
+		$this->authorizeAttendanceAdmin($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -40,6 +44,7 @@ class AttendanceAdminController extends Controller
 
     public function updateLocation(Request $request, WorkLocation $location): RedirectResponse
     {
+		$this->authorizeAttendanceAdmin($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -49,6 +54,10 @@ class AttendanceAdminController extends Controller
             'is_active' => ['required', 'boolean']
         ]);
 
+        if (! $data['is_active'] && $location->technicians()->exists()) {
+            return back()->withErrors(['is_active' => 'Pindahkan seluruh teknisi ke lokasi aktif lain sebelum menonaktifkan lokasi ini.'])->withInput();
+        }
+
         $location->update($data);
 
         return back()->with('success', 'Lokasi kerja diperbarui.');
@@ -56,8 +65,9 @@ class AttendanceAdminController extends Controller
 
     public function updateTechnician(Request $request, Technician $technician): RedirectResponse
     {
+		$this->authorizeAttendanceAdmin($request);
         $data = $request->validate([
-            'work_location_id' => ['nullable', 'exists:work_locations,id'],
+            'work_location_id' => ['nullable', Rule::exists('work_locations', 'id')->where('is_active', true)],
             'attendance_mode' => ['required', 'in:anywhere,required_location,allowed_outside'],
             'attendance_radius_override' => ['nullable', 'integer', 'min:10', 'max:10000']
         ]);
@@ -69,6 +79,7 @@ class AttendanceAdminController extends Controller
 
     public function reviewLeave(Request $request, LeaveRequest $leaveRequest): RedirectResponse
     {
+		$this->authorizeAttendanceAdmin($request);
         $data = $request->validate([
             'status' => ['required', 'in:approved,rejected'],
             'review_note' => ['nullable', 'string', 'max:1000']
@@ -81,5 +92,10 @@ class AttendanceAdminController extends Controller
         ]);
 
         return back()->with('success', $data['status'] === 'approved' ? 'Pengajuan disetujui.' : 'Pengajuan ditolak.');
+    }
+
+    private function authorizeAttendanceAdmin(Request $request): void
+    {
+        abort_unless(in_array($request->user()?->role, [UserRole::Administrator, UserRole::Coordinator], true), 403);
     }
 }
