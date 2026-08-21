@@ -928,7 +928,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { FileOpener } from '@capacitor-community/file-opener';
-import { registerPlugin } from '@capacitor/core';
+import { CapacitorHttp, registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { API_V1 } from './composables/api';
 
@@ -1499,6 +1499,36 @@ export default {
                         });
                         if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan.');
                         return data;
+                    },
+                    // Titik GPS harus dikirim melalui HTTP native saat APK berada di
+                    // background. `fetch` milik WebView dapat dibatasi Android setelah
+                    // beberapa menit layar terkunci, walau foreground GPS masih aktif.
+                    async trackingApi(path, body) {
+                        if (this.isNativeApp) {
+                            const headers = {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            };
+                            if (this.token) headers.Authorization = 'Bearer ' + this.token;
+
+                            const response = await CapacitorHttp.post({
+                                url: API_V1 + path,
+                                headers,
+                                data: body,
+                                connectTimeout: 20000,
+                                readTimeout: 20000,
+                                responseType: 'json',
+                            });
+                            if (response.status < 200 || response.status >= 300) {
+                                const message = response.data && response.data.message
+                                    ? response.data.message
+                                    : 'Gagal mengirim lokasi.';
+                                throw new Error(message);
+                            }
+                            return response.data;
+                        }
+
+                        return this.api(path, { method: 'POST', body });
                     },
                     async apiUpload(path, formData) {
                         const config = {
@@ -2843,17 +2873,14 @@ export default {
 
                         const pos = this.lastPos.coords;
                         try {
-                            await this.api('/tracking-sessions/' + sessionId + '/locations', {
-                                method: 'POST',
-                                body: {
-                                    latitude: +pos.latitude.toFixed(7),
-                                    longitude: +pos.longitude.toFixed(7),
-                                    accuracy_meters: pos.accuracy != null ? Math.round(pos.accuracy) : null,
-                                    speed_mps: pos.speed != null ? Math.round(pos.speed * 100) / 100 : null,
-                                    heading_degrees: pos.heading != null ? Math.round(pos.heading) : null,
-                                    recorded_at: new Date().toISOString(),
-                                    is_mocked: isMocked,
-                                },
+                            await this.trackingApi('/tracking-sessions/' + sessionId + '/locations', {
+                                latitude: +pos.latitude.toFixed(7),
+                                longitude: +pos.longitude.toFixed(7),
+                                accuracy_meters: pos.accuracy != null ? Math.round(pos.accuracy) : null,
+                                speed_mps: pos.speed != null ? Math.round(pos.speed * 100) / 100 : null,
+                                heading_degrees: pos.heading != null ? Math.round(pos.heading) : null,
+                                recorded_at: new Date().toISOString(),
+                                is_mocked: isMocked,
                             });
                             this.gpsSentLabel = new Date().toLocaleTimeString('id-ID', {
                                 hour: '2-digit',

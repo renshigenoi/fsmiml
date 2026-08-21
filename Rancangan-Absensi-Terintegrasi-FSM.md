@@ -1,176 +1,144 @@
-# Rancangan Absensi Terintegrasi FSM
+# Absensi Terintegrasi FSM — Implementasi Saat Ini
 
-## Ringkasan keputusan
+Dokumen ini diselaraskan dengan implementasi yang ada per 21 Agustus 2026, termasuk mobile, API, web admin, dan audit risiko.
 
-Modul **Absensi** tetap berada dalam aplikasi FSM yang sama. Pada navigasi bawah, Absensi cukup menjadi satu menu utama; halaman di dalamnya memuat status hari ini dan mengarahkan pengguna ke riwayat serta cuti/izin. Dengan pendekatan ini aplikasi tetap ringkas, tetapi data absensi, penugasan lapangan, dan karyawan saling terhubung.
+## Cakupan
 
-Dasar pengaturannya adalah **Master Lokasi Kerja**. Admin dapat membuat satu atau beberapa lokasi (kantor pusat, cabang, gudang, proyek), lalu menugaskan lokasi dan aturan absensi kepada tiap karyawan.
+Absensi berada di aplikasi FSM yang sama.
 
-## Struktur menu aplikasi
+Navigasi mobile: `Beranda` · `Absen` · `Keamanan` · `Kunci Layar`.
 
-Navigasi bawah yang digunakan saat ini:
+Web admin memiliki menu **Absensi** untuk mengelola lokasi, kebijakan karyawan, cuti/izin, dan rekap hari ini.
 
-`Beranda` · `Keamanan` · `Kunci Layar`
+## Mobile
 
-Absensi cukup ditambahkan sebagai satu menu baru, sehingga menjadi:
+Halaman Absensi menggunakan shell visual Beranda: header IML/FSM Teknisi, band biru, panel tab putih overlap, serta bottom navigation yang sama.
 
-`Beranda` · `Absen` · `Keamanan` · `Kunci Layar`
+Panel **Aktivitas Hari Ini** memuat dalam satu kartu:
 
-Halaman **Absen** dibuat sederhana dan berfokus pada hari ini:
+- tanggal lengkap;
+- jam `HH:MM:SS` berjalan;
+- lokasi kerja dari master lokasi atau label lokasi fleksibel;
+- penjelasan bahwa foto dan GPS wajib direkam.
 
-```text
-[ Absen Datang ]  [ Absen Pulang ]
-[ Cuti / Izin ]                         [ Kalender ]
-------------------------------------------------------
-Absensi hari ini
-- Datang: 08:03
-- Pulang: 17:12
-```
+Jam memakai `server_now` dari API lalu berjalan dengan pengukur durasi aplikasi. Mengubah jam perangkat setelah halaman dibuka tidak mengubah jam yang tampil.
 
-Tombol datang/pulang hanya aktif sesuai statusnya. Detail foto, peta, dan GPS dapat dibuka dari tiap item absensi bila diperlukan, sehingga halaman utama tetap lega.
-
-Jika karyawan memiliki cuti/izin yang telah disetujui untuk hari itu, blok absensi datang dan pulang tidak ditampilkan. Tampilan diganti menjadi:
+Tindakan tersedia:
 
 ```text
-Sedang cuti
-Catatan: Keperluan keluarga
+[ Absen Datang ] [ Absen Pulang ]
+[ Cuti / Izin ]
+[ Kalender ]
 ```
 
-## Kalender absensi
+Pulang baru aktif sesudah datang tercatat. Jika cuti/izin disetujui, tombol absensi digantikan status cuti/izin.
 
-Satu tombol **Kalender** pada halaman Absen mengganti tampilan ke kalender penuh dari tanggal 1 sampai akhir bulan. Setiap tanggal diberi penanda warna agar cepat dipindai:
+### Absen datang dan pulang
 
-| Penanda | Arti |
+Setiap absensi meminta foto kamera, latitude, longitude, akurasi GPS, dan menggunakan waktu server sebagai waktu resmi.
+
+| Data tersimpan | Datang | Pulang |
+|---|---:|---:|
+| Waktu server, foto, koordinat, akurasi | Ya | Ya |
+| Jarak dan hasil validasi lokasi | Ya | Ya |
+| Alamat hasil reverse geocoding | Ya | Ya |
+
+Alamat diusahakan melalui OpenStreetMap Nominatim. Jika gagal, absensi tetap disimpan tanpa alamat.
+
+Pada APK, mock location diperiksa sebelum absensi dikirim. Jika terdeteksi, aplikasi memblokir absen di sisi mobile.
+
+### Kalender
+
+Kalender menampilkan satu bulan, navigasi bulan sebelumnya/berikutnya, tombol refresh, dan **‹ Kembali**. Akhir pekan merah; titik hijau berarti lengkap, biru berarti cuti/izin disetujui, kuning berarti belum lengkap. Pergantian bulan memakai tanggal lokal dan tombol navigasi dikunci saat data dimuat.
+
+### Cuti dan izin
+
+| Jenis | Isian |
 |---|---|
-| Hijau | Hadir lengkap (datang dan pulang) |
-| Kuning | Absen belum lengkap / menunggu pulang |
-| Biru | Cuti atau izin disetujui |
-| Merah | Tidak ada absensi pada hari kerja |
-| Abu-abu | Hari libur / akhir pekan |
+| Cuti | Tanggal mulai, tanggal selesai, catatan |
+| Izin | Tanggal izin, jam mulai, jam selesai, catatan |
 
-Saat satu tanggal diklik, tampilkan detail absensi datang dan pulang (jam, foto, dan lokasi), atau status cuti/izin beserta catatannya. Dengan demikian kalender adalah riwayat visual, sementara halaman awal tetap hanya untuk aksi hari ini.
+Pengajuan tidak meminta foto/lokasi. Status awal `pending`, lalu admin menyetujui atau menolak dengan catatan.
 
-## Master Lokasi Kerja
+## Master lokasi dan kebijakan
 
-Satu lokasi kerja menyimpan minimal:
+Master lokasi menyimpan nama, alamat, latitude, longitude, radius default, dan status aktif/nonaktif.
 
-| Data | Keterangan |
+| Mode | Perilaku |
 |---|---|
-| Nama lokasi | Misalnya Kantor Pusat, Cabang Bandung, Proyek A |
-| Alamat | Ditampilkan sebagai informasi untuk karyawan |
-| Titik GPS | Latitude dan longitude sebagai pusat validasi |
-| Radius default | Contoh 150 meter; dipakai untuk validasi lokasi |
-| Status aktif | Lokasi nonaktif tidak bisa dipilih atau digunakan untuk absensi baru |
+| `required_location` | Ditolak jika berada di luar radius lokasi/override |
+| `allowed_outside` | Diterima di luar radius dan ditandai `outside_allowed` |
+| `anywhere` | Tidak membutuhkan lokasi acuan; foto/GPS tetap direkam |
 
-Radius sebaiknya diatur **per lokasi**, karena kondisi tiap tempat dapat berbeda. Contohnya kantor pusat 100 m, gudang 250 m, dan proyek 500 m.
+Radius override karyawan dipakai bila terisi; selain itu radius master lokasi digunakan.
 
-## Pengaturan absensi per karyawan
+## Web admin
 
-Setiap karyawan memiliki lokasi kerja utama dan mode validasi. Ini memungkinkan Karyawan A ditetapkan ke Kantor B, sementara Karyawan C bekerja dari lokasi proyek.
+Menu **Absensi** menyediakan:
 
-| Mode | Lokasi & radius | Ketentuan |
+1. Tambah lokasi kerja: nama, alamat, GPS, radius.
+2. Master lokasi: edit alamat, koordinat, radius, status.
+3. Aturan per karyawan: lokasi, mode, radius khusus, dan pengaturan Fake GPS untuk tracking.
+4. Approval cuti/izin pending.
+5. Rekap absensi hari ini beserta foto, koordinat, alamat, dan detail peta.
+
+## Alur
+
+```mermaid
+flowchart TD
+    A[Karyawan membuka Absen] --> B[API mengirim waktu server, status, dan kebijakan]
+    B --> C{Cuti/izin disetujui?}
+    C -->|Ya| D[Tampilkan status cuti/izin]
+    C -->|Tidak| E[Pilih datang atau pulang]
+    E --> F[Ambil foto dan GPS]
+    F --> G[Server periksa urutan absensi dan kebijakan lokasi]
+    G --> H{Wajib lokasi dan di luar radius?}
+    H -->|Ya| I[Tolak]
+    H -->|Tidak| J[Simpan waktu, foto, GPS, jarak, status, alamat]
+    J --> K[Perbarui aktivitas dan kalender]
+```
+
+## Endpoint API
+
+Semua endpoint memakai autentikasi Sanctum.
+
+| Method | Endpoint | Fungsi |
 |---|---|---|
-| Wajib lokasi kerja | Menggunakan radius lokasi yang ditugaskan | Absen ditolak bila berada di luar radius |
-| Bebas lokasi | Tidak dibatasi radius | Bisa absen dari mana saja; foto dan GPS tetap wajib |
-| Beberapa lokasi | Memakai daftar lokasi yang diizinkan | Sah jika berada pada radius salah satu lokasi |
-| Mengikuti penugasan FSM | Berdasarkan lokasi proyek/tugas aktif | Cocok untuk teknisi lapangan; lokasi tetap direkam |
+| GET | `/api/v1/attendance/today` | Status hari ini, waktu server, kebijakan, absensi, cuti/izin |
+| POST | `/api/v1/attendance/check-in` | Simpan datang: foto dan GPS |
+| POST | `/api/v1/attendance/check-out` | Simpan pulang: foto dan GPS |
+| GET | `/api/v1/attendance/calendar?month=YYYY-MM` | Riwayat satu bulan |
+| POST | `/api/v1/leave-requests` | Kirim cuti/izin |
 
-Admin dapat memakai radius default dari lokasi atau memberi **override radius** khusus per karyawan bila diperlukan. Contoh: radius Kantor B 150 m, tetapi supervisor yang memakai area parkir luas dapat diberi radius 250 m.
+## Migrasi
 
-Untuk mode bebas lokasi, sistem tidak mengabaikan bukti lokasi. Sistem tetap menyimpan koordinat, tingkat akurasi GPS, foto, waktu server, dan label **Luar lokasi kerja**. Ini membedakan kebijakan yang memang diizinkan dari absensi yang mencurigakan.
+Pastikan migrasi berikut telah dijalankan:
 
-## Data yang direkam pada setiap absensi
+- `2026_08_13_000002_create_attendance_tables.php`
+- `2026_08_13_000003_add_range_and_time_to_leave_requests_table.php`
+- `2026_08_13_202905_add_address_columns_to_attendance_records_table.php`
 
-- Karyawan dan tanggal kerja.
-- Jenis absensi: datang atau pulang.
-- Waktu dari server (bukan hanya waktu perangkat).
-- Foto kamera.
-- Latitude, longitude, dan akurasi GPS.
-- Lokasi kerja yang menjadi acuan, hasil jarak ke titik lokasi, serta hasil validasi.
-- Keterangan bila absen luar lokasi atau terkait tugas FSM.
-
-## Flow pengaturan oleh admin
-
-```mermaid
-flowchart TD
-    A[Admin membuat Master Lokasi Kerja] --> B[Isi titik GPS dan radius default]
-    B --> C[Atur lokasi kerja utama karyawan]
-    C --> D{Pilih mode validasi}
-    D -->|Wajib lokasi| E[Gunakan radius lokasi atau override per karyawan]
-    D -->|Beberapa lokasi| F[Pilih lokasi yang diizinkan]
-    D -->|Bebas lokasi| G[GPS dan foto wajib, tanpa batas radius]
-    D -->|Mengikuti FSM| H[Gunakan lokasi penugasan aktif]
-    E --> I[Pengaturan aktif]
-    F --> I
-    G --> I
-    H --> I
+```powershell
+php artisan migrate
 ```
 
-## Flow absen datang/pulang karyawan
+## Audit risiko / kemungkinan bug
 
-```mermaid
-flowchart TD
-    A[Karyawan membuka menu Absen] --> B{Ada cuti/izin yang disetujui hari ini?}
-    B -->|Ya| C[Tampilkan status cuti/izin]
-    B -->|Tidak| D{Sudah absen datang?}
-    D -->|Belum| E[Klik Absen Datang]
-    D -->|Sudah| F{Sudah absen pulang?}
-    F -->|Belum| G[Klik Absen Pulang]
-    F -->|Sudah| H[Tampilkan rekap hari ini]
-    E --> I[Ambil foto kamera dan GPS]
-    G --> I
-    I --> J[Server menghitung jarak dan memeriksa mode karyawan]
-    J --> K{Sesuai kebijakan lokasi?}
-    K -->|Ya| L[Simpan absensi berhasil]
-    K -->|Tidak, wajib lokasi| M[Tolak dan tampilkan jarak/lokasi acuan]
-    K -->|Bebas lokasi atau FSM| N[Simpan sebagai luar lokasi / tugas lapangan]
-    L --> O[Perbarui status hari ini]
-    N --> O
-```
+Audit ini hanya mencatat temuan, belum mengubah perilaku aplikasi.
 
-## Flow cuti/izin
+| Prioritas | Temuan | Dampak |
+|---|---|---|
+| P1 | Izin (`permission`) tidak mengisi `leave_end_date`, tetapi query menganggap nilai `NULL` tanpa akhir. | Izin yang disetujui berpotensi memblokir absensi pada tanggal-tanggal berikutnya. |
+| P1 | Route dan `AttendanceAdminController` hanya memakai middleware `auth`, tanpa pemeriksaan peran admin/coordinator. | Pengguna dashboard yang tidak berwenang berpotensi mengubah lokasi, aturan, atau approval. |
+| P1 | `is_active` lokasi belum diperiksa saat validasi absensi. | Lokasi nonaktif masih dapat menjadi acuan absensi. |
+| P1 | Nominatim dipanggil sinkron tanpa timeout eksplisit atau cache. | Absensi bisa lambat ketika layanan eksternal bermasalah; koordinat juga dibagikan ke pihak ketiga. |
+| P2 | Deteksi Fake GPS hanya di aplikasi mobile, bukan di server. | Klien/API yang dimodifikasi dapat mengirim koordinat palsu. |
+| P2 | Akurasi GPS disimpan tetapi belum memiliki ambang penolakan/peringatan server. | Koordinat berakurasi rendah masih dapat lolos dalam radius. |
+| P2 | Parameter `month` kalender belum divalidasi oleh request khusus. | Parameter tidak valid dapat menghasilkan error server, bukan respons validasi. |
+| P3 | Belum ada pengecekan pengajuan cuti/izin yang tumpang tindih. | Admin dapat menerima beberapa pengajuan untuk periode sama. |
 
-```mermaid
-flowchart TD
-    A[Karyawan klik Cuti / Izin] --> B[Modal pengajuan terbuka]
-    B --> C[Pilih jenis: Cuti atau Izin; default Cuti]
-    C --> D[Isi tanggal dan catatan]
-    D --> E[Kirim pengajuan]
-    E --> F[Atasan/Admin meninjau]
-    F --> G{Keputusan}
-    G -->|Disetujui| H[Kalender absensi menandai Cuti/Izin]
-    G -->|Ditolak| I[Karyawan menerima alasan penolakan]
-    H --> J[Tombol absen pada tanggal tersebut tidak ditampilkan]
-```
+## Peningkatan berikutnya
 
-Isi modal pengajuan:
-
-```text
-Pengajuan Cuti / Izin
-
-Jenis     : [ Cuti v ]
-Tanggal   : [ pilih tanggal ]
-Catatan   : [                         ]
-
-                 [ Batal ] [ Kirim ]
-```
-
-Pengajuan **cuti/izin tidak memerlukan foto ataupun lokasi** secara default, karena proses ini adalah permohonan administratif, bukan peristiwa kehadiran. Sistem cukup mencatat waktu pengajuan dan pengguna yang mengajukan. Bila organisasi membutuhkan bukti sakit atau dokumen pendukung, tambahkan lampiran opsional (misalnya surat dokter), bukan foto selfie atau GPS.
-
-Jika kelak ada kebijakan yang secara khusus mengharuskan lokasi saat pengajuan, pengaturan tersebut sebaiknya dibuat opt-in dan dijelaskan kepada karyawan. Namun rekomendasi awal adalah tidak merekamnya agar privasi tetap terjaga.
-
-## Aturan penting yang disarankan
-
-1. Kamera dan akses lokasi wajib diizinkan sebelum absensi dapat dikirim.
-2. Tampilkan akurasi GPS; bila akurasinya terlalu rendah, minta pengguna mencoba kembali.
-3. Gunakan waktu server sebagai waktu resmi absensi.
-4. Foto dan koordinat hanya dipakai untuk bukti absensi, serta aksesnya dibatasi bagi peran yang berwenang.
-5. Untuk kebutuhan operasional, admin tetap dapat melihat dan menindaklanjuti absensi luar lokasi, terlambat, atau belum pulang.
-
-## Rekomendasi implementasi bertahap
-
-**Tahap 1:** Master lokasi, pengaturan karyawan, absen datang/pulang dengan foto dan GPS, serta riwayat.
-
-**Tahap 2:** Cuti/izin dan persetujuan admin/atasan.
-
-**Tahap 3:** Integrasi penugasan FSM, laporan kehadiran, ekspor, dan notifikasi pengingat absen pulang.
+1. Menutup temuan P1, terutama batas akhir izin dan otorisasi admin.
+2. Menambahkan filter tanggal, ekspor rekap, dan notifikasi approval/pengingat pulang.
+3. Menambahkan integrasi otomatis dengan penugasan FSM bila kebijakan lapangan diperlukan.
