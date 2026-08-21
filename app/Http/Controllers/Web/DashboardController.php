@@ -12,6 +12,7 @@ use App\Modules\Assignment\Exceptions\InvalidAssignment;
 use App\Modules\Assignment\Events\AssignmentCreated;
 use App\Modules\Assignment\Models\Assignment;
 use App\Modules\Identity\Enums\UserRole;
+use App\Modules\Identity\Models\Technician;
 use App\Modules\Legacy\Services\LegacyDataSourceService;
 use App\Modules\Legacy\Services\LegacyTechnicianImporter;
 use App\Modules\Legacy\Services\LegacyWorkOrderService;
@@ -56,12 +57,49 @@ class DashboardController extends Controller
             ->get();
 
         $technicians = collect($this->legacy->technicians(null, 8));
+        $activeStatuses = [
+            WorkOrderStatus::OnTheWay->value,
+            WorkOrderStatus::Arrived->value,
+            WorkOrderStatus::Installation->value,
+        ];
+        $monitoringTechnicians = Technician::query()
+            ->with([
+                'user',
+                'assignments' => fn ($query) => $query
+                    ->whereHas('workOrder', fn ($workOrders) => $workOrders->whereIn('status', $activeStatuses))
+                    ->with(['workOrder', 'trackingSessions']),
+            ])
+            ->where(function ($query) use ($activeStatuses): void {
+                $query->where('offline_sync_pending_count', '>', 0)
+                    ->orWhereHas('assignments.workOrder', fn ($workOrders) => $workOrders->whereIn('status', $activeStatuses));
+            })
+            ->orderByDesc('offline_sync_pending_count')
+            ->orderByDesc('offline_sync_last_reported_at')
+            ->limit(10)
+            ->get()
+            ->map(function (Technician $technician): array {
+                $assignment = $technician->assignments->first();
+                $session = $assignment?->trackingSessions
+                    ->first(fn (TrackingSession $session): bool => $session->status === TrackingSessionStatus::Active);
+                $location = $session ? Cache::get("tracking:session:{$session->id}:current_location") : null;
+
+                return [
+                    'name' => $technician->user?->name ?? $technician->employee_code,
+                    'employee_code' => $technician->employee_code,
+                    'pending_sync_count' => $technician->offline_sync_pending_count,
+                    'last_reported_at' => $technician->offline_sync_last_reported_at,
+                    'work_order' => $assignment?->workOrder,
+                    'last_location_at' => data_get($location, 'received_at') ?? data_get($location, 'recorded_at'),
+                ];
+            });
 
         return view('dashboard.home', [
             'statusCounts' => $statusCounts,
             'pending' => $pending,
             'technicians' => $technicians,
             'technicianCount' => $this->legacy->countTechnicians(),
+            'monitoringTechnicians' => $monitoringTechnicians,
+            'pendingSyncTotal' => (int) Technician::query()->sum('offline_sync_pending_count'),
         ]);
     }
 

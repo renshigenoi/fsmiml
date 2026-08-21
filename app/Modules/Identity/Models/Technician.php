@@ -23,12 +23,16 @@ class Technician extends Model
         'is_active',
         'attendance_mode',
         'attendance_radius_override',
+        'offline_sync_pending_count',
+        'offline_sync_last_reported_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'offline_sync_pending_count' => 'integer',
+            'offline_sync_last_reported_at' => 'datetime',
         ];
     }
 

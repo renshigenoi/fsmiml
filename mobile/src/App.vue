@@ -1418,6 +1418,7 @@ export default {
                             this.view = 'home';
                             this.loadOrders();
                             this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                            this.reportOfflineSyncStatus();
                             this.processOfflineSyncQueue();
                         }
                     } else {
@@ -1581,6 +1582,18 @@ export default {
                     },
                     saveOfflineSyncQueue() {
                         localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
+                        this.reportOfflineSyncStatus();
+                    },
+                    async reportOfflineSyncStatus() {
+                        if (!this.online || !this.token || !this.user) return;
+                        try {
+                            await this.api('/technician-sync-status', {
+                                method: 'POST',
+                                body: { pending_count: this.pendingSyncCount },
+                            });
+                        } catch (_) {
+                            // Laporan monitoring tidak boleh menghambat antrean foto utama.
+                        }
                     },
                     newOfflineSyncId() {
                         if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();

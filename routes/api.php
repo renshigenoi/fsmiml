@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\DeviceTokenController;
 use App\Http\Controllers\Api\V1\LegacyController;
 use App\Http\Controllers\Api\V1\TrackingLocationController;
 use App\Http\Controllers\Api\V1\TrackingTokenController;
+use App\Http\Controllers\Api\V1\TechnicianSyncStatusController;
 use App\Http\Controllers\Api\V1\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +46,7 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:tracking');
         Route::post('tracking-sessions/{trackingSession}/tokens', [TrackingTokenController::class, 'store']);
         Route::post('device-tokens', [DeviceTokenController::class, 'store']);
+        Route::post('technician-sync-status', [TechnicianSyncStatusController::class, 'store']);
         Route::get('bonuses', [BonusController::class, 'index']);
         Route::get('attendance/today', [AttendanceController::class, 'today']);
         Route::post('attendance/{type}', [AttendanceController::class, 'store'])->whereIn('type', ['check-in', 'check-out']);

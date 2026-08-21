@@ -93,6 +93,14 @@
     .stat-card.red .sc-num { color: var(--red-500,#c8102e); }
     .stat-card.red .sc-bar { background: linear-gradient(90deg,#e01836,#fca5b0); }
 
+    .stat-card.orange .sc-num { color: #c2410c; }
+    .stat-card.orange .sc-bar { background: linear-gradient(90deg,#f97316,#fdba74); }
+
+    .sync-monitor { margin-bottom: 28px; }
+    .sync-state { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; }
+    .sync-state.pending { color:#c2410c; } .sync-state.ok { color:#059669; }
+    .monitor-muted { font-size:12px; color:var(--muted,#64748b); }
+
     /* ---- Section headers ---- */
     .section-hdr {
         display: flex;
@@ -226,6 +234,12 @@
         <div class="sc-lbl">Total<br>Teknisi</div>
         <div class="sc-bar"></div>
     </div>
+    <div class="stat-card orange" title="Total data foto yang masih menunggu sinkronisasi dari perangkat teknisi">
+        <span class="sc-icon">⏳</span>
+        <div class="sc-num">{{ $pendingSyncTotal }}</div>
+        <div class="sc-lbl">Data Menunggu<br>Sinkronisasi</div>
+        <div class="sc-bar"></div>
+    </div>
 </div>
 
 {{-- ===== Quick Actions ===== --}}
@@ -233,6 +247,47 @@
     <a href="{{ route('dashboard.input') }}" class="qa-btn primary">➕ Input SPK Baru</a>
     <a href="{{ route('dashboard.work-orders') }}" class="qa-btn secondary">📋 Semua Work Order</a>
     <a href="{{ route('dashboard.technicians') }}" class="qa-btn secondary">👷 Data Teknisi</a>
+</div>
+
+{{-- ===== Field Monitoring ===== --}}
+<div class="card sync-monitor">
+    <div class="section-hdr">
+        <h3>📡 Monitoring Teknisi Lapangan</h3>
+        <span class="monitor-muted">Status perangkat &amp; pekerjaan aktif</span>
+    </div>
+    @if ($monitoringTechnicians->isEmpty())
+        <div class="empty">Belum ada teknisi aktif atau data yang menunggu sinkronisasi.</div>
+    @else
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Teknisi</th><th>Pekerjaan</th><th>Sinkronisasi</th><th>Lokasi Terakhir</th></tr></thead>
+                <tbody>
+                @foreach ($monitoringTechnicians as $technician)
+                    <tr>
+                        <td><strong>{{ $technician['name'] }}</strong><br><span class="monitor-muted">{{ $technician['employee_code'] }}</span></td>
+                        <td>
+                            @if ($technician['work_order'])
+                                <strong>{{ $technician['work_order']->number }}</strong><br>
+                                <span class="badge b-navy">{{ \App\Support\StatusMap::label($technician['work_order']->status->value) }}</span>
+                            @else
+                                <span class="monitor-muted">Tidak ada pekerjaan aktif</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if ($technician['pending_sync_count'] > 0)
+                                <span class="sync-state pending">⏳ {{ $technician['pending_sync_count'] }} data tertunda</span>
+                            @else
+                                <span class="sync-state ok">✓ Tersinkron</span>
+                            @endif
+                            <br><span class="monitor-muted">Lapor: {{ $technician['last_reported_at']?->timezone('Asia/Jakarta')->format('d M, H:i') ?? '-' }} WIB</span>
+                        </td>
+                        <td><span class="monitor-muted">{{ $technician['last_location_at'] ? \Illuminate\Support\Carbon::parse($technician['last_location_at'])->timezone('Asia/Jakarta')->format('d M, H:i') . ' WIB' : '-' }}</span></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
 </div>
 
 {{-- ===== Pending WO ===== --}}
