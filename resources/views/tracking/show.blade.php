@@ -267,6 +267,28 @@
             overflow: hidden;
         }
 
+        /* Marker posisi teknisi: ikon motor agar mudah dibedakan dari titik tujuan. */
+        .motorcycle-marker {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--red-grad);
+            border: 3px solid #fff;
+            box-shadow: 0 4px 12px rgba(139, 12, 30, .38);
+        }
+
+        .motorcycle-marker svg {
+            width: 25px;
+            height: 25px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2.1;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
         .map-note {
             font-size: 12px;
             color: var(--muted);
@@ -730,7 +752,15 @@
             routeDurationS = null,
             lastSpeedMps = null,
             lastKnownLat = null,
-            lastKnownLng = null;
+            lastKnownLng = null,
+            hasCenteredOnTechnician = false;
+
+        const MOTORCYCLE_ICON = L.divIcon({
+            className: 'motorcycle-marker-wrap',
+            html: '<div class="motorcycle-marker" aria-label="Posisi teknisi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="17" r="2.5"></circle><circle cx="18.5" cy="17" r="2.5"></circle><path d="M8 17h3l2-6h3l2.5 6"></path><path d="M10.5 11 9 8h4l1 3"></path><path d="M13 8h3"></path><path d="M15.5 8 17 6"></path><path d="M7.5 17 10 12"></path></svg></div>',
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
+        });
 
         function initTrackingRealtime(data) {
             if (subscribed || !data.realtime_channel || typeof Echo === 'undefined') return;
@@ -1077,12 +1107,9 @@
             if (posMarker) {
                 posMarker.setLatLng([lat, lng]);
             } else {
-                posMarker = L.circleMarker([lat, lng], {
-                    radius: 9,
-                    color: '#c8102e',
-                    fillColor: '#c8102e',
-                    fillOpacity: .45,
-                }).addTo(map);
+                posMarker = L.marker([lat, lng], { icon: MOTORCYCLE_ICON, zIndexOffset: 1000 })
+                    .addTo(map)
+                    .bindTooltip('Posisi teknisi', { direction: 'top', offset: [0, -22] });
             }
             if (location.accuracy_meters && posAccuracy) {
                 posAccuracy.setLatLng([lat, lng]).setRadius(parseFloat(location.accuracy_meters));
@@ -1096,13 +1123,12 @@
                     weight: 1,
                 }).addTo(map);
             }
-            const bounds = L.latLngBounds([
-                [lat, lng]
-            ]);
-            if (destMarker) bounds.extend(destMarker.getLatLng());
-            map.fitBounds(bounds.pad(0.35), {
-                maxZoom: 16
-            });
+            // Fokus sekali saat halaman dibuka. Jangan fitBounds ke tujuan karena jarak jauh
+            // akan membuat peta terlalu zoom-out; pada update berikutnya user tetap bebas menjelajah peta.
+            if (!hasCenteredOnTechnician) {
+                map.setView([lat, lng], 18, { animate: false });
+                hasCenteredOnTechnician = true;
+            }
             const stamp = location.recorded_at || location.received_at;
             const timeStr = stamp ?
                 new Date(stamp).toLocaleTimeString('id-ID', {

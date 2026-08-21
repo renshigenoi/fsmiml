@@ -285,9 +285,6 @@
 
                     <!-- ========== HOME VIEW ========== -->
                     <div v-if="view === 'home'">
-                        <div class="ptr-indicator" :class="{ active: pullDistance > 0, refreshing: refreshing }">
-                            <span>{{ refreshing ? 'Memuat…' : (pullDistance >= 70 ? 'Lepaskan untuk muat ulang' : 'Tarik untuk muat ulang') }}</span>
-                        </div>
 
                         <!-- ============ INSTALL MODAL (FLOATING TOP) ============ -->
                         <div v-if="installBannerVisible" class="install-sheet">
@@ -1122,9 +1119,6 @@ export default {
                         installEvent: null,
                         installVisible: false,
                         iosInstallHint: false,
-                        pullDistance: 0,
-                        refreshing: false,
-                        pullStartY: null,
                         locked: localStorage.getItem('fsm_locked') === '1',
                         installTimer: null,
                         installPromptInit: false,
@@ -1406,7 +1400,6 @@ export default {
                     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                         CapacitorUpdater.notifyAppReady(); // beritahu Capgo bundle berhasil dimuat
                     }
-                    this.setupPullToRefresh();
                     if (this.token) {
                         if (this.locked) {
                             this.view = 'lock';
@@ -2111,38 +2104,6 @@ export default {
                         document.addEventListener('visibilitychange', () => {
                             if (!document.hidden) this.catchUpLocation();
                         });
-                    },
-                    setupPullToRefresh() {
-                        window.addEventListener('touchstart', (e) => {
-                            if (this.view !== 'home' || this.refreshing) {
-                                this.pullStartY = null;
-                                return;
-                            }
-                            if (window.scrollY > 0) {
-                                this.pullStartY = null;
-                                return;
-                            }
-                            this.pullStartY = e.touches[0].clientY;
-                        }, { passive: true });
-                        window.addEventListener('touchmove', (e) => {
-                            if (this.pullStartY === null) return;
-                            const dy = e.touches[0].clientY - this.pullStartY;
-                            this.pullDistance = dy > 0 ? Math.min(dy * 0.5, 110) : 0;
-                        }, { passive: true });
-                        window.addEventListener('touchend', () => {
-                            if (this.pullStartY === null) return;
-                            if (this.pullDistance >= 70 && !this.refreshing) {
-                                this.refreshing = true;
-                                this.loadOrders().finally(() => {
-                                    this.refreshing = false;
-                                    this.pullDistance = 0;
-                                    this.showToast('Data terbaru dimuat ✓', 'success');
-                                });
-                            } else {
-                                this.pullDistance = 0;
-                            }
-                            this.pullStartY = null;
-                        }, { passive: true });
                     },
                     matchSearch(wo, q) {
                         const number = String(wo.number || '').toLowerCase();
@@ -4232,25 +4193,7 @@ export default {
             white-space: nowrap;
         }
 
-        .ptr-indicator {
-            height: 0;
-            overflow: hidden;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            color: var(--muted);
-            font-size: 12px;
-            font-weight: 600;
-            transition: height .15s;
-        }
 
-        .ptr-indicator.active {
-            height: 44px;
-        }
-
-        .ptr-indicator.refreshing span {
-            animation: spin .75s linear infinite;
-        }
 
         .search-bar {
             position: relative;
