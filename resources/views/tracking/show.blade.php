@@ -1025,7 +1025,8 @@
                     day: 'numeric',
                     month: 'short',
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
+                    timeZone: 'Asia/Jakarta',
                 }) :
                 '-';
             document.getElementById('ts-start').textContent = fmt(summary.started_at);
@@ -1050,7 +1051,9 @@
             if (data.status === 'arrived' || data.status === 'installation') {
                 const arrived = data.trip_summary && data.trip_summary.arrived_at;
                 const t = arrived
-                    ? new Date(arrived).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    ? new Date(arrived).toLocaleTimeString('id-ID', {
+                        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
+                    })
                     : null;
                 note.innerHTML = t
                     ? '<span style="color:#059669;font-weight:700;">✅ Teknisi sudah tiba pada ' + t + ' WIB.</span>'
@@ -1060,7 +1063,9 @@
             if (data.status === 'finished') {
                 const finished = data.trip_summary && data.trip_summary.finished_at;
                 const t = finished
-                    ? new Date(finished).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    ? new Date(finished).toLocaleTimeString('id-ID', {
+                        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
+                    })
                     : null;
                 note.innerHTML = t
                     ? '<span style="color:#059669;font-weight:700;">✅ Pemasangan selesai pada ' + t + ' WIB.</span>'
@@ -1135,7 +1140,8 @@
             const timeStr = stamp ?
                 new Date(stamp).toLocaleTimeString('id-ID', {
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
+                    timeZone: 'Asia/Jakarta',
                 }) + ' WIB' :
                 '-';
             note.innerHTML = `<span class="pulse" style="color:var(--red-500)"></span>

@@ -130,7 +130,7 @@ class TrackingTokenController extends Controller
                     'arrived_at' => $arrivedAt?->toIso8601String(),
                     'finished_at' => $finishedAt?->toIso8601String(),
                     'distance_m' => (int) round($distance),
-                    'duration_s' => (int) max(0, $last->recorded_at->diffInSeconds($first->recorded_at)),
+                    'duration_s' => (int) max(0, $first->recorded_at->diffInSeconds($last->recorded_at)),
                 ];
             }
         }
