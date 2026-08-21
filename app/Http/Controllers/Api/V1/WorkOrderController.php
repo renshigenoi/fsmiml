@@ -133,6 +133,12 @@ class WorkOrderController extends Controller
         $actor = $request->user();
         $this->authorize('view', $workOrder);
 
+        if ($request->filled('sync_token') && $workOrder->photos()
+            ->where('sync_token', (string) $request->string('sync_token'))
+            ->exists()) {
+            return new WorkOrderResource($workOrder->load('photos'));
+        }
+
         $result = DB::transaction(function () use ($request, $workOrder, $transitions, $actor): WorkOrder {
             if ($request->filled('note')) {
                 $workOrder->installation_note = $request->input('note');
@@ -150,6 +156,8 @@ class WorkOrderController extends Controller
                     'original_name' => $photo->getClientOriginalName(),
                     'mime_type' => $photo->getMimeType(),
                     'size_bytes' => $photo->getSize(),
+                    'captured_at' => $request->date('processed_at') ?? now(),
+                    'sync_token' => $request->input('sync_token'),
                 ]);
             }
 
@@ -164,6 +172,12 @@ class WorkOrderController extends Controller
         /** @var User $actor */
         $actor = $request->user();
         $this->authorize('view', $workOrder);
+
+        if ($request->filled('sync_token') && $workOrder->photos()
+            ->where('sync_token', (string) $request->string('sync_token'))
+            ->exists()) {
+            return new WorkOrderResource($workOrder->load('photos'));
+        }
 
         $result = DB::transaction(function () use ($request, $workOrder, $transitions, $actor): WorkOrder {
             if ($request->filled('note')) {
@@ -181,6 +195,8 @@ class WorkOrderController extends Controller
                     'original_name' => $photo->getClientOriginalName(),
                     'mime_type' => $photo->getMimeType(),
                     'size_bytes' => $photo->getSize(),
+                    'captured_at' => $request->date('processed_at') ?? now(),
+                    'sync_token' => $request->input('sync_token'),
                 ]);
             }
 

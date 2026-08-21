@@ -11,6 +11,10 @@
 
             <!-- ============ OFFLINE BANNER ============ -->
             <div v-if="!online" class="offline-banner">📡 Offline — data akan dimuat ulang saat online</div>
+            <button v-if="pendingSyncCount" type="button" class="offline-sync-banner"
+                @click="processOfflineSyncQueue()">
+                ⏳ {{ pendingSyncCount }} data menunggu sinkronisasi · Ketuk untuk coba lagi
+            </button>
 
             <!-- ============ PIN LOCK SCREEN ============ -->
             <div v-if="token && view === 'lock'" class="lock-screen">
@@ -1116,6 +1120,8 @@ export default {
                         },
                         biometricAvailable: false,
                         online: navigator.onLine,
+                        offlineSyncQueue: [],
+                        syncProcessing: false,
                         installEvent: null,
                         installVisible: false,
                         iosInstallHint: false,
@@ -1200,6 +1206,10 @@ export default {
                     },
                     pinEnabled() {
                         return !!(this.user && this.user.has_pin) || !!this.localPin();
+                    },
+                    pendingSyncCount() {
+                        const email = this.currentEmail();
+                        return this.offlineSyncQueue.filter(item => item.user_email === email).length;
                     },
                     bioEnabled() {
                         return this.bioEnabledState;
@@ -1391,6 +1401,7 @@ export default {
                     }
                 },
                 mounted() {
+                    this.loadOfflineSyncQueue();
                     this.checkAppVersion();
                     this.detectBiometric();
                     this.syncBioState();
@@ -1407,6 +1418,7 @@ export default {
                             this.view = 'home';
                             this.loadOrders();
                             this.pollTimer = setInterval(() => this.loadOrders(true), 45000);
+                            this.processOfflineSyncQueue();
                         }
                     } else {
                         this.view = 'login';
@@ -1555,6 +1567,128 @@ export default {
                         const data = await res.json().catch(() => ({}));
                         if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan.');
                         return data;
+                    },
+                    offlineSyncStorageKey() {
+                        return 'fsm_offline_sync_queue_v1';
+                    },
+                    loadOfflineSyncQueue() {
+                        try {
+                            const saved = JSON.parse(localStorage.getItem(this.offlineSyncStorageKey()) || '[]');
+                            this.offlineSyncQueue = Array.isArray(saved) ? saved : [];
+                        } catch (_) {
+                            this.offlineSyncQueue = [];
+                        }
+                    },
+                    saveOfflineSyncQueue() {
+                        localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
+                    },
+                    newOfflineSyncId() {
+                        if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+                        return 'sync-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+                    },
+                    blobToDataUrl(blob) {
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = () => reject(new Error('Foto tidak dapat disimpan secara lokal.'));
+                            reader.readAsDataURL(blob);
+                        });
+                    },
+                    async saveOfflinePhoto(blob, name, mime, syncId, index) {
+                        const dataUrl = await this.blobToDataUrl(blob);
+                        const record = { name, mime: mime || 'image/jpeg' };
+                        if (this.isNativeApp) {
+                            const path = 'offline-sync/' + syncId + '-' + index + '.photo';
+                            await Filesystem.writeFile({ path, data: dataUrl, directory: Directory.Data, recursive: true });
+                            record.path = path;
+                        } else {
+                            // Fallback browser; APK memakai filesystem agar tidak terbatas quota localStorage.
+                            record.data_url = dataUrl;
+                        }
+                        return record;
+                    },
+                    async readOfflinePhoto(photo) {
+                        const data = photo.path
+                            ? (await Filesystem.readFile({ path: photo.path, directory: Directory.Data })).data
+                            : photo.data_url;
+                        if (!data) throw new Error('Foto antrean tidak ditemukan di perangkat.');
+                        const dataUrl = String(data).startsWith('data:')
+                            ? data
+                            : 'data:' + (photo.mime || 'image/jpeg') + ';base64,' + data;
+                        return this.dataUrlToBlob(dataUrl);
+                    },
+                    async removeOfflineJobFiles(job) {
+                        if (!this.isNativeApp) return;
+                        await Promise.all((job.photos || []).map(photo => photo.path
+                            ? Filesystem.deleteFile({ path: photo.path, directory: Directory.Data }).catch(() => {})
+                            : Promise.resolve()));
+                    },
+                    async queueInstallationUpload(kind, sheet) {
+                        const syncId = this.newOfflineSyncId();
+                        const photos = [];
+                        for (let index = 0; index < sheet.photos.length; index += 1) {
+                            const photo = sheet.photos[index];
+                            photos.push(await this.saveOfflinePhoto(
+                                photo.blob, photo.name, photo.blob.type, syncId, index,
+                            ));
+                        }
+                        const captured = sheet.photos.map(photo => photo.capturedAt).filter(Boolean);
+                        const job = {
+                            id: syncId,
+                            type: kind,
+                            work_order_id: this.current.id,
+                            user_email: this.currentEmail(),
+                            note: sheet.note.trim(),
+                            processed_at: captured.sort()[0] || new Date().toISOString(),
+                            created_at: new Date().toISOString(),
+                            attempts: 0,
+                            photos,
+                        };
+                        this.offlineSyncQueue.push(job);
+                        this.saveOfflineSyncQueue();
+                        return job;
+                    },
+                    async processOfflineSyncQueue() {
+                        if (this.syncProcessing || !this.online || !this.token) return;
+                        const email = this.currentEmail();
+                        const jobs = this.offlineSyncQueue.filter(job => job.user_email === email);
+                        if (!jobs.length) return;
+
+                        this.syncProcessing = true;
+                        let synced = 0;
+                        try {
+                            for (const job of jobs) {
+                                try {
+                                    const form = new FormData();
+                                    for (const photo of job.photos) {
+                                        form.append('photos[]', await this.readOfflinePhoto(photo), photo.name);
+                                    }
+                                    if (job.note) form.append('note', job.note);
+                                    form.append('processed_at', job.processed_at);
+                                    form.append('sync_token', job.id);
+                                    const endpoint = job.type === 'start'
+                                        ? '/work-orders/' + job.work_order_id + '/start-installation'
+                                        : '/work-orders/' + job.work_order_id + '/finish';
+                                    await this.apiUpload(endpoint, form);
+                                    await this.removeOfflineJobFiles(job);
+                                    this.offlineSyncQueue = this.offlineSyncQueue.filter(item => item.id !== job.id);
+                                    this.saveOfflineSyncQueue();
+                                    synced += 1;
+                                } catch (_) {
+                                    job.attempts = (job.attempts || 0) + 1;
+                                    job.last_attempt_at = new Date().toISOString();
+                                    this.saveOfflineSyncQueue();
+                                    break; // urutan status pekerjaan wajib dipertahankan.
+                                }
+                            }
+                        } finally {
+                            this.syncProcessing = false;
+                        }
+                        if (synced) {
+                            this.showToast(synced + ' data berhasil disinkronkan ✓', 'success');
+                            if (this.current) await this.reloadDetail();
+                            else await this.loadOrders(true);
+                        }
                     },
                     attendanceTime(value) {
                         return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -2126,13 +2260,17 @@ export default {
                         window.addEventListener('online', () => {
                             this.online = true;
                             this.showToast('Koneksi kembali ✓', 'success');
+                            this.processOfflineSyncQueue();
                         });
                         window.addEventListener('offline', () => {
                             this.online = false;
                         });
                         // Saat aplikasi kembali ke foreground, kirim ulang lokasi terakhir kalau sempat basi.
                         document.addEventListener('visibilitychange', () => {
-                            if (!document.hidden) this.catchUpLocation();
+                            if (!document.hidden) {
+                                this.catchUpLocation();
+                                this.processOfflineSyncQueue();
+                            }
                         });
                     },
                     matchSearch(wo, q) {
@@ -2566,7 +2704,7 @@ export default {
                             return;
                         }
                         const preview = URL.createObjectURL(blob);
-                        this.startSheet.photos.push({ blob, name, preview });
+                        this.startSheet.photos.push({ blob, name, preview, capturedAt: new Date().toISOString() });
                     },
                     removeStartPhoto(idx) {
                         const p = this.startSheet.photos[idx];
@@ -2579,7 +2717,7 @@ export default {
                             return;
                         }
                         const preview = URL.createObjectURL(blob);
-                        this.finishSheet.photos.push({ blob, name, preview });
+                        this.finishSheet.photos.push({ blob, name, preview, capturedAt: new Date().toISOString() });
                     },
                     removeFinishPhoto(idx) {
                         const p = this.finishSheet.photos[idx];
@@ -2629,14 +2767,14 @@ export default {
                         this.finishSheet.error = '';
                         this.busy = true;
                         try {
-                            const form = new FormData();
-                            this.finishSheet.photos.forEach((p) => form.append('photos[]', p.blob, p.name));
-                            if (this.finishSheet.note.trim()) form.append('note', this.finishSheet.note.trim());
-                            await this.apiUpload('/work-orders/' + this.current.id + '/finish', form);
+                            await this.queueInstallationUpload('finish', this.finishSheet);
                             this.finishSheet.photos.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
                             this.finishSheet.show = false;
-                            this.showToast('Pemasangan selesai! 🎉', 'success');
-                            await this.reloadDetail();
+                            if (this.online) {
+                                await this.processOfflineSyncQueue();
+                            } else {
+                                this.showToast('Foto tersimpan. Akan terkirim otomatis saat internet kembali.', 'info');
+                            }
                         } catch (err) {
                             this.finishSheet.error = err.message || 'Gagal menyelesaikan pekerjaan.';
                         } finally {
@@ -2654,14 +2792,14 @@ export default {
                         this.startSheet.error = '';
                         this.busy = true;
                         try {
-                            const form = new FormData();
-                            this.startSheet.photos.forEach((p) => form.append('photos[]', p.blob, p.name));
-                            if (this.startSheet.note.trim()) form.append('note', this.startSheet.note.trim());
-                            await this.apiUpload('/work-orders/' + this.current.id + '/start-installation', form);
+                            await this.queueInstallationUpload('start', this.startSheet);
                             this.startSheet.photos.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
                             this.startSheet.show = false;
-                            this.showToast('Pemasangan dimulai! 🔧', 'success');
-                            await this.reloadDetail();
+                            if (this.online) {
+                                await this.processOfflineSyncQueue();
+                            } else {
+                                this.showToast('Foto tersimpan. Akan terkirim otomatis saat internet kembali.', 'info');
+                            }
                         } catch (err) {
                             this.startSheet.error = err.message || 'Gagal memulai pekerjaan.';
                         } finally {
@@ -4218,6 +4356,24 @@ export default {
             font-weight: 700;
             box-shadow: 0 8px 24px rgba(180, 83, 9, .35);
             white-space: nowrap;
+        }
+
+        .offline-sync-banner {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 12px) + 54px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 96;
+            width: min(calc(100% - 32px), 390px);
+            border: 0;
+            border-radius: 10px;
+            background: #fff7ed;
+            color: #9a3412;
+            box-shadow: 0 4px 16px rgba(154, 52, 18, .16);
+            padding: 10px 12px;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
         }
 
 

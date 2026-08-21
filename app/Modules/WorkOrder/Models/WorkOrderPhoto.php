@@ -18,12 +18,15 @@ class WorkOrderPhoto extends Model
         'original_name',
         'mime_type',
         'size_bytes',
+        'captured_at',
+        'sync_token',
     ];
 
     protected function casts(): array
     {
         return [
             'size_bytes' => 'integer',
+            'captured_at' => 'datetime',
         ];
     }
 

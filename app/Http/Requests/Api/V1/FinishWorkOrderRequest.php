@@ -17,6 +17,8 @@ class FinishWorkOrderRequest extends FormRequest
             'photos' => ['required', 'array', 'min:1', 'max:5'],
             'photos.*' => ['required', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:8192'],
             'note' => ['nullable', 'string', 'max:5000'],
+            'processed_at' => ['nullable', 'date'],
+            'sync_token' => ['nullable', 'string', 'max:100'],
         ];
     }
 
