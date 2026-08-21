@@ -1123,11 +1123,13 @@
                     weight: 1,
                 }).addTo(map);
             }
-            // Fokus sekali saat halaman dibuka. Jangan fitBounds ke tujuan karena jarak jauh
-            // akan membuat peta terlalu zoom-out; pada update berikutnya user tetap bebas menjelajah peta.
+            // Mulai dari posisi teknisi dengan zoom detail, lalu ikuti setiap titik baru.
+            // `panTo` mempertahankan zoom pengguna dan tidak kembali zoom-out ke tujuan.
             if (!hasCenteredOnTechnician) {
                 map.setView([lat, lng], 18, { animate: false });
                 hasCenteredOnTechnician = true;
+            } else {
+                map.panTo([lat, lng], { animate: true, duration: 0.45 });
             }
             const stamp = location.recorded_at || location.received_at;
             const timeStr = stamp ?
