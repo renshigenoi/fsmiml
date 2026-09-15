@@ -27,3 +27,4 @@ yarn-error.log
 apk-output/
 public/downloads/apk/*.apk
 .zcode/
+bundles/
