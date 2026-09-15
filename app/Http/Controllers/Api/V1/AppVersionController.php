@@ -39,7 +39,8 @@ class AppVersionController extends Controller
 
     /**
      * Sajikan file bundle live-update (.zip) untuk Capgo self-hosted.
-     * Simpan file di storage/app/bundles/{version}.zip.
+     * Simpan file di storage/app/private/bundles/{version}.zip
+     * (disk 'local' ber-root di storage/app/private — cek config/filesystems.php).
      */
     public function bundle(int $version): StreamedResponse
     {
