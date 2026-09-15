@@ -28,7 +28,7 @@ class TrackingLocationUpdated implements ShouldBroadcast
         $channels = [new PrivateChannel("work-order.{$this->workOrderId}")];
 
         if (filled($this->realtimeChannel)) {
-            $channels[] = new Channel("tracking.{$this->realtimeChannel}");
+            $channels[] = new PrivateChannel("tracking.{$this->realtimeChannel}");
         }
 
         return $channels;
@@ -48,6 +48,8 @@ class TrackingLocationUpdated implements ShouldBroadcast
             'accuracy_meters' => $this->location['accuracy_meters'] ?? null,
             'speed_mps' => $this->location['speed_mps'] ?? null,
             'recorded_at' => $this->location['recorded_at'],
+            'is_mocked' => $this->location['is_mocked'] ?? false,
+            'received_at' => $this->location['received_at'] ?? null,
         ];
     }
 }

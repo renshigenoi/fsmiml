@@ -34,6 +34,15 @@ class WorkOrderPolicy
         return $this->isCoordinator($user);
     }
 
+    public function fail(User $user, WorkOrder $workOrder): bool
+    {
+        return $this->isCoordinator($user)
+            || $workOrder->assignments()
+                ->where('technician_id', $user->technician?->getKey())
+                ->where('status', \App\Modules\Assignment\Enums\AssignmentStatus::Accepted->value)
+                ->exists();
+    }
+
     private function isCoordinator(User $user): bool
     {
         return in_array($user->role, [UserRole::Administrator, UserRole::Coordinator], true);

@@ -16,17 +16,22 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('auth/pin/login', [AuthController::class, 'pinLogin'])->middleware('throttle:login');
-    Route::get('app/version', [AppVersionController::class, 'show']);
+    Route::get('app/version', [AppVersionController::class, 'show'])->middleware('throttle:public-tracking');
+    // Download bundle OTA: TIDAK memakai auth:sanctum karena yang mengunduh adalah
+    // downloader NATIF (CapacitorUpdater) yang tidak mengirim header Authorization,
+    // dan cek versi terjadi SEBELUM login. Penggantinya signed URL (kadaluarsa 24 jam)
+    // yang dibentuk AppVersionController::show() — URL tebakan langsung ditolak 403.
     Route::get('app/bundle/{version}', [AppVersionController::class, 'bundle'])
         ->where('version', '[0-9]+')
-        ->middleware('throttle:public-tracking');
+        ->middleware('signed')
+        ->name('app.bundle');
     Route::get('public/tracking/{token}', [TrackingTokenController::class, 'show'])->middleware('throttle:public-tracking');
 
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/change-password', [AuthController::class, 'changePassword']);
         Route::post('auth/pin', [AuthController::class, 'setPin']);
-        Route::post('auth/pin/verify', [AuthController::class, 'verifyPin']);
+        Route::post('auth/pin/verify', [AuthController::class, 'verifyPin'])->middleware('throttle:login');
         Route::delete('auth/logout', [AuthController::class, 'logout']);
 
         Route::get('work-orders', [WorkOrderController::class, 'index']);

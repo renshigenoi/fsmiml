@@ -10,12 +10,18 @@ use App\Http\Requests\Api\V1\SetPinRequest;
 use App\Http\Requests\Api\V1\VerifyPinRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
+use App\Modules\Audit\Services\AuditTrailService;
+use App\Modules\Identity\Enums\UserRole;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly AuditTrailService $audit,
+    ) {}
+
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();
@@ -54,6 +60,8 @@ class AuthController extends Controller
             'password' => Hash::make($request->validated('new_password')),
         ]);
 
+        $this->audit->record('auth.password_changed', $user, ['via' => 'api']);
+
         $currentToken = $request->user()->currentAccessToken();
 
         if ($currentToken !== null) {
@@ -67,9 +75,13 @@ class AuthController extends Controller
 
     public function setPin(SetPinRequest $request): JsonResponse
     {
-        $request->user()->update([
+        $user = $request->user();
+
+        $user->update([
             'pin_hash' => Hash::make($request->validated('pin')),
         ]);
+
+        $this->audit->record('auth.pin_set', $user, ['via' => 'api']);
 
         return response()->json(['message' => 'PIN berhasil disimpan.']);
     }
@@ -91,6 +103,10 @@ class AuthController extends Controller
 
         if ($user === null || blank($user->pin_hash) || ! Hash::check($request->validated('pin'), (string) $user->pin_hash)) {
             return response()->json(['message' => 'PIN tidak sesuai.'], 422);
+        }
+
+        if ($user->role !== UserRole::Technician) {
+            return response()->json(['message' => 'PIN login hanya untuk teknisi.'], 422);
         }
 
         $token = $user->createToken('fsm-api');

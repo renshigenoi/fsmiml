@@ -17,8 +17,10 @@ use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use App\Modules\WorkOrder\Models\WorkOrder;
 use App\Modules\WorkOrder\Models\WorkOrderStatusHistory;
 use App\Modules\WorkOrder\Services\WorkOrderTransitionService;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class WorkOrderController extends Controller
@@ -117,14 +119,14 @@ class WorkOrderController extends Controller
         return new WorkOrderResource($workOrder);
     }
 
-    public function startTrip(WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
+    public function startTrip(Request $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
     {
-        return $this->transition($workOrder, WorkOrderStatus::OnTheWay, $transitions);
+        return $this->transition($request, $workOrder, WorkOrderStatus::OnTheWay, $transitions);
     }
 
-    public function arrive(WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
+    public function arrive(Request $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
     {
-        return $this->transition($workOrder, WorkOrderStatus::Arrived, $transitions);
+        return $this->transition($request, $workOrder, WorkOrderStatus::Arrived, $transitions);
     }
 
     public function startInstallation(StartInstallationRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
@@ -210,24 +212,31 @@ class WorkOrderController extends Controller
     {
         $this->authorize('cancel', $workOrder);
 
-        return $this->transition($workOrder, WorkOrderStatus::Cancelled, $transitions, $request->validated('reason'));
+        return $this->transition($request, $workOrder, WorkOrderStatus::Cancelled, $transitions, $request->validated('reason'), $request->validated('sync_token'));
     }
 
     public function fail(ReasonRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
     {
-        return $this->transition($workOrder, WorkOrderStatus::Failed, $transitions, $request->validated('reason'));
+        $this->authorize('fail', $workOrder);
+
+        return $this->transition($request, $workOrder, WorkOrderStatus::Failed, $transitions, $request->validated('reason'), $request->validated('sync_token'));
     }
 
     private function transition(
+        Request $request,
         WorkOrder $workOrder,
         WorkOrderStatus $status,
         WorkOrderTransitionService $transitions,
         ?string $reason = null,
+        ?string $syncToken = null,
     ): WorkOrderResource {
         /** @var User $actor */
         $actor = request()->user();
         $this->authorize('view', $workOrder);
 
-        return new WorkOrderResource($transitions->transition($workOrder, $status, $actor, $reason));
+        $syncToken = $syncToken ?? $request->input('sync_token');
+        $syncToken = is_string($syncToken) && $syncToken !== '' ? Str::substr($syncToken, 0, 64) : null;
+
+        return new WorkOrderResource($transitions->transition($workOrder, $status, $actor, $reason, $syncToken));
     }
 }

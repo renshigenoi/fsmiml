@@ -24,14 +24,17 @@ class LegacyTechnicianImporter
     public function importBySerials(array $serials): Collection
     {
         $technicians = new Collection;
+        $uniqueSerials = array_values(array_unique($serials));
 
-        foreach (array_values(array_unique($serials)) as $serial) {
-            $row = $this->legacy->technicianBySerial((string) $serial);
+        if ($uniqueSerials === []) {
+            return $technicians;
+        }
 
-            if ($row === null) {
-                continue;
-            }
+        // Batch fetch: 1 query ke DB lama untuk semua serial,
+        // lalu upsert satu per satu ke DB FSM.
+        $rows = $this->legacy->techniciansBySerials($uniqueSerials);
 
+        foreach ($rows as $row) {
             $technicians->push($this->upsert($row));
         }
 

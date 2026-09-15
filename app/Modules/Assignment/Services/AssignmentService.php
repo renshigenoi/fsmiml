@@ -91,11 +91,16 @@ class AssignmentService
 
         [$assignments, $updatedWorkOrder, $fromStatus] = $result;
 
-        foreach ($assignments as $assignment) {
-            AssignmentCreated::dispatch($assignment);
-        }
+        // Dispatch ditunda sampai transaksi TERLUAR commit, supaya rollback
+        // (mis. dari DB::transaction milik createFromSales) tidak menimbulkan
+        // ghost notification.
+        DB::afterCommit(function () use ($assignments, $updatedWorkOrder, $fromStatus, $actor): void {
+            foreach ($assignments as $assignment) {
+                AssignmentCreated::dispatch($assignment);
+            }
 
-        WorkOrderStatusChanged::dispatch($updatedWorkOrder, $fromStatus, WorkOrderStatus::WaitingAcceptance, $actor);
+            WorkOrderStatusChanged::dispatch($updatedWorkOrder, $fromStatus, WorkOrderStatus::WaitingAcceptance, $actor);
+        });
 
         return $assignments;
     }
@@ -150,22 +155,33 @@ class AssignmentService
             $lockedWorkOrder->update(['status' => $targetStatus]);
             $this->recordHistory($lockedWorkOrder, WorkOrderStatus::WaitingAcceptance, $targetStatus, $actor, $reason);
 
+            $supersededSiblings = new Collection;
+
             if ($status === AssignmentStatus::Accepted) {
-                $this->supersedePendingSiblings($lockedAssignment, $lockedWorkOrder);
+                $supersededSiblings = $this->supersedePendingSiblings($lockedAssignment, $lockedWorkOrder);
             }
 
-            return [$lockedAssignment, $lockedWorkOrder, $targetStatus];
+            return [$lockedAssignment, $lockedWorkOrder, $targetStatus, $supersededSiblings];
         });
 
-        [$updatedAssignment, $updatedWorkOrder, $targetStatus] = $result;
+        [$updatedAssignment, $updatedWorkOrder, $targetStatus, $supersededSiblings] = $result;
 
-        AssignmentResponded::dispatch($updatedAssignment, $status);
-        WorkOrderStatusChanged::dispatch($updatedWorkOrder, WorkOrderStatus::WaitingAcceptance, $targetStatus, $actor);
+        DB::afterCommit(function () use ($updatedAssignment, $updatedWorkOrder, $targetStatus, $actor, $supersededSiblings, $status): void {
+            foreach ($supersededSiblings as $sibling) {
+                AssignmentSuperseded::dispatch($sibling);
+            }
+
+            AssignmentResponded::dispatch($updatedAssignment, $status);
+            WorkOrderStatusChanged::dispatch($updatedWorkOrder, WorkOrderStatus::WaitingAcceptance, $targetStatus, $actor);
+        });
 
         return $updatedAssignment;
     }
 
-    private function supersedePendingSiblings(Assignment $assignment, WorkOrder $workOrder): void
+    /**
+     * @return Collection<int, Assignment>
+     */
+    private function supersedePendingSiblings(Assignment $assignment, WorkOrder $workOrder): Collection
     {
         $siblings = Assignment::query()
             ->where('work_order_id', $workOrder->getKey())
@@ -187,9 +203,9 @@ class AssignmentService
                     'ended_at' => now(),
                     'closed_reason' => 'superseded',
                 ]);
-
-            AssignmentSuperseded::dispatch($sibling);
         }
+
+        return $siblings;
     }
 
     private function hasScheduleConflict(WorkOrder $workOrder, Technician $technician): bool

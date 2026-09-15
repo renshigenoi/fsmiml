@@ -17,10 +17,10 @@ Route::get('tracking/{token}', [TrackingPageController::class, 'show'])->name('t
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
 });
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'throttle:web'])->group(function (): void {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AppVersionController extends Controller
@@ -14,8 +15,12 @@ class AppVersionController extends Controller
         $bundleVersion = (int) config('mobile.bundle_version', 1);
 
         // Jika bundle_url tidak diset manual, arahkan ke endpoint bundle bawaan.
+        // Signed URL (24 jam): downloader natif CapacitorUpdater tidak bisa mengirim
+        // header Authorization, jadi akses dilindungi tanda tangan URL, bukan token.
         $bundleUrl = config('mobile.bundle_url')
-            ?: ($bundleVersion > 1 ? url("/api/v1/app/bundle/{$bundleVersion}") : null);
+            ?: ($bundleVersion > 1
+                ? URL::temporarySignedRoute('app.bundle', now()->addDay(), ['version' => $bundleVersion])
+                : null);
 
         return response()->json([
             // NATIVE: perlu install ulang APK bila berbeda.
@@ -38,6 +43,8 @@ class AppVersionController extends Controller
      */
     public function bundle(int $version): StreamedResponse
     {
+        abort_if($version < 1, 404, 'Versi bundle tidak valid.');
+
         $path = "bundles/{$version}.zip";
 
         abort_unless(Storage::disk('local')->exists($path), 404, 'Bundle tidak ditemukan.');

@@ -3,12 +3,11 @@
   "appName": "FSM Teknisi",
   "webDir": "dist",
   "android": {
-    "allowMixedContent": false,
-    "useLegacyBridge": true
+    "allowMixedContent": false
   },
   "plugins": {
     "CapacitorUpdater": {
-      "autoUpdate": false
+      "autoUpdate": true
     }
   }
 }

@@ -51,5 +51,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by((string) $request->input('email').$request->ip()));
         RateLimiter::for('tracking', fn (Request $request) => Limit::perMinute(120)->by((string) $request->user()?->getAuthIdentifier()));
         RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)->by((string) $request->ip()));
+        RateLimiter::for('web', fn (Request $request) => Limit::perMinute(400)->by((string) $request->user()?->getAuthIdentifier() ?: $request->ip()));
     }
 }

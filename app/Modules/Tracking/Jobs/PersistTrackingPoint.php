@@ -25,6 +25,18 @@ class PersistTrackingPoint implements ShouldQueue
 
     public function handle(): void
     {
+        // Throttle: hanya persist jika tidak ada titik tersimpan dalam N detik terakhir.
+        $interval = (int) config('notifications.tracking.persist_interval_seconds', 30);
+
+        $recent = TrackingPoint::query()
+            ->where('tracking_session_id', $this->trackingSessionId)
+            ->where('recorded_at', '>=', now()->subSeconds($interval))
+            ->exists();
+
+        if ($recent) {
+            return;
+        }
+
         TrackingPoint::query()->create([
             ...$this->location,
             'tracking_session_id' => $this->trackingSessionId,

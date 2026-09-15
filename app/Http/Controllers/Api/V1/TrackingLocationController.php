@@ -33,13 +33,20 @@ class TrackingLocationController extends Controller
             'received_at' => now()->toISOString(),
         ];
 
-        Cache::put("tracking:session:{$trackingSession->getKey()}:current_location", $location, now()->addMinutes(2));
+        $cacheTtl = (int) config('notifications.tracking.location_cache_ttl_seconds', 120);
+        Cache::put("tracking:session:{$trackingSession->getKey()}:current_location", $location, now()->addSeconds($cacheTtl));
+
+        // Perpanjang masa aktif token hanya jika sudah melewati 50% TTL,
+        // untuk menghindari race condition pada batch request lokasi.
+        $tokenTtlHours = (float) config('notifications.tracking.token_ttl_hours', 8);
+        $extendThreshold = now()->addHours($tokenTtlHours * 0.5);
 
         TrackingToken::query()
             ->where('tracking_session_id', $trackingSession->getKey())
             ->where('status', TrackingTokenStatus::Active->value)
+            ->where('expires_at', '<', $extendThreshold)
             ->update([
-                'expires_at' => now()->addHours((float) config('notifications.tracking.token_ttl_hours')),
+                'expires_at' => now()->addHours($tokenTtlHours),
             ]);
 
         PersistTrackingPoint::dispatch($trackingSession->getKey(), $location);

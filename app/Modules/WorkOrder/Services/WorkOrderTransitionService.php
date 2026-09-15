@@ -31,7 +31,7 @@ class WorkOrderTransitionService
         'installation' => [WorkOrderStatus::Finished, WorkOrderStatus::Failed, WorkOrderStatus::Cancelled],
         'on_the_way' => [WorkOrderStatus::Arrived, WorkOrderStatus::Cancelled],
         'rejected' => [],
-        'waiting_acceptance' => [WorkOrderStatus::Cancelled],
+        'waiting_acceptance' => [WorkOrderStatus::Rejected, WorkOrderStatus::Cancelled],
         'cancelled' => [],
     ];
 
@@ -45,10 +45,30 @@ class WorkOrderTransitionService
         WorkOrderStatus $toStatus,
         User $actor,
         ?string $reason = null,
+        ?string $syncToken = null,
     ): WorkOrder {
-        $result = DB::transaction(function () use ($workOrder, $toStatus, $actor, $reason): array {
+        $result = DB::transaction(function () use ($workOrder, $toStatus, $actor, $reason, $syncToken): array {
             $lockedWorkOrder = WorkOrder::query()->lockForUpdate()->findOrFail($workOrder->getKey());
             $fromStatus = $lockedWorkOrder->status;
+
+            // Idempotency via sync_token: jika token yang sama sudah pernah
+            // tercatat pada history WO ini, request adalah retry jaringan —
+            // kembalikan sukses tanpa transisi & tanpa event.
+            if ($syncToken !== null && WorkOrderStatusHistory::query()
+                ->where('work_order_id', $lockedWorkOrder->getKey())
+                ->where('metadata->sync_token', $syncToken)
+                ->exists()) {
+                return [$lockedWorkOrder, null];
+            }
+
+            // Idempotency: jika WO sudah berada di status tujuan, kembalikan apa adanya.
+            if ($fromStatus === $toStatus) {
+                if ($syncToken !== null) {
+                    $this->recordHistory($lockedWorkOrder, $fromStatus, $toStatus, $actor, $reason, syncToken: $syncToken);
+                }
+
+                return [$lockedWorkOrder, null];
+            }
 
             if (! self::canTransition($fromStatus, $toStatus)) {
                 throw new InvalidWorkOrderTransition("Transition from {$fromStatus->value} to {$toStatus->value} is not allowed.");
@@ -70,14 +90,18 @@ class WorkOrderTransitionService
             $lockedWorkOrder->save();
 
             $this->applyTrackingLifecycle($lockedWorkOrder, $assignment, $toStatus);
-            $this->recordHistory($lockedWorkOrder, $fromStatus, $toStatus, $actor, $reason);
+            $this->recordHistory($lockedWorkOrder, $fromStatus, $toStatus, $actor, $reason, $assignment, $syncToken);
 
             return [$lockedWorkOrder, $fromStatus];
         });
 
         [$updatedWorkOrder, $fromStatus] = $result;
 
-        WorkOrderStatusChanged::dispatch($updatedWorkOrder, $fromStatus, $toStatus, $actor);
+        // Hanya dispatch event jika benar-benar terjadi transisi (bukan idempotent retry),
+        // dan tunda sampai transaksi TERLUAR commit agar rollback tidak memicu ghost notification.
+        if ($fromStatus !== null) {
+            DB::afterCommit(fn () => WorkOrderStatusChanged::dispatch($updatedWorkOrder, $fromStatus, $toStatus, $actor));
+        }
 
         return $updatedWorkOrder;
     }
@@ -253,6 +277,8 @@ class WorkOrderTransitionService
         WorkOrderStatus $toStatus,
         User $actor,
         ?string $reason,
+        ?Assignment $assignment = null,
+        ?string $syncToken = null,
     ): void {
         WorkOrderStatusHistory::query()->create([
             'work_order_id' => $workOrder->getKey(),
@@ -260,6 +286,12 @@ class WorkOrderTransitionService
             'to_status' => $toStatus,
             'actor_user_id' => $actor->getKey(),
             'reason' => $reason,
+            'metadata' => array_filter([
+                'source' => 'transition',
+                'assignment_id' => $assignment?->getKey(),
+                'actor_role' => $actor->role->value,
+                'sync_token' => $syncToken,
+            ], fn ($value) => $value !== null),
             'occurred_at' => now(),
         ]);
     }

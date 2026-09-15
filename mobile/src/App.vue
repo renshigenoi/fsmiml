@@ -1046,10 +1046,11 @@ window.L = L;
 
             // Tangkap event install sedini mungkin (sebelum Vue mount), biar tidak terlewat.
             let fsmInstallEvent = null;
-            window.addEventListener('beforeinstallprompt', (e) => {
+            const fsmInstallPromptCapture = (e) => {
                 e.preventDefault();
                 fsmInstallEvent = e;
-            });
+            };
+            window.addEventListener('beforeinstallprompt', fsmInstallPromptCapture);
 
             // Bandingkan versi "1.0" vs "1.0.0" dengan benar (angka per segmen).
             function isVersionNewer(server, native) {
@@ -1429,6 +1430,14 @@ export default {
                     }
                     this.maybeShowInstall();
                 },
+                beforeUnmount() {
+                    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+                    if (this.gpsTimer) { clearInterval(this.gpsTimer); this.gpsTimer = null; }
+                    if (this.attendanceClockTimer) { clearInterval(this.attendanceClockTimer); this.attendanceClockTimer = null; }
+                    this.stopGps();
+                    this.destroyMap();
+                    this.teardownListeners();
+                },
                 methods: {
                     getNavigationUrl(loc) {
                         if (!loc || !loc.latitude) return '#';
@@ -1581,7 +1590,17 @@ export default {
                         }
                     },
                     saveOfflineSyncQueue() {
-                        localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
+                        try {
+                            localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
+                        } catch (e) {
+                            // QuotaExceededError: hapus item terlama supaya muat
+                            if (this.offlineSyncQueue.length > 1) {
+                                this.offlineSyncQueue = this.offlineSyncQueue.slice(-1);
+                                try {
+                                    localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
+                                } catch (_) { /* give up silently */ }
+                            }
+                        }
                         this.reportOfflineSyncStatus();
                     },
                     async reportOfflineSyncStatus() {
@@ -1721,7 +1740,7 @@ export default {
                     async loadAttendance() {
                         if (!this.token) return;
                         this.attendance.loading = true;
-                        this.checkMockLocation();
+                        await this.checkMockLocation();
                         try {
                             const res = await this.api('/attendance/today');
                             Object.assign(this.attendance, res.data || res);
@@ -1737,7 +1756,9 @@ export default {
                         this.attendanceClockTimer = setInterval(() => { this.attendance.serverClockTick += 1; }, 1000);
                     },
                     attendanceServerNow() {
-                        this.attendance.serverClockTick;
+                        // Akses serverClockTick supaya Vue re-evaluate method ini
+                        // setiap kali timer menambah nilainya (reactive dependency).
+                        void this.attendance.serverClockTick;
                         if (!this.attendance.serverNowMs) return new Date();
                         return new Date(this.attendance.serverNowMs + Math.max(0, performance.now() - this.attendance.serverClockStartedAt));
                     },
@@ -1876,6 +1897,8 @@ export default {
                     },
                     async loadOrders(silent = false) {
                         if (!this.token) return;
+                        if (this._loadingOrders) return;
+                        this._loadingOrders = true;
                         if (!silent) this.loading = true;
                         try {
                             const data = await this.api('/work-orders');
@@ -1885,6 +1908,7 @@ export default {
                             if (!silent) this.showToast(err.message, 'error');
                         } finally {
                             this.loading = false;
+                            this._loadingOrders = false;
                         }
                     },
                     async loadBonuses() {
@@ -1927,6 +1951,8 @@ export default {
                         }
                     },
                     goHome() {
+                        this.stopGps();
+                        this.destroyMap();
                         this.view = 'home';
                         this.current = null;
                     },
@@ -1960,7 +1986,9 @@ export default {
                             if (!window.Capacitor) return; // hanya berjalan di dalam APK
                             const native = await window.Capacitor.Plugins.App.getInfo();
                             const res = await fetch(API_V1 + '/app/version');
+                            if (!res.ok) return;
                             const data = await res.json();
+                            if (!data || typeof data !== 'object') return;
 
                             // 1) BUNDLE (live update / OTA) — tukar UI tanpa install ulang.
                             //    Dicoba dulu; kalau ada bundle baru, app akan reload sendiri.
@@ -1970,7 +1998,7 @@ export default {
                             if (!data.version || !isVersionNewer(data.version, native.version)) return;
                             this.updateInfo = {
                                 version: data.version,
-                                url: data.download_url || '',
+                                url: typeof data.download_url === 'string' ? data.download_url : '',
                                 required: !!data.update_required,
                             };
                         } catch (err) { /* bukan APK atau jaringan bermasalah — abaikan */ }
@@ -2071,23 +2099,25 @@ export default {
 
                             await PushNotifications.register();
 
+                            this._pushHandles = this._pushHandles || [];
+
                             // Listener: token FCM dari Firebase/Google Play Services
-                            PushNotifications.addListener('registration', async (token) => {
+                            this._pushHandles.push(PushNotifications.addListener('registration', async (token) => {
                                 // Simpan dulu — token bisa terbit sebelum user login.
                                 this.pendingFcmToken = token.value || '';
                                 await this.sendFcmToken();
-                            });
+                            }));
 
                             // Listener: notifikasi masuk saat app dibuka
-                            PushNotifications.addListener('pushNotificationReceived', (notification) => {
+                            this._pushHandles.push(PushNotifications.addListener('pushNotificationReceived', (notification) => {
                                 const n = notification.notification || {};
                                 const msg = [n.title, n.body].filter(Boolean).join(' — ');
                                 if (msg) this.showToast(msg, 'info');
                                 if (this.view === 'home') this.loadOrders();
-                            });
+                            }));
 
                             // Listener: user tap notifikasi (app tertutup -> dibuka)
-                            PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+                            this._pushHandles.push(PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
                                 // Navigasi langsung ke WO yang relevan atau refresh list.
                                 const data = notification.notification.data;
                                 if (data && data.work_order_id) {
@@ -2100,7 +2130,7 @@ export default {
                                     this.view = 'home';
                                     this.loadOrders();
                                 }
-                            });
+                            }));
                         } catch (err) { /* plugin tidak tersedia atau izin ditolak */ }
                     },
                     async sendFcmToken() {
@@ -2167,7 +2197,7 @@ export default {
                     setupBackButton() {
                         if (!window.Capacitor || !window.Capacitor.Plugins.App ||
                             !window.Capacitor.Plugins.App.addListener) return;
-                        window.Capacitor.Plugins.App.addListener('backButton', () => {
+                        this._backButtonHandle = window.Capacitor.Plugins.App.addListener('backButton', () => {
                             if (this.view === 'home' || this.view === 'lock' || this.view === 'login') {
                                 this.askConfirm('Keluar Aplikasi', 'Yakin mau keluar aplikasi?', () => this.exitApp());
                             } else if (this.view === 'detail') {
@@ -2216,12 +2246,13 @@ export default {
                             fsmInstallEvent = null;
                             this.installVisible = true;
                         }
-                        window.addEventListener('beforeinstallprompt', (e) => {
+                        this._installPromptHandler = (e) => {
                             e.preventDefault();
                             this.installEvent = e;
                             this.installVisible = true;
                             this.manualHint = false;
-                        });
+                        };
+                        window.addEventListener('beforeinstallprompt', this._installPromptHandler);
                         // Fallback: kalau di browser mobile event tidak terpancing, tampilkan petunjuk manual.
                         const isMobileBrowser = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
                         setTimeout(() => {
@@ -2234,13 +2265,14 @@ export default {
                                 }
                             }
                         }, 1500);
-                        window.addEventListener('appinstalled', () => {
+                        this._appInstalledHandler = () => {
                             this.installVisible = false;
                             this.iosInstallHint = false;
                             this.manualHint = false;
                             this.installEvent = null;
                             clearTimeout(this.installTimer);
-                        });
+                        };
+                        window.addEventListener('appinstalled', this._appInstalledHandler);
                     },
                     maybeShowInstall() {
                         // Jalankan setelah tampilan beranda benar-benar muncul (render + jeda singkat).
@@ -2270,21 +2302,44 @@ export default {
                         this.manualHint = false;
                     },
                     setupConnectivity() {
-                        window.addEventListener('online', () => {
+                        this._onlineHandler = () => {
                             this.online = true;
                             this.showToast('Koneksi kembali ✓', 'success');
                             this.processOfflineSyncQueue();
-                        });
-                        window.addEventListener('offline', () => {
+                        };
+                        this._offlineHandler = () => {
                             this.online = false;
-                        });
+                        };
                         // Saat aplikasi kembali ke foreground, kirim ulang lokasi terakhir kalau sempat basi.
-                        document.addEventListener('visibilitychange', () => {
+                        this._visibilityHandler = () => {
                             if (!document.hidden) {
                                 this.catchUpLocation();
                                 this.processOfflineSyncQueue();
                             }
-                        });
+                        };
+                        window.addEventListener('online', this._onlineHandler);
+                        window.addEventListener('offline', this._offlineHandler);
+                        document.addEventListener('visibilitychange', this._visibilityHandler);
+                    },
+                    teardownListeners() {
+                        // #16: lepas semua event listener agar tidak ada memory leak /
+                        // handler duplikat saat komponen dipasang ulang.
+                        if (this._onlineHandler) window.removeEventListener('online', this._onlineHandler);
+                        if (this._offlineHandler) window.removeEventListener('offline', this._offlineHandler);
+                        if (this._visibilityHandler) document.removeEventListener('visibilitychange', this._visibilityHandler);
+                        if (this._installPromptHandler) window.removeEventListener('beforeinstallprompt', this._installPromptHandler);
+                        if (this._appInstalledHandler) window.removeEventListener('appinstalled', this._appInstalledHandler);
+                        window.removeEventListener('beforeinstallprompt', fsmInstallPromptCapture);
+                        clearTimeout(this.installTimer);
+
+                        const removeCapHandle = (handleOrPromise) => {
+                            Promise.resolve(handleOrPromise)
+                                .then((h) => h && typeof h.remove === 'function' && h.remove())
+                                .catch(() => {});
+                        };
+                        removeCapHandle(this._backButtonHandle);
+                        (this._pushHandles || []).forEach(removeCapHandle);
+                        this._pushHandles = [];
                     },
                     matchSearch(wo, q) {
                         const number = String(wo.number || '').toLowerCase();
@@ -2295,7 +2350,16 @@ export default {
                         return String((this.user && this.user.email) || this.loginForm.email || '').trim().toLowerCase();
                     },
                     localPin() {
+                        // Kembalikan nilai tersimpan (sudah di-hash) — hanya untuk
+                        // penanda "PIN pernah diset", bukan untuk verifikasi.
                         return localStorage.getItem(fsmLocalPinKey(this.currentEmail()));
+                    },
+                    async saveLocalPin(pin) {
+                        // Simpan hash PIN, bukan plaintext. Gunakan salt per-user
+                        // supaya hash tidak identik antar akun.
+                        const salt = this.randomSalt();
+                        const hash = await this.hashPin(pin, salt);
+                        localStorage.setItem(fsmLocalPinKey(this.currentEmail()), salt + ':' + hash);
                     },
                     openChangePin() {
                         this.pinChange = { stage: 'old', old: '', new: '', confirm: '', error: '' };
@@ -2331,7 +2395,7 @@ export default {
                             return;
                         }
                         const status = await this.serverPinCheck(oldPin);
-                        if (status !== 'ok' && this.localPin() !== oldPin) {
+                        if (status !== 'ok') {
                             this.pinChange.error = status === 'wrong'
                                 ? 'PIN lama salah.'
                                 : 'Tidak dapat verifikasi — periksa koneksi.';
@@ -2341,7 +2405,7 @@ export default {
                         }
                         try {
                             await this.api('/auth/pin', { method: 'POST', body: { pin: newPin } });
-                            localStorage.setItem(fsmLocalPinKey(this.currentEmail()), newPin);
+                            await this.saveLocalPin(newPin);
                             this.showToast('PIN berhasil diganti ✅', 'success');
                             this.view = 'home';
                         } catch (err) {
@@ -2428,7 +2492,7 @@ export default {
                         this.busy = true;
                         try {
                             await this.api('/auth/pin', { method: 'POST', body: { pin: first } });
-                            localStorage.setItem(fsmLocalPinKey(this.currentEmail()), first);
+                            await this.saveLocalPin(first);
                             this.view = 'home';
                             this.showToast('PIN berhasil dibuat 🔐', 'success');
                         } catch (err) {
@@ -2450,15 +2514,14 @@ export default {
                     async verifyPin() {
                         const pin = this.pinEntry;
                         const status = await this.serverPinCheck(pin);
-                        const ok = status === 'ok' || this.localPin() === pin;
-                        if (!ok) {
+                        if (status !== 'ok') {
                             this.pinEntry = '';
                             this.pinError = status === 'wrong'
                                 ? 'PIN salah, coba lagi.'
                                 : 'Tidak dapat verifikasi — periksa koneksi.';
                             return;
                         }
-                        if (status === 'ok') localStorage.setItem(fsmLocalPinKey(this.currentEmail()), pin);
+                        localStorage.setItem(fsmLocalPinKey(this.currentEmail()), 'verified');
                         if (this.pendingRelogin) {
                             const relogged = await this.pinLogin(pin);
                             if (!relogged) {

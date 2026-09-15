@@ -135,7 +135,7 @@ class LegacyDataSourceService
             $bindings = [$pattern, $pattern, $pattern];
         }
 
-        $sql .= ' LIMIT '.$this->limit($limit);
+        $sql .= ' ORDER BY s.serial DESC LIMIT '.$this->limit($limit);
 
         $rows = DB::connection('sales')->select($sql, $bindings);
 
@@ -181,6 +181,25 @@ class LegacyDataSourceService
         );
 
         return $rows[0] ?? null;
+    }
+
+    /**
+     * @param  array<int, string>  $serials
+     * @return list<object>
+     */
+    public function techniciansBySerials(array $serials): array
+    {
+        if ($serials === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($serials), '?'));
+
+        return DB::connection('sales')->select(
+            "SELECT serial, user_id, full_name, email, cell_phone, home_phone, status
+             FROM users WHERE serial IN ({$placeholders})",
+            array_values($serials),
+        );
     }
 
     /**

@@ -144,5 +144,6 @@ Write-Host 'Langkah di VPS:' -ForegroundColor Yellow
 Write-Host "  1. Upload ke: /www/wwwroot/fsm.indomotorlestari.com/storage/app/private/bundles/$Version.zip"
 Write-Host "  2. .env VPS : MOBILE_BUNDLE_VERSION=$Version"
 Write-Host '  3. Jalankan : php artisan config:clear'
-Write-Host "  4. Cek      : curl -I https://fsm.indomotorlestari.com/api/v1/app/bundle/$Version"
+Write-Host '  4. Cek      : curl -s https://fsm.indomotorlestari.com/api/v1/app/version'
+Write-Host '               (bundle_url kini SIGNED — curl langsung ke /app/bundle/N dibalas 403, itu memang benar)'
 Write-Host '================================================' -ForegroundColor Green

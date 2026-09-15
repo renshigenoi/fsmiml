@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Assignment\Services\AssignmentService;
 use App\Modules\Customer\Models\Customer;
 use App\Modules\Customer\Models\ServiceLocation;
+use App\Modules\Legacy\Support\SalesDetailMapper;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Modules\WorkOrder\Enums\WorkOrderStatus;
 use App\Modules\WorkOrder\Models\WorkOrder;
@@ -50,8 +51,25 @@ class LegacyWorkOrderService
             ]);
         }
 
+        // Baca daftar detail dari DB lama SEBELUM transaksi FSM (cross-DB read),
+        // sekaligus untuk #29: tidak ada query legacy di dalam transaksi FSM.
+        $salesDetailRows = $this->legacy->salesDetails($salesSerial);
+
+        // Ambil data teknisi dari DB lama SEBELUM transaksi FSM,
+        // agar query cross-database tidak ikut dalam transaksi FSM.
+        // Jika transaksi FSM rollback, event yang sudah ter-dispatch
+        // dari luar tidak akan menjadi ghost notification.
+        $technicians = $this->technicianImporter->importBySerials($technicianSerials);
+
+        if ($technicians->isEmpty()) {
+            throw ValidationException::withMessages([
+                'technician_legacy_serials' => 'None of the selected technicians were found in the legacy database.',
+            ]);
+        }
+
         return DB::transaction(function () use (
             $row,
+            $salesDetailRows,
             $technicianSerials,
             $scheduledStartAt,
             $notes,
@@ -61,21 +79,14 @@ class LegacyWorkOrderService
             $longitude,
             $customerPhone,
             $customerEmail,
+            $technicians,
         ): WorkOrder {
             $customer = $this->upsertCustomer($row, $customerPhone, $customerEmail);
             $location = $this->upsertServiceLocation($customer, $row, $locationAddress, $latitude, $longitude);
             $salesOrder = $this->upsertSalesOrder($customer, $row);
             $workOrder = $this->createWorkOrder($salesOrder, $customer, $location, $row, $scheduledStartAt, $notes, $actor);
 
-            $this->syncItems($salesOrder, $workOrder, $row);
-
-            $technicians = $this->technicianImporter->importBySerials($technicianSerials);
-
-            if ($technicians->isEmpty()) {
-                throw ValidationException::withMessages([
-                    'technician_legacy_serials' => 'None of the selected technicians were found in the legacy database.',
-                ]);
-            }
+            $this->syncItems($salesOrder, $workOrder, $row, $salesDetailRows);
 
             $this->assignments->assignMany($workOrder, $technicians->pluck('id')->all(), $actor);
 
@@ -166,7 +177,9 @@ class LegacyWorkOrderService
             ]);
         }
 
-        if (WorkOrder::query()->where('number', $number)->exists()) {
+        if (WorkOrder::query()->where('number', $number)
+            ->lockForUpdate()
+            ->exists()) {
             $existing = WorkOrder::query()->where('number', $number)->first();
             throw ValidationException::withMessages([
                 'spk_no' => "SPK {$number} sudah pernah dibuat"
@@ -204,27 +217,80 @@ class LegacyWorkOrderService
         return $workOrder;
     }
 
-    private function syncItems(SalesOrder $salesOrder, WorkOrder $workOrder, object $row): void
+    /**
+     * Salin SELURUH item dari SHOW_SalesDetail (bukan hanya 1 item gabungan),
+     * sehingga detail multiple windows, positions, dan dimensions ikut tersimpan.
+     *
+     * @param  array<int, object>  $detailRows
+     */
+    private function syncItems(SalesOrder $salesOrder, WorkOrder $workOrder, object $row, array $detailRows): void
     {
         $productName = trim(trim((string) ($row->car_brand ?? '')).' '.trim((string) ($row->car_model ?? '')));
 
-        if ($productName === '') {
+        if ($productName !== '') {
+            $salesItem = $salesOrder->items()->create([
+                'product_code' => filled($row->car_type_serial ?? null) ? (string) $row->car_type_serial : null,
+                'product_name' => $productName,
+                'window_film_desc' => filled($row->window_film_desc ?? null) ? (string) $row->window_film_desc : null,
+                'quantity' => 1,
+            ]);
+
+            $workOrder->items()->create([
+                'sales_order_item_id' => $salesItem->getKey(),
+                'product_code' => $salesItem->product_code,
+                'product_name' => $productName,
+                'window_film_desc' => $salesItem->window_film_desc,
+                'quantity' => 1,
+            ]);
+        }
+
+        // Jika SHOW_SalesDetail kosong, cukup item kendaraan saja (perilaku lama).
+        if ($detailRows === []) {
             return;
         }
 
-        $salesItem = $salesOrder->items()->create([
-            'product_code' => $row->car_type_serial ? (string) $row->car_type_serial : null,
-            'product_name' => $productName,
-            'window_film_desc' => filled($row->window_film_desc ?? null) ? (string) $row->window_film_desc : null,
-            'quantity' => 1,
-        ]);
+        foreach ($detailRows as $detail) {
+            $position = SalesDetailMapper::windowPositionLabel($detail->window_position ?? null);
+            $detailLabel = SalesDetailMapper::windowPositionDetailLabel(
+                $detail->window_position ?? null,
+                $detail->window_position_detail ?? null,
+            );
 
-        $workOrder->items()->create([
-            'sales_order_item_id' => $salesItem->getKey(),
-            'product_code' => $salesItem->product_code,
-            'product_name' => $productName,
-            'window_film_desc' => $salesItem->window_film_desc,
-            'quantity' => 1,
-        ]);
+            $name = trim((string) ($detail->inventory_name ?? ''));
+            if ($name === '') {
+                $name = filled($position) ? 'Kaca '.$position : 'Kaca Film';
+            }
+
+            $desc = trim(collect([$position, $detailLabel, $this->filmDimension($detail)])
+                ->filter()
+                ->implode(' '));
+
+            $quantity = max(1, (int) ($detail->qty ?? 1));
+
+            $salesItem = $salesOrder->items()->create([
+                'product_name' => mb_substr($name, 0, 100),
+                'window_film_desc' => $desc === '' ? null : mb_substr($desc, 0, 255),
+                'quantity' => $quantity,
+            ]);
+
+            $workOrder->items()->create([
+                'sales_order_item_id' => $salesItem->getKey(),
+                'product_name' => $salesItem->product_name,
+                'window_film_desc' => $salesItem->window_film_desc,
+                'quantity' => $quantity,
+            ]);
+        }
+    }
+
+    private function filmDimension(object $detail): ?string
+    {
+        $width = trim((string) ($detail->width ?? ''));
+        $length = trim((string) ($detail->length_ ?? ''));
+
+        if ($width === '' || $length === '') {
+            return null;
+        }
+
+        return $width.'x'.$length;
     }
 }

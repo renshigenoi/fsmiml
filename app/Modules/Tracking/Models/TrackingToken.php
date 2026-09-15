@@ -13,6 +13,7 @@ class TrackingToken extends Model
     protected $fillable = [
         'tracking_session_id',
         'token_hash',
+        'token_plain_encrypted',
         'status',
         'expires_at',
         'revoked_at',

@@ -11,6 +11,7 @@ use App\Modules\Assignment\Enums\AssignmentStatus;
 use App\Modules\Assignment\Exceptions\InvalidAssignment;
 use App\Modules\Assignment\Events\AssignmentCreated;
 use App\Modules\Assignment\Models\Assignment;
+use App\Modules\Audit\Services\AuditTrailService;
 use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Identity\Models\Technician;
 use App\Modules\Legacy\Services\LegacyDataSourceService;
@@ -40,10 +41,13 @@ class DashboardController extends Controller
         private readonly LegacyWorkOrderService $workOrders,
         private readonly LegacyTechnicianImporter $technicianImporter,
         private readonly TrackingTokenService $trackingTokens,
+        private readonly AuditTrailService $audit,
     ) {}
 
     public function index(): View
     {
+        $this->ensureCoordinatorAccess();
+
         $statusCounts = WorkOrder::query()
             ->selectRaw('status, COUNT(*) AS total')
             ->groupBy('status')
@@ -105,11 +109,15 @@ class DashboardController extends Controller
 
     public function input(): View
     {
+        $this->ensureCoordinatorAccess();
+
         return view('dashboard.input');
     }
 
     public function workOrders(Request $request): View
     {
+        $this->ensureCoordinatorAccess();
+
         $statusParam = $request->query('status');
         $rangeParam = $request->query('range');
         $perPageParam = $request->query('per_page');
@@ -215,6 +223,8 @@ class DashboardController extends Controller
 
     public function technicians(Request $request): View
     {
+        $this->ensureCoordinatorAccess();
+
         $rows = $this->legacy->technicians($request->query('search'), 200);
 
         return view('dashboard.technicians', [
@@ -225,6 +235,8 @@ class DashboardController extends Controller
 
     public function searchSales(Request $request): JsonResponse
     {
+        $this->ensureCoordinatorAccess();
+
         $rows = $this->legacy->sales($request->query('search'), 10);
 
         return response()
@@ -236,6 +248,8 @@ class DashboardController extends Controller
 
     public function salesDetailsJson(string $serial): JsonResponse
     {
+        $this->ensureCoordinatorAccess();
+
         $rows = array_map(
             fn (object $row): array => LegacyRowFormatter::salesDetail($row),
             $this->legacy->salesDetails($serial),
@@ -248,6 +262,8 @@ class DashboardController extends Controller
 
     public function techniciansJson(Request $request): JsonResponse
     {
+        $this->ensureCoordinatorAccess();
+
         $rows = $this->legacy->technicians($request->query('search'), 200);
 
         return response()
@@ -259,6 +275,8 @@ class DashboardController extends Controller
 
     public function overviewJson(): JsonResponse
     {
+        $this->ensureCoordinatorAccess();
+
         $statusCounts = WorkOrder::query()
             ->selectRaw('status, COUNT(*) AS total')
             ->groupBy('status')
@@ -277,6 +295,8 @@ class DashboardController extends Controller
 
     public function storeWorkOrder(StoreLegacyWorkOrderRequest $request): RedirectResponse
     {
+        $this->ensureCoordinatorAccess();
+
         $validated = $request->validated();
 
         $scheduledAt = $validated['scheduled_start_at'] ?? null;
@@ -316,6 +336,8 @@ class DashboardController extends Controller
 
     public function showWorkOrder(WorkOrder $workOrder): View
     {
+        $this->ensureCoordinatorAccess();
+
         $workOrder->load([
             'customer',
             'serviceLocation',
@@ -383,6 +405,8 @@ class DashboardController extends Controller
 
     public function updateWorkOrder(UpdateWorkOrderRequest $request, WorkOrder $workOrder): RedirectResponse
     {
+        $this->ensureCoordinatorAccess();
+
         $validated = $request->validated();
 
         $scheduledAt = $validated['scheduled_start_at'];
@@ -518,6 +542,8 @@ class DashboardController extends Controller
 
         $user->update(['pin_hash' => Hash::make($request->validated('pin'))]);
 
+        $this->audit->record('admin.pin_reset', $user, ['target_email' => $user->email]);
+
         return back()->with('success', "PIN akun {$user->email} berhasil direset.");
     }
 
@@ -526,10 +552,18 @@ class DashboardController extends Controller
         $this->ensureResetPinAccess();
         $user->update(['allow_fake_gps' => ! $user->allow_fake_gps]);
         $status = $user->allow_fake_gps ? 'diizinkan' : 'diblokir';
+
+        $this->audit->record('admin.fake_gps_toggled', $user, ['allow_fake_gps' => (bool) $user->allow_fake_gps]);
+
         return back()->with('success', "Izin Fake GPS untuk {$user->name} berhasil {$status}.");
     }
 
     private function ensureResetPinAccess(): void
+    {
+        $this->ensureCoordinatorAccess();
+    }
+
+    private function ensureCoordinatorAccess(): void
     {
         abort_unless(
             in_array(auth()->user()->role, [UserRole::Administrator, UserRole::Coordinator], true),

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tracking_points', function (Blueprint $table) {
-            $table->boolean('is_mocked')->default(false)->after('accuracy');
+            $table->boolean('is_mocked')->default(false)->after('accuracy_meters');
         });
     }
 

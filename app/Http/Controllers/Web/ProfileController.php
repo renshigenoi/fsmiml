@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\UpdateProfileRequest;
+use App\Modules\Audit\Services\AuditTrailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        private readonly AuditTrailService $audit,
+    ) {}
+
     public function show(): View
     {
         return view('dashboard.profile');
@@ -28,6 +33,8 @@ class ProfileController extends Controller
             $user->update([
                 'password' => Hash::make($request->validated('password')),
             ]);
+
+            $this->audit->record('auth.password_changed', $user, ['via' => 'web']);
         }
 
         return back()->with('success', 'Profil berhasil diperbarui.');

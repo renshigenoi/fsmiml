@@ -10,36 +10,12 @@ use App\Modules\Attendance\Jobs\ResolveAttendanceAddress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
     private const TIMEZONE = 'Asia/Jakarta';
-
-	private function getAddressFromCoords(float $lat, float $lng): ?string
-	{
-		try {
-			// Panggil OpenStreetMap Nominatim API
-			$response = Http::withHeaders([
-				'User-Agent' => 'IML-FSM-App/1.0 (admin@indomotorlestari.co.id)' // Wajib isi User-Agent
-			])->get('https://nominatim.openstreetmap.org/reverse', [
-				'format' => 'jsonv2',
-				'lat' => $lat,
-				'lon' => $lng,
-				'zoom' => 18,
-			]);
-
-			if ($response->successful()) {
-				return $response->json('display_name');
-			}
-		} catch (\Throwable) {
-			// Jika API error/timeout, abaikan agar absen tetap berhasil disimpan
-		}
-
-		return null;
-	}
 
     public function today(Request $request): JsonResponse
     {
@@ -145,6 +121,18 @@ class AttendanceController extends Controller
         if ($data['type'] === 'permission' && (! isset($data['start_time']) || ! isset($data['end_time']))) throw ValidationException::withMessages(['start_time' => 'Jam mulai dan jam selesai izin wajib diisi.']);
         /** @var User $user */
         $user = $request->user();
+
+        // Cek tumpang tindih dengan pengajuan cuti/izin yang sudah ada (pending atau approved).
+        $overlap = LeaveRequest::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('leave_date', '<=', $data['leave_end_date'])
+            ->where('leave_end_date', '>=', $data['leave_date'])
+            ->exists();
+        if ($overlap) {
+            throw ValidationException::withMessages(['leave_date' => 'Anda sudah memiliki pengajuan cuti/izin pada rentang tanggal tersebut.']);
+        }
+
         $leave = LeaveRequest::query()->create([...$data, 'user_id' => $user->id, 'status' => 'pending']);
         return response()->json(['message' => 'Pengajuan berhasil dikirim dan menunggu persetujuan.', 'data' => $this->leavePayload($leave)], 201);
     }

@@ -2,13 +2,20 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Models\User;
+use App\Modules\Identity\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreLegacyWorkOrderRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        // Otorisasi harus terjadi SEBELUM validasi: teknisi harus langsung
+        // ditolak 403 tanpa membocorkan skema field yang wajib diisi.
+        $user = $this->user();
+
+        return $user instanceof User
+            && in_array($user->role, [UserRole::Administrator, UserRole::Coordinator], true);
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Attendance\Models\AttendanceRecord;
 use App\Modules\Attendance\Models\LeaveRequest;
 use App\Modules\Attendance\Models\WorkLocation;
+use App\Modules\Audit\Services\AuditTrailService;
 use App\Modules\Identity\Models\Technician;
 use App\Modules\Identity\Enums\UserRole;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,10 @@ use Illuminate\Validation\Rule;
 
 class AttendanceAdminController extends Controller
 {
+	public function __construct(
+		private readonly AuditTrailService $audit,
+	) {}
+
 	public function index(Request $request): View
 	{
 		$this->authorizeAttendanceAdmin($request);
@@ -37,7 +42,9 @@ class AttendanceAdminController extends Controller
             'radius_meters' => ['required', 'integer', 'min:10', 'max:10000']
         ]);
 
-        WorkLocation::query()->create($data);
+        $location = WorkLocation::query()->create($data);
+
+        $this->audit->record('attendance.location_created', $location, ['name' => $data['name']]);
 
         return back()->with('success', 'Lokasi kerja berhasil ditambahkan.');
     }
@@ -60,6 +67,8 @@ class AttendanceAdminController extends Controller
 
         $location->update($data);
 
+        $this->audit->record('attendance.location_updated', $location, $data);
+
         return back()->with('success', 'Lokasi kerja diperbarui.');
     }
 
@@ -74,6 +83,8 @@ class AttendanceAdminController extends Controller
 
         $technician->update($data);
 
+        $this->audit->record('attendance.technician_rules_updated', $technician, $data);
+
         return back()->with('success', 'Aturan absensi karyawan diperbarui.');
     }
 
@@ -85,10 +96,31 @@ class AttendanceAdminController extends Controller
             'review_note' => ['nullable', 'string', 'max:1000']
         ]);
 
+        // Re-check tumpang tindih saat approve: dua pengajuan untuk periode sama
+        // tidak boleh sama-sama berstatus approved (FR audit P3).
+        if ($data['status'] === 'approved') {
+            $overlap = LeaveRequest::query()
+                ->where('user_id', $leaveRequest->user_id)
+                ->where('id', '!=', $leaveRequest->getKey())
+                ->where('status', 'approved')
+                ->where('leave_date', '<=', $leaveRequest->leave_end_date ?? $leaveRequest->leave_date)
+                ->where('leave_end_date', '>=', $leaveRequest->leave_date)
+                ->exists();
+
+            if ($overlap) {
+                return back()->withErrors(['status' => 'Tidak bisa disetujui: sudah ada pengajuan APPROVED pada rentang tanggal yang sama untuk karyawan ini.']);
+            }
+        }
+
         $leaveRequest->update([
             ...$data,
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now()
+        ]);
+
+        $this->audit->record('attendance.leave_reviewed', $leaveRequest, [
+            'status' => $data['status'],
+            'review_note' => $data['review_note'] ?? null,
         ]);
 
         return back()->with('success', $data['status'] === 'approved' ? 'Pengajuan disetujui.' : 'Pengajuan ditolak.');

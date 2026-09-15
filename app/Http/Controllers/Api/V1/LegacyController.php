@@ -51,12 +51,23 @@ class LegacyController extends Controller
         $this->authorizeLegacyAccess($request->user());
 
         $validated = $request->validated();
+
+        $scheduledAt = $validated['scheduled_start_at'] ?? null;
+        if (filled($scheduledAt) && filled($validated['scheduled_start_time'] ?? null)) {
+            $scheduledAt .= ' '.$validated['scheduled_start_time'];
+        }
+
         $workOrder = $workOrders->createFromSales(
             $validated['legacy_sales_serial'],
             $validated['technician_legacy_serials'],
-            $validated['scheduled_start_at'] ?? null,
+            $scheduledAt,
             $validated['notes'] ?? null,
             $request->user(),
+            $validated['location_address'] ?? null,
+            isset($validated['latitude']) ? (float) $validated['latitude'] : null,
+            isset($validated['longitude']) ? (float) $validated['longitude'] : null,
+            $validated['customer_phone'] ?? null,
+            $validated['customer_email'] ?? null,
         );
 
         return response()->json([

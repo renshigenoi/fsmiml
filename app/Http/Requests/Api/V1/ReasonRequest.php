@@ -13,6 +13,9 @@ class ReasonRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['reason' => ['required', 'string', 'max:5000']];
+        return [
+            'reason' => ['required', 'string', 'max:5000'],
+            'sync_token' => ['nullable', 'string', 'max:64'],
+        ];
     }
 }

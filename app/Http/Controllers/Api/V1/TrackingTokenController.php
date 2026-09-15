@@ -148,7 +148,6 @@ class TrackingTokenController extends Controller
                 'latitude' => $workOrder->serviceLocation?->latitude,
                 'longitude' => $workOrder->serviceLocation?->longitude,
             ],
-            'realtime_channel' => $trackingToken->trackingSession->realtime_channel,
             'current_location' => $location,
             'trip_points' => $tripPoints,
             'trip_summary' => $tripSummary,
