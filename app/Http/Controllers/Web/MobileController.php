@@ -61,7 +61,7 @@ class MobileController extends Controller
     public function serviceWorker(): Response
     {
         $script = <<<'JS'
-const CACHE = 'fsm-mobile-v12';
+const CACHE = 'fsm-mobile-v13';
 const SHELL = ['/mobile', '/mobile/manifest.webmanifest', '/assets/images/iml-logo.png'];
 
 self.addEventListener('install', (event) => {
