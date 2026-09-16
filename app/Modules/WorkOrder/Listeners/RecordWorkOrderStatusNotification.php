@@ -23,7 +23,10 @@ class RecordWorkOrderStatusNotification implements ShouldQueue
     public function handle(WorkOrderStatusChanged $event): void
     {
         $workOrder = $event->workOrder->loadMissing(['assignments.assignedBy', 'customer']);
-        $assignment = $workOrder->assignments->sortByDesc('assigned_at')->first();
+        // Prioritaskan assignment yang ACCEPTED (C7): tanpa filter, assignment
+        // Superseded/Cancelled bisa terpilih karena tied timestamp assigned_at.
+        $assignment = $workOrder->assignments->firstWhere('status', AssignmentStatus::Accepted)
+            ?? $workOrder->assignments->sortByDesc('assigned_at')->first();
 
         if ($assignment?->assignedBy !== null) {
             $this->notifications->queue(

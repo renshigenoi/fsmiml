@@ -52,5 +52,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('tracking', fn (Request $request) => Limit::perMinute(120)->by((string) $request->user()?->getAuthIdentifier()));
         RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)->by((string) $request->ip()));
         RateLimiter::for('web', fn (Request $request) => Limit::perMinute(400)->by((string) $request->user()?->getAuthIdentifier() ?: $request->ip()));
+        // D2: throttle:login men-key email+IP; request pin/verify tidak punya email
+        // sehingga efektif jadi per-IP saja. Limiter khusus ini men-key akun
+        // teknisi + IP, dan tetap 5/menit untuk memperlambat brute-force PIN.
+        RateLimiter::for('pin-verify', fn (Request $request) => Limit::perMinute(5)->by((string) $request->user()?->getAuthIdentifier().'|'.$request->ip()));
     }
 }

@@ -51,7 +51,7 @@ final class DeliverNotification implements ShouldQueue
         }
 
         // FCM tanpa device token terdaftar → tandai gagal sekali (tanpa retry berulang) biar log tidak penuh error.
-        if ($notification->channel === NotificationChannel::Push->value
+        if ($notification->channel === NotificationChannel::Push
             && ($notification->user === null || $notification->user->deviceTokens->isEmpty())) {
             app(NotificationDeliveryService::class)->markFailed(
                 $notification,

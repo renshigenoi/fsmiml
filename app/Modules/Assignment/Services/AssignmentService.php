@@ -210,15 +210,21 @@ class AssignmentService
 
     private function hasScheduleConflict(WorkOrder $workOrder, Technician $technician): bool
     {
-        if ($workOrder->scheduled_end_at === null) {
+        if ($workOrder->scheduled_start_at === null) {
             return false;
         }
+
+        // B22: WO legacy tidak pernah mengisi scheduled_end_at, sehingga cek
+        // benturan dulu selalu return false (fitur mati senyap). Sekarang pakai
+        // jendela durasi default bila end belum diset.
+        $end = $workOrder->scheduled_end_at
+            ?? $workOrder->scheduled_start_at->copy()->addHours((float) config('fsm.schedule_default_duration_hours', 3));
 
         return Assignment::query()
             ->where('technician_id', $technician->getKey())
             ->whereIn('status', [AssignmentStatus::Pending->value, AssignmentStatus::Accepted->value])
-            ->whereHas('workOrder', function ($query) use ($workOrder): void {
-                $query->where('scheduled_start_at', '<', $workOrder->scheduled_end_at)
+            ->whereHas('workOrder', function ($query) use ($workOrder, $end): void {
+                $query->where('scheduled_start_at', '<', $end)
                     ->whereRaw('COALESCE(scheduled_end_at, scheduled_start_at) > ?', [$workOrder->scheduled_start_at]);
             })
             ->exists();

@@ -16,7 +16,19 @@ class MobileController extends Controller
         $vueIndex = public_path('mobile/index.html');
 
         if (is_file($vueIndex)) {
-            return response()->file($vueIndex, [
+            // C5: index.html hasil build memakai path RELATIF (./assets/...).
+            // Di bawah subpath /mobile, browser butuh base href agar aset
+            // resolve ke /mobile/assets/... — disuntik saat serve, bukan lewat
+            // redirect (Laravel menormalkan trailing slash, jadi membedakan
+            // '/mobile' vs '/mobile/' tidak andal). APK memuat dist sendiri
+            // tanpa route ini, jadi tidak terpengaruh.
+            $html = (string) file_get_contents($vueIndex);
+
+            if (! str_contains($html, '<base ')) {
+                $html = preg_replace('/<head>/i', '<head><base href="/mobile/">', $html, 1);
+            }
+
+            return response($html, 200, [
                 'Content-Type' => 'text/html; charset=UTF-8',
                 'Cache-Control' => 'no-store',
             ]);
@@ -49,7 +61,7 @@ class MobileController extends Controller
     public function serviceWorker(): Response
     {
         $script = <<<'JS'
-const CACHE = 'fsm-mobile-v11';
+const CACHE = 'fsm-mobile-v12';
 const SHELL = ['/mobile', '/mobile/manifest.webmanifest', '/assets/images/iml-logo.png'];
 
 self.addEventListener('install', (event) => {

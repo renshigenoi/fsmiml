@@ -23,13 +23,15 @@ class WorkOrderTransitionService
      * @var array<string, list<WorkOrderStatus>>
      */
     private const TRANSITIONS = [
-        'accepted' => [WorkOrderStatus::OnTheWay, WorkOrderStatus::Cancelled],
+        // B15: teknisi butuh melapor kendala sebelum tiba — accepted &
+        // on_the_way kini boleh menuju Failed (UI mobile sudah menampilkannya).
+        'accepted' => [WorkOrderStatus::OnTheWay, WorkOrderStatus::Failed, WorkOrderStatus::Cancelled],
         'arrived' => [WorkOrderStatus::Installation, WorkOrderStatus::Failed, WorkOrderStatus::Cancelled],
         'draft' => [],
         'failed' => [],
         'finished' => [],
         'installation' => [WorkOrderStatus::Finished, WorkOrderStatus::Failed, WorkOrderStatus::Cancelled],
-        'on_the_way' => [WorkOrderStatus::Arrived, WorkOrderStatus::Cancelled],
+        'on_the_way' => [WorkOrderStatus::Arrived, WorkOrderStatus::Failed, WorkOrderStatus::Cancelled],
         'rejected' => [],
         'waiting_acceptance' => [WorkOrderStatus::Rejected, WorkOrderStatus::Cancelled],
         'cancelled' => [],
@@ -58,6 +60,17 @@ class WorkOrderTransitionService
                 ->where('work_order_id', $lockedWorkOrder->getKey())
                 ->where('metadata->sync_token', $syncToken)
                 ->exists()) {
+                // B11: replay TETAP harus melewati otorisasi yang setara dengan
+                // aksi aslinya — token bukan kredensial. Status mungkin sudah
+                // melaju (transisi lanjutan terjadi), jadi InvalidWorkOrderTransition
+                // diabaikan; AuthorizationException tidak.
+                try {
+                    $this->authorizeTransition($lockedWorkOrder, $lockedWorkOrder->status, $toStatus, $actor);
+                } catch (InvalidWorkOrderTransition) {
+                    // sudah lewat — cukup actor masih berhak atas WO ini.
+                    $this->authorizeTransitionOwnerForReplay($lockedWorkOrder, $toStatus, $actor);
+                }
+
                 return [$lockedWorkOrder, null];
             }
 
@@ -124,7 +137,7 @@ class WorkOrderTransitionService
 
         $assignment = $this->activeAssignmentFor($workOrder, $actor);
 
-        if ($fromStatus === WorkOrderStatus::Accepted && $toStatus === WorkOrderStatus::OnTheWay) {
+        if ($fromStatus === WorkOrderStatus::Accepted && in_array($toStatus, [WorkOrderStatus::OnTheWay, WorkOrderStatus::Failed], true)) {
             return $assignment;
         }
 
@@ -133,6 +146,30 @@ class WorkOrderTransitionService
         }
 
         throw new InvalidWorkOrderTransition('This transition requires a supported Work Order action.');
+    }
+
+    /**
+     * B11: fallback otorisasi untuk replay sync_token ketika status WO sudah
+     * melaju melewati aksi aslinya (authorizeTransition normal menolak transisi).
+     * Yang boleh me-replay: koordinator, atau teknisi dengan assignment
+     * Accepted di WO ini.
+     */
+    private function authorizeTransitionOwnerForReplay(
+        WorkOrder $workOrder,
+        WorkOrderStatus $toStatus,
+        User $actor,
+    ): void {
+        if ($toStatus === WorkOrderStatus::Cancelled) {
+            $this->ensureCoordinator($actor);
+
+            return;
+        }
+
+        if ($this->isCoordinator($actor)) {
+            return;
+        }
+
+        $this->activeAssignmentFor($workOrder, $actor);
     }
 
     private function activeAssignmentFor(WorkOrder $workOrder, User $actor): Assignment

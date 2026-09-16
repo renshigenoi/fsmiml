@@ -55,10 +55,25 @@ class WorkOrderResource extends JsonResource
                         'original_name' => $photo->original_name,
                         'uploaded_at' => $photo->created_at?->toISOString(),
                     ])->values(),
+                    // B9: foto penyelesaian (stage 'completion') selama ini tidak
+                    // pernah muncul karena grup tidak didefinisikan.
+                    'completion' => $grouped->get('completion', collect())->map(fn ($photo) => [
+                        'id' => $photo->id,
+                        'url' => $photo->url,
+                        'original_name' => $photo->original_name,
+                        'uploaded_at' => $photo->created_at?->toISOString(),
+                    ])->values(),
                 ];
             }),
             'assignments' => AssignmentResource::collection($this->whenLoaded('assignments')),
-            'tracking_sessions' => $this->whenLoaded('trackingSessions'),
+            // A6: whitelist field — JANGAN serialisasi model mentah karena
+            // realtime_channel sesi teknisi lain tidak boleh terbaca viewer.
+            'tracking_sessions' => $this->whenLoaded('trackingSessions', fn () => $this->trackingSessions->map(fn ($session) => [
+                'id' => $session->id,
+                'status' => $session->status?->value,
+                'started_at' => $session->started_at?->toISOString(),
+                'ended_at' => $session->ended_at?->toISOString(),
+            ])->values()),
             'status_histories' => $this->whenLoaded('statusHistories'),
         ];
     }

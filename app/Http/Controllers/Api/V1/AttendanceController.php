@@ -100,6 +100,8 @@ class AttendanceController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        // C1: validasi dulu agar ?month ngawur dibalas 422, bukan 500.
+        $request->validate(['month' => ['nullable', 'date_format:Y-m']]);
         $month = Carbon::createFromFormat('Y-m', $request->query('month', now(self::TIMEZONE)->format('Y-m')), self::TIMEZONE);
         $start = $month->copy()->startOfMonth(); $end = $month->copy()->endOfMonth();
         $records = AttendanceRecord::query()->where('user_id', $user->id)->whereBetween('attendance_date', [$start->toDateString(), $end->toDateString()])->get()->keyBy(fn (AttendanceRecord $r) => $r->attendance_date->toDateString());

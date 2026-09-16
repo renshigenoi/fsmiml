@@ -49,6 +49,13 @@ class TrackingTokenController extends Controller
 
         $workOrder = $trackingToken->trackingSession->workOrder;
 
+        // B18: token Revoked/Expired tidak boleh menyajikan apa pun — cek status
+        // sebelum short-circuit terminal (sebelumnya link yang sudah di-revoke
+        // tetap membocorkan nomor WO + alamat customer sampai kedaluwarsa natural).
+        if ($trackingToken->status !== TrackingTokenStatus::Active) {
+            throw new NotFoundHttpException;
+        }
+
         $terminal = match (true) {
             $workOrder->status === WorkOrderStatus::Finished => 'finished',
             in_array($workOrder->status, [WorkOrderStatus::Cancelled, WorkOrderStatus::Failed], true) => $workOrder->status->value,
@@ -59,12 +66,11 @@ class TrackingTokenController extends Controller
             return $this->payload($trackingToken, $terminal, null);
         }
 
-        if ($trackingToken->status !== TrackingTokenStatus::Active
-            || ! in_array($workOrder->status, [
-                WorkOrderStatus::OnTheWay,
-                WorkOrderStatus::Arrived,
-                WorkOrderStatus::Installation,
-            ], true)) {
+        if (! in_array($workOrder->status, [
+            WorkOrderStatus::OnTheWay,
+            WorkOrderStatus::Arrived,
+            WorkOrderStatus::Installation,
+        ], true)) {
             throw new NotFoundHttpException;
         }
 
@@ -151,6 +157,11 @@ class TrackingTokenController extends Controller
             'current_location' => $location,
             'trip_points' => $tripPoints,
             'trip_summary' => $tripSummary,
+            // A2: realtime hanya untuk sesi yang masih aktif; guest adalah pemegang
+            // token ini (possession = authorization), jadi channel public aman.
+            'realtime_channel' => in_array($status, ['on_the_way', 'arrived', 'installation'], true)
+                ? $trackingToken->trackingSession->realtime_channel
+                : null,
         ]);
     }
 

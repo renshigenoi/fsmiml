@@ -1,16 +1,16 @@
 # Laporan Bug — FSM Tech-IML
 
-> **Hasil verifikasi: 2026-09-15** (diperiksa terhadap kode working tree) · **Perbaikan sisa bug: 2026-09-15**
+> **Audit Ronde 1: 2026-09-15 — SELESAI** · **Audit Ronde 2: 2026-09-15 (malam) — diperbaiki 2026-09-16**
 >
-> | Status | Jumlah |
-> |---|---|
-> | ✅ Selesai | **42** |
-> | ⚠️ Sebagian | **0** |
-> | ❌ Belum | **0** |
+> | Ronde | ✅ Selesai | ⚠️ Sebagian | ❌ Belum |
+> |---|---|---|---|
+> | Ronde 1 (#1–#42) | **42** | 0 | 0 |
+> | Ronde 2 (A/B/C/D) | **30** | 0 | **0** |
 >
 > **Catatan:**
-> - Bug #1 sempat memicu regresi (limiter `throttle:web` tidak terdaftar → dashboard error 500). Regresi diperbaiki 2026-09-15 (`RateLimiter::for('web', ...)` di `AppServiceProvider`), terverifikasi `/dashboard` return 200 untuk coordinator.
-> - Perbaikan sesi 2026-09-15 (ronde 2): #12, #15, #16, #18, #29, #38 + `npx cap sync` (#40/#42). Bonus: kurung kurawal berlebih di `saveOfflineSyncQueue` (pecah build mobile, warisan fix #27) dan urutan otorisasi `StoreLegacyWorkOrderRequest` (403 harus sebelum 422) ikut diperbaiki. Seluruh test suite hijau (45 passed).
+> - Ronde 1: Bug #1 sempat memicu regresi (`throttle:web` tak terdaftar → dashboard 500), sudah diperbaiki + diverifikasi. Sisa #12/#15/#16/#18/#29/#38 + cap sync dikerjakan malam harinya.
+> - Ronde 2 adalah hasil audit ulang 3 auditor (HTTP layer, services, mobile). **Beberapa temuan Ronde 2 adalah regresi dari perbaikan Ronde 1** (A1 dari #24, A2 dari #4+#19, B10 dari #38) — kini sudah dirapikan.
+> - Ronde 2 dieksekusi 2026-09-16: `php artisan test` → **45 passed**, `npx vite build` → sukses. Keputusan produk (A2 & B15) sudah diterapkan: realtime tracking kembali via public Channel berbasis token (A2), dan transisi `accepted`/`on_the_way → failed` ditambahkan (B15).
 
 **Legenda:** ✅ [SELESAI] · ⚠️ [SEBAGIAN] · ❌ [BELUM]
 
@@ -268,3 +268,203 @@ notifyAppReady() dipanggil tetapi tanpa auto-update, Capgo tidak akan auto-check
 Perbaikan bonus ditemukan di rute verifikasi: (a) kurung kurawal berlebih `saveOfflineSyncQueue()` (App.vue) yang membuat build mobile pecah; (b) `StoreLegacyWorkOrderRequest::authorize()` kini menolak teknisi dengan 403 sebelum validasi 422 (menyembunyikan skema payload dari user tak berwenang).
 
 **Hasil verifikasi akhir:** `php artisan test` → 45 passed; `npx vite build` (mobile) → sukses; migrasi `audit_logs` jalan; `/dashboard` → 200 (coordinator) / 403 (teknisi).
+
+---
+---
+
+# AUDIT RONDE 2 — 2026-09-15 (malam) — 30 Temuan Baru
+
+> Audit ulang seluruh project (3 auditor: HTTP layer/security, services/domain, mobile/frontend). Semua temuan sudah diverifikasi terhadap kode (✓ = dicek manual, ● = laporan auditor dengan keyakinan tinggi).
+> **Status: SEMUA 30 item diperbaiki 2026-09-16** (✓ = diverifikasi manual saat perbaikan).
+> Catatan deploy: produksi saat ini = commit `03accf9`. OTA `20.zip` masih bermasalah di sisi file server (bukan kode) — lihat `storage/app/private/bundles/` + permission `www`.
+
+## 🔴 A. KRITIS/TINGGI — dampak langsung terasa
+
+### A1. Ganti PIN di aplikasi teknisi selalu gagal 422 — ✅ [SELESAI 2026-09-16]
+File: mobile/src/App.vue:2407 vs app/Http/Requests/Api/V1/SetPinRequest.php:22-36
+Bug: `submitChangePin` POST `/auth/pin` hanya kirim `{ pin: newPin }`. Sejak fix #24, `SetPinRequest` mewajibkan `current_pin` (+`Hash::check`) bila user sudah punya `pin_hash` — dan kondisi "ganti PIN" selalu begitu. Response 422 → UI loop "Gagal menyimpan PIN baru."
+**Regresi dari fix #24.**
+Saran perbaikan: kirim `current_pin: oldPin` di body (variabel `oldPin` sudah ada di flow, sudah dicek `serverPinCheck` di :2397). Set tip pada setup-PIN pertama kali tetap aman (tidak ada pin_hash → tidak wajib).
+Confidence: ✓ tinggi.
+
+### A2. 🤖 Halaman tracking pelanggan kehilangan realtime — ✅ [SELESAI 2026-09-16]
+File: resources/views/tracking/show.blade.php:765-781, app/Http/Controllers/Api/V1/TrackingTokenController.php (payload 138-182), app/Modules/Tracking/Events/TrackingLocationUpdated.php:26-35
+Bug (3 lapis, hasil kombinasi fix #4 + #19):
+1. Blade membaca `data.realtime_channel` dari GET `/public/tracking/{token}` — field dihapus fix #19 → guard `!data.realtime_channel` selalu true → Echo tidak pernah connect.
+2. Blade subscribe `.channel('tracking.'+ch)` (public) padahal server kini broadcast ke `PrivateChannel("tracking.{ch}")`.
+3. Guest pelanggan tidak bisa authorize `/broadcasting/auth` (butuh sesi web) → PrivateChannel mustahil untuk audiens utamanya.
+Dampak: badge "LIVE"/"Posisi diperbarui otomatis" bohong; semua pelanggan fallback polling 8 detik. Klaim Bugs.md #19 bahwa halaman mengambil channel dari controller web TIDAK berlaku di kode (TrackingPageController hanya kirim `$token`).
+Saran perbaikan (butuh keputusan): **restore realtime berbasis kepemilikan token** — payload publik dikirimi `realtime_channel` LAGI (hanya untuk token valid/aktif/non-expired — token = kredensial guest), dan broadcast `tracking.{ch}` kembali ke public `Channel` dengan penamaan 32-char acak; `PrivateChannel("work-order.{id}")` (dashboard, user terautentikasi) tetap. Perbaiki juga catatan #4/#19 di Ronde 1 agar jujur. Alternatif aman: accept polling-only + hapus badge LIVE.
+Confidence: ✓ tinggi.
+
+### A3. Guard "push tanpa device token" mati total (enum vs string) — ✅ [SELESAI 2026-09-16]
+File: app/Modules/Notification/Services/NotificationDeliveryService.php:29, app/Modules/Notification/Jobs/DeliverNotification.php:54
+Bug: `$notification->channel === NotificationChannel::Push->value` — kolom `channel` di-cast ke enum (Notification.php:35), sehingga `enum === string` SELALU false. Guard tidak pernah jalan → push tanpa device token = 3× retry (backoff 10/60/300) + 3 exception log per notifikasi (retry storm yang ingin dicegah).
+Saran perbaikan: bandingkan `=== NotificationChannel::Push` (enum vs enum) di kedua file.
+Confidence: ✓ tinggi.
+
+### A4. Edit WO: teknisi yang dihapus lalu dicentang ulang tidak pernah di-assign lagi — ✅ [SELESAI 2026-09-16]
+File: app/Http/Controllers/Web/DashboardController.php:466-470 + loop hapus :493-519
+Bug: `$currentSerials` di-pluck dari SEMUA assignment termasuk `Cancelled`/`Superseded` → teknisi lama tidak muncul di `$newSerials` (diff) saat dicentang ulang, dan loop hapus skip karena `desired->contains(...)` true. Assignment hilang senyap; flash "berhasil" tetap tampil. Tambahan: tidak ada guard status WO di `updateWorkOrder` (:406-452) — assignment Pending bisa dibuat di WO `accepted`/`finished`, padahal `respond()` mensyaratkan `WaitingAcceptance` (AssignmentService.php:125-127) → tidak bisa pernah di-accept.
+Saran perbaikan: (1) `currentSerials` hanya dari assignment status `Pending`/`Accepted`; (2) guard: sinkronisasi teknisi hanya untuk status `draft`/`waiting_acceptance`/`rejected` (deny dengan pesan jelas); (3) bungkus seluruh `updateWorkOrder` dalam `DB::transaction` (lihat B21) dan dispatch `AssignmentCreated`-nya via `DB::afterCommit` (konsisten #29).
+Confidence: ✓ tinggi.
+
+### A5. Otorisasi channel tracking bisa dilewati semua user — ✅ [SELESAI 2026-09-16]
+File: routes/channels.php:20-30
+Bug: `whereHas('workOrder', fn($q) => $q->whereHas('assignments', ...)->orWhereIn('status', [OnTheWay, Arrived, Installation]))` — `orWhereIn` menempel di level workOrder → SATU cabang OR saja cukup: user terautentikasi mana pun lolos authorisasi channel sesi aktif teknisi lain. Mitigasi cuma nama channel acak (security-by-secrecy).
+Saran perbaikan: rapikan group: `->where(function($q){ $q->whereHas('assignments',...)->orWhere('customer_id', ...) })` atau cukup syarat assignments + (jika A2 diputuskan tetap private). Relevan juga untuk dashboard viewer.
+Confidence: ✓ tinggi.
+
+### A6. `realtime_channel` bocor mentah via WorkOrderResource — ✅ [SELESAI 2026-09-16]
+File: app/Http/Resources/Api/V1/WorkOrderResource.php:59
+Bug: `'tracking_sessions' => $this->whenLoaded('trackingSessions')` me-serialisasi MODEL penuh → siapa pun yang lolos `WorkOrderPolicy::view` (termasuk sesama teknisi) membaca `realtime_channel` sesi teknisi lain.
+Saran perbaikan: ubah ke collection field whitelist: `id, status, started_at, ended_at` (cek dulu konsumen: mobile tidak memakai realtime_channel; dashboard blade — cek sebelum trim).
+Confidence: ✓ tinggi.
+
+### A7. Impor teknisi legacy vs user soft-deleted → 500 / listener crash — ✅ [SELESAI 2026-09-16]
+File: app/Modules/Legacy/Services/LegacyTechnicianImporter.php:54-74
+Bug: `User::firstOrCreate(['email'=>...])` tak melihat baris soft-deleted (global scope) tapi unique index email tetap menabrak → `QueryException 23505` → createFromSales 500 saat re-import. Jalur update: `$technician->user()->update()` no-op senyap bila user terhapus sementara `is_active=true` → teknisi yatim → `RecordAssignmentCreatedNotification.php:18` (`$technician->user->email` tanpa null-check) fatal di queue (retry beruntun). Pola sama di `RecordAssignmentRespondedNotification.php:20-25`.
+Saran perbaikan: (1) importer: `User::withTrashed()->firstOrNew(['email'])` → `restore()` bila trashed, lalu update field; (2) guard null di kedua listener (skip + Log::warning); (3) dokumentasikan efek samping: importBySerials jalan sebelum transaksi FSM → rollback meninggalkan user/technician orphan (receh, bukan blocker).
+Confidence: ● sedang-tinggi.
+
+### A8. Unlock via PIN mati setelah token sesi kedaluwarsa — ✅ [SELESAI 2026-09-16]
+File: mobile/src/App.vue:2428-2531 (serverPinCheck + verifyPin)
+Bug: `serverPinCheck` mengirim `Authorization: Bearer <token lama>`; token expired → 401 → dipetakan `'error'` ("periksa koneksi") → cabang `pinLogin()` di verifyPin (:2526) tak pernah tercapai. Recovery-after-expiry yang didesain #7 jadi tidak bisa; teknisi dipaksa password. `tryBiometric` (2600-2615) juga unlock dengan token mati → 401 loop.
+Saran perbaikan: `serverPinCheck` bedakan 401 → return `'expired'`; `verifyPin`: status `'expired'` (dan `'wrong'`) lanjut `pinLogin(email, pin)` — 422 → "PIN salah", sukses → simpan token baru lalu unlock. (Catatan: `serverPinCheck` pakai `this.token` — untuk kasus expired memang tak bisa; pinLogin tidak butuh token.)
+Confidence: ● tinggi.
+
+## 🟠 B. SEDANG
+
+### B9. Tabrakan sync_token lintas-stage + foto completion tak pernah tampil di API — ✅ [SELESAI 2026-09-16]
+File: app/Http/Controllers/Api/V1/WorkOrderController.php:136-139 (startInstallation) & :176-179 (finish), app/Http/Resources/Api/V1/WorkOrderResource.php:43-58
+Bug: cek idempotensi `photos()->where('sync_token', ...)` tidak memfilter `stage` → klien yang memakai SATU token untuk start lalu finish membuat finish "sukses" palsu tanpa transisi. Selain itu `finish()` tidak menulis `stage` (default migrasi = `completion`), sedangkan resource hanya me-grup `before_installation` & `after_installation` → foto penyelesaian tidak pernah muncul via API.
+Saran perbaikan: filter cek per-stage (`where('stage','before_installation')` / `'completion'`), set `stage` eksplisit di finish, dan tambahkan group `completion` di resource (cek kunci yang dibaca App.vue sebelum rename).
+Confidence: ✓ tinggi.
+
+### B10. Re-check overlap #38 punya 3 celah (perbaikan sendiri) — ✅ [SELESAI 2026-09-16]
+File: app/Http/Controllers/Web/AttendanceAdminController.php:101-112
+Bug: (1) dua `permission` jam berbeda di hari sama kini ikut diblokir saat approve (cek hanya rentang tanggal — kasus sah); (2) baris lama dengan `leave_end_date NULL` lolos (`where('leave_end_date','>=',...)` tak pernah true untuk NULL); (3) tak ada guard `status = pending` → review ulang approved↔rejected bebas, dan jalur toggle melewati cek overlap.
+Saran perbaikan: (1) bila kedua request tipe permission dengan jam → syarat overlap juga irisan jam (`start_time < other.end_time AND end_time > other.start_time`); (2) pakai `COALESCE(leave_end_date, leave_date)`; (3) `abort_unless($leaveRequest->status === 'pending')` di awal (atau flow re-review eksplisit).
+Confidence: ✓ tinggi.
+
+### B11. Replay sync_token melewati otorisasi — ✅ [SELESAI 2026-09-16]
+File: app/Modules/WorkOrder/Services/WorkOrderTransitionService.php:57-62
+Bug: cabang "token sudah pernah tercatat" return sukses tanpa `authorizeTransition`/`validateReason` → siapa pun yang tahu token orang lain bisa replay lintas peran.
+Saran perbaikan: panggil `authorizeTransition` dengan try-catch `InvalidWorkOrderTransition` (status sudah maju) — `AuthorizationException` tetap propagate. (validateReason tak perlu: ReasonRequest `required`.)
+Confidence: ✓ tinggi.
+
+### B12. sync_token startTrip/arrive tak tervalidasi — ✅ [SELESAI 2026-09-16]
+File: app/Http/Controllers/Api/V1/WorkOrderController.php (helper transition, ~:229-233)
+Bug: `startTrip`/`arrive` pakai `Request` polos; nilai non-string (number/array) jadi `null` senyap → idempotency mati tanpa error; truncation `Str::substr(...,0,64)` → dua token berbeda berprefix sama bisa tabrakan dedup. ReasonRequest sudah benar (`max:64`).
+Saran perbaikan: FormRequest kecil `TransitionRequest` (`sync_token nullable|string|max:64`) untuk startTrip/arrive; helper transition tinggal pakai `validated()`; hapus truncation.
+Confidence: ✓ tinggi.
+
+### B13. "Ganti Akun" tidak logout; pollTimer spam saat 401 — ✅ [SELESAI 2026-09-16]
+File: mobile/src/App.vue:2212-2221 (softLogout), :1505-1517 (handler 401 api())
+Bug: softLogout tidak hapus `fsm_tech_token`/`fsm_tech_user` & tidak panggil `DELETE /auth/logout` → cold start berikutnya auto-resume akun lama (privasi perangkat bersama). Handler 401 tidak `clearInterval(pollTimer)` → toast "Sesi berakhir" tiap 45 detik selamanya di lock screen.
+Saran perbaikan: softLogout → `localStorage.removeItem(fsm_tech_token/fsm_tech_user)`, `this.token=null; this.user=null`, panggil `DELETE /auth/logout` (api, catch diam); di jalur 401 `api()`: `clearInterval(this.pollTimer); this.pollTimer = null;` sebelum set view lock.
+Confidence: ● tinggi.
+
+### B14. Paginasi /work-orders diabaikan client — ✅ [SELESAI 2026-09-16]
+File: app/Http/Controllers/Api/V1/WorkOrderController.php:35 (paginate default 15, sort `scheduled_start_at` DESC) vs mobile/src/App.vue:1904-1905
+Bug: client tidak kirim `?per_page` dan tak menelusuri `links.next` → WO penjadwalan lama hilang senyap dari Beranda/Riwayat; hitungan tab salah.
+Saran perbaikan: client `GET /work-orders?per_page=200`; server clamp `$request->integer('per_page', 15)` max 200. (Opsi lanjutan: filter periode riwayat.)
+Confidence: ✓ tinggi.
+
+### B15. 🤖 Tombol "Laporkan Kendala" di status yang server tolak (409 permanen) — ✅ [SELESAI 2026-09-16]
+File: mobile/src/App.vue:1338-1360 vs WorkOrderTransitionService TRANSITIONS :26-27
+Bug: aksi `fail` ditampilkan di `accepted`/`on_the_way`; server hanya izinkan Failed dari `arrived`/`installation`. Teknisi yang bermasalah di jalan tak bisa melapor.
+KEPUTUSAN PRODUK (default usulan saya): tambahkan transisi `accepted → failed` dan `on_the_way → failed` (+ cabang authorizeTransition untuk `accepted`), karena use-case "kendala di perjalanan" valid. Alternatif: sembunyikan tombol di luar arrived/installation.
+Confidence: ✓ tinggi (mismatch-nya), keputusan: user.
+
+### B16. Throttle tracking memakai jam klien + tanpa proteksi race — ✅ [SELESAI 2026-09-16]
+File: app/Modules/Tracking/Jobs/PersistTrackingPoint.php:31-43, migration tracking_points (tanpa unique)
+Bug: filter `recorded_at >= now()-interval` memakai timestamp yang dikontrol perangkat → jam maju = persistensi terblokir berjam-jam (trip hilang); jam mundur = throttle mati (bengkak baris lagi). Dua worker paralel bisa sama-sama lolos check-then-insert.
+Saran perbaikan: throttle berdasar kolom SERVER `created_at` (`where('created_at','>=',now()->subSeconds($interval))`), plus `Cache::add("persist:session:$id", true, $interval)` sebagai lock atomik. `recorded_at` tetap untuk data tampilan.
+Confidence: ● tinggi.
+
+### B17. ensurePlaintextLink mengabaikan expires_at (+ race) — ✅ [SELESAI 2026-09-16]
+File: app/Modules/Tracking/Services/TrackingTokenService.php:39-48
+Bug: reuse token `status Active + token_plain_encrypted NOT NULL` tanpa cek `expires_at > now()` → dashboard menampilkan link yang sudah mati (endpoint publik akan 404). Dua request dashboard paralel bisa membuat dua token.
+Saran perbaikan: tambah `->where('expires_at','>',now())`; (opsional) `Cache::lock('plaintext-link:'.$sessionId, 5)` untuk race.
+Confidence: ✓ tinggi.
+
+### B18. Token Revoked masih menyajikan data WO — ✅ [SELESAI 2026-09-16]
+File: app/Http/Controllers/Api/V1/TrackingTokenController.php:52-63
+Bug: short-circuit "terminal status" dieksekusi SEBELUM penolakan `status !== Active`; token yang di-revoke (re-issue/finish) tanpa mengubah `expires_at` tetap menyajikan nomor WO + alamat customer hingga kadaluarsa natural.
+Saran perbaikan: pindah cek `status === Active` ke sebelum blok terminal (expired-check sudah di atas, aman).
+Confidence: ✓ tinggi.
+
+### B19. techniciansBySerials tanpa filter profil teknisi — ✅ [SELESAI 2026-09-16]
+File: app/Modules/Legacy/Services/LegacyDataSourceService.php:198-202 vs query browse :24-26
+Bug: import via API menerima serial user legacy mana pun (query `WHERE serial IN (...)` tanpa `status/user_type/division` yang dipakai browse) → non-teknisi bisa jadi teknisi FSM `is_active=true`.
+Saran perbaikan: samakan WHERE clause dengan filter browse profil teknisi.
+Confidence: ● sedang.
+
+### B20. Offline queue: trim quota = buang semua job — ✅ [SELESAI 2026-09-16]
+File: mobile/src/App.vue:1592-1605
+Bug: saat QuotaExceeded, `slice(-1)` menyimpan hanya 1 job terakhir (job foto lain hilang permanen, file di Filesystem jadi yatim); bila 1 job saja melebihi quota → nested catch diam → banner `pendingSyncCount` bohong (di UI ada, di disk tidak).
+Saran perbaikan: loop drop-oldest satu per satu sampai muat (`while (queue.length > 1) { queue.shift(); try save }`); kalau masih gagal juga: kosongkan queue + `showToast('Antrean sinkronisasi penuh, foto lama dibuang')` + update `reportOfflineSyncStatus()`.
+Confidence: ● tinggi.
+
+### B21. updateWorkOrder non-atomic — ✅ [SELESAI 2026-09-16]
+File: app/Http/Controllers/Web/DashboardController.php:417-452 + syncTechnicians :501-507
+Bug: WO/loksi/customer disimpan duluan; `syncTechnicians` bisa `ValidationException` setelahnya (teknisi accepted dihapus) → error tampil padahal edit lain sudah tersimpan sebagian.
+Saran perbaikan: selidiki seluruh badan `updateWorkOrder` dalam `DB::transaction` (bareng A4).
+Confidence: ● tinggi.
+
+### B22. hasScheduleConflict tidak pernah aktif untuk WO legacy — ✅ [SELESAI 2026-09-16]
+File: app/Modules/Assignment/Services/AssignmentService.php:200-208 (return false bila `scheduled_end_at` null) — semua WO legacy menulis null (LegacyWorkOrderService.php:~203)
+Saran perbaikan: jendela default — `$end = $wo->scheduled_end_at ?? $wo->scheduled_start_at?->copy()->addHours((float) config('fsm.schedule_default_duration_hours', 3))` (tambah key di config/fsm.php). Atau isikan scheduled_end_at saat create dari legacy.
+Confidence: ✓ tinggi (mekanisme), sedang (apakah by-design).
+
+## 🟡 C. RENDAH
+
+### C1. calendar() 500 saat ?month ngawur — ✅ [SELESAI 2026-09-16]
+app/Http/Controllers/Api/V1/AttendanceController.php:103 — `Carbon::createFromFormat('Y-m', query)` tanpa validasi → InvalidFormatException. Perbaiki: validate `['month' => 'nullable|date_format:Y-m']`.
+### C2. doLogin res.json() tanpa cek ok — ✅ [SELESAI 2026-09-16]
+App.vue:1873 — respons HTML 500 → SyntaxError mentah ke UI. Pola sama helper api().
+### C3. JSON.parse fsm_tech_user tanpa try/catch — ✅ [SELESAI 2026-09-16]
+App.vue:1074 — value korup = app gagal mount permanen.
+### C4. Hook audit tak failure-isolated — ✅ [SELESAI 2026-09-16]
+AuditTrailService::record — bungkus internal try/catch + Log::error (audit insert gagal tak boleh membatalkan aksi yang sudah sukses, mis. PIN terlanjur diganti).
+### C5. Aset root-relative di /mobile (PWA subpath) — ✅ [SELESAI 2026-09-16]
+App.vue :22,72,100,146,173,230,323,625,713 `src="/assets/images/iml-logo.png"` → 404 saat diakses via /mobile (base './'). Ganti ke `assets/images/...` (relatif) — aman di APK & /mobile.
+### C6. pendingFcmToken hanya di-flush saat doLogin — ✅ [SELESAI 2026-09-16]
+App.vue:1879/2136-2149 — registrasi token gagal saat offline tak pernah dicoba ulang. Tambah `this.sendFcmToken()` di `_onlineHandler` dan setelah `unlock()`. `platform` hardcoded 'android' (2144).
+### C7. Penerima notif status = assignment terakhir tanpa filter — ✅ [SELESAI 2026-09-16]
+RecordWorkOrderStatusNotification.php:26-27 — `sortByDesc('assigned_at')->first()` bisa kena Superseded/Cancelled. Prioritaskan status Accepted.
+### C8. json_encode baris legacy non-UTF8 → source_payload null senyap — ✅ [SELESAI 2026-09-16]
+LegacyWorkOrderService.php:157 — pakai `JSON_INVALID_UTF8_SUBSTITUTE` + fallback log.
+### C9. sales() Top-N salah potong — ✅ [SELESAI 2026-09-16]
+LegacyDataSourceService.php:~138-160 — `ORDER BY s.serial DESC LIMIT n` lalu PHP sort by installation_date → kandidat salah. Samakan ORDER BY SQL dengan sort PHP.
+### C10. Dead code App.vue — ✅ [SELESAI 2026-09-16]
+:1428-1430 `if (false && serviceWorker)`, `isAndroidBrowser` tak pernah dibaca (1132,2235), `passModal.show` tak terpakai. Bersihkan.
+
+## ⚙️ D. HARDENING ENVIRONMENT — ✅ [SELESAI semua 2026-09-16]
+
+### D1. Trusted proxies kosong
+bootstrap/app.php:19-21 — `->withMiddleware(fn ($m) => $m->trustProxies(at: ['127.0.0.1','::1']))` supaya IP klien benar untuk throttle/audit IP, TANPA `at:'*'` (anti spoofing). Saat ini stack nginx→fpm kebetulan OK (verified: signed URL produksi lolos, throttle per IP nyata), tapi wajib sebelum lewat CDN.
+### D2. Limiter khusus pin-verify
+routes/api.php:28 — `throttle:login` men-key `email.ip`; request verify tidak berisi email → key = IP saja. Tambah `RateLimiter::for('pin-verify', ... per user+ip, 5/min)` + pakai di route.
+### D3. .env.example
+Tambah `SANCTUM_EXPIRATION_MINUTES=` (dengan komentar), `APP_URL` wajib host publik (signed OTA), `APP_DEBUG=false`, `MOBILE_BUNDLE_URL` opsional.
+### D4. Catatan produksi — 📌 OPSI (bukan bug kode)
+OTA 20.zip gagal bukan karena kode: file belum ada/ditolak di `storage/app/private/bundles/` (permission `www`). Cek `tinker var_dump(Storage::disk("local")->exists("bundles/20.zip"))`. Ini tugas deploy, tidak ada perubahan kode — masih menunggu tindakan manual di VPS.
+
+## ✅ Area ronde 2 yang terverifikasi BERSIH (tidak ada temuan)
+Sweep IDOR web routes (semua coordinator-gated), pemetaan middleware↔limiter, policies terpasang semua, SQL legacy ter-parameter-bind, semantik `DB::afterCommit` (eksekusi langsung saat non-transaksi; nested aman), query `metadata->sync_token` compile benar di PostgresGrammar, cast `datetime:H:i` tidak merusak kolom time, fresh migration berurut aman, controller device-token/sync-status ter-scope user, audit module dasar (console-safe, fillable cocok), kontrak field API mobile lainnya cocok (kecuali A1/B9/B14), teardownListeners tidak double-registrasi (setup* dipanggil sekali; setupInstallPrompt guarded), tidak ada `console.log`/`realtime_channel` sisa di mobile/src.
+
+## Status eksekusi (diperbaiki 2026-09-16)
+
+Semua item A/B/C/D dikerjakan. Ringkasan keputusan & file yang disentuh:
+
+- **A1** mobile kirim `current_pin` di `submitChangePin`. **A8** `serverPinCheck` return `'expired'` untuk 401; `verifyPin` pinLogin ulang saat expired; `submitChangePin` & `tryBiometric` ikut guard.
+- **A2** (keputusan produk, disetujui): `TrackingLocationUpdated` kembali broadcast `Channel("tracking.{ch}")` public; `realtime_channel` dikembalikan ke payload publik **hanya** saat sesi aktif; halaman tracking pelanggan realtime hidup lagi.
+- **A3** `channel === NotificationChannel::Push` (enum vs enum) di delivery + job. **A4+B21** `syncTechnicians` hanya hitung assignment Pending/Accepted + guard status + `DB::transaction` + `AssignmentCreated` via `DB::afterCommit`. **A5** callback `tracking.*` dibetulkan (coordinator/admin bebas, teknisi hanya miliknya). **A6** `WorkOrderResource` whitelist field `tracking_sessions`. **A7** importer pulihkan user soft-deleted (`resolveUser` withTrashed+restore) + null-guard dua listener.
+- **B9** cek `sync_token` per-stage + `stage='completion'` eksplisit + grup `completion` di resource. **B10** `reviewLeave`: guard `status=pending`, `COALESCE(leave_end_date, leave_date)`, irisan jam untuk izin. **B11** replay `sync_token` lewati `authorizeTransition` (catch `InvalidWorkOrderTransition`). **B12** `TransitionRequest` baru untuk startTrip/arrive (buang coercion). **B15** transisi `accepted`/`on_the_way → failed` + cabang authorize. **B16** throttle persist pakai `created_at` (server) + `Cache::add` lock. **B17** `ensurePlaintextLink` filter `expires_at`. **B18** cek `status!==Active` sebelum short-circuit terminal. **B19** `techniciansBySerials` samakan filter profil. **B22** `hasScheduleConflict` pakai `config('fsm.schedule_default_duration_hours')`.
+- **B13/B14/B20/C2/C3/C5/C6/C10** (App.vue): softLogout hapus sesi penuh + `DELETE /auth/logout`; `/work-orders?per_page=200` + clamp server; trim offline queue per-item; doLogin `res.json().catch`; `fsm_tech_user` parse aman; gambar jadi `./assets/…` + MobileController sematkan `<base href="/mobile/">` (SW cache → v12); flush FCM saat online/unlock; hapus dead code.
+- **C1/C4/C7/C8/C9/D1/D2/D3**: validasi `month`; audit `try/catch` + return nullable; prioritas penerima notif Accepted; `json_encode` `JSON_INVALID_UTF8_SUBSTITUTE`; ORDER BY sales sesuai sort PHP; `trustProxies(['127.0.0.1','::1'])`; limiter `pin-verify` (user+IP); `.env.example` (APP_URL/SANCTUM/APP_DEBUG notes).
+- **D4** tetap menunggu tindakan manual di VPS (bukan kode).
+
+**Verifikasi:** `php artisan test` → **45 passed**; `npx vite build` → sukses; `php -l` bersih. **Belum di-OTA/di-deploy** — jalankan `.\release-ota.ps1` lalu `./deploy.sh` di VPS untuk menerapkan (mobile + backend), dan selesaikan D4 (letakkan/`chown` `20.zip` di `storage/app/private/bundles/`).

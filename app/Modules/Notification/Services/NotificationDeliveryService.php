@@ -26,7 +26,7 @@ final class NotificationDeliveryService
         // FCM tanpa device token terdaftar → tandai gagal sekali (tanpa retry &
         // tanpa error log penuh). Berlaku di semua jalur pengiriman.
         if (
-            $notification->channel === NotificationChannel::Push->value
+            $notification->channel === NotificationChannel::Push
             && ($notification->user === null || $notification->user->deviceTokens->isEmpty())
         ) {
             $this->markFailed($notification, 'No registered device token for the recipient user.');

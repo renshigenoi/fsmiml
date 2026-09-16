@@ -13,6 +13,7 @@ use App\Modules\WorkOrder\Models\WorkOrder;
 use App\Modules\WorkOrder\Models\WorkOrderStatusHistory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -154,7 +155,7 @@ class LegacyWorkOrderService
                 'customer_id' => $customer->getKey(),
                 'status' => (string) ($row->status ?? ''),
                 'ordered_at' => $row->installation_date ? Carbon::parse($row->installation_date) : null,
-                'source_payload' => json_decode(json_encode($row), true),
+                'source_payload' => $this->encodeSourcePayload($row),
                 'synced_at' => now(),
             ],
         );
@@ -223,6 +224,25 @@ class LegacyWorkOrderService
      *
      * @param  array<int, object>  $detailRows
      */
+    /**
+     * C8: baris legacy bisa memuat byte non-UTF8 (DB lama charset lain) —
+     * json_encode polos mengembalikan false dan source_payload hilang senyap.
+     */
+    private function encodeSourcePayload(object $row): ?array
+    {
+        $json = json_encode($row, JSON_INVALID_UTF8_SUBSTITUTE);
+
+        if ($json === false) {
+            Log::warning('Gagal meng-encode source_payload legacy; disimpan sebagai null.', [
+                'error' => json_last_error_msg(),
+            ]);
+
+            return null;
+        }
+
+        return json_decode($json, true);
+    }
+
     private function syncItems(SalesOrder $salesOrder, WorkOrder $workOrder, object $row, array $detailRows): void
     {
         $productName = trim(trim((string) ($row->car_brand ?? '')).' '.trim((string) ($row->car_model ?? '')));

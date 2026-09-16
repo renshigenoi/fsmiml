@@ -18,13 +18,21 @@ Broadcast::channel('work-order.{workOrder}', function (User $user, WorkOrder $wo
 });
 
 Broadcast::channel('tracking.{realtimeChannel}', function (User $user, string $realtimeChannel): bool {
+    // A5: sebelumnya orWhereIn('status', aktif) menempel di level workOrder sehingga
+    // SEMUA user terautentikasi lolos. Sekarang: coordinator/admin boleh memantau,
+    // teknisi hanya sesi dengan assignment miliknya sendiri.
+    if (in_array($user->role, [UserRole::Administrator, UserRole::Coordinator], true)) {
+        return true;
+    }
+
+    $technicianId = $user->technician?->getKey();
+
+    if ($technicianId === null) {
+        return false;
+    }
+
     return \App\Modules\Tracking\Models\TrackingSession::query()
         ->where('realtime_channel', $realtimeChannel)
-        ->whereHas('workOrder', fn ($query) => $query->whereHas('assignments', fn ($q) => $q->where('technician_id', $user->technician?->getKey()))
-            ->orWhereIn('status', [
-                \App\Modules\WorkOrder\Enums\WorkOrderStatus::OnTheWay,
-                \App\Modules\WorkOrder\Enums\WorkOrderStatus::Arrived,
-                \App\Modules\WorkOrder\Enums\WorkOrderStatus::Installation,
-            ]))
+        ->whereHas('assignments', fn ($q) => $q->where('technician_id', $technicianId))
         ->exists();
 });

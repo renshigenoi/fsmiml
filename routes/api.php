@@ -31,7 +31,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/change-password', [AuthController::class, 'changePassword']);
         Route::post('auth/pin', [AuthController::class, 'setPin']);
-        Route::post('auth/pin/verify', [AuthController::class, 'verifyPin'])->middleware('throttle:login');
+        Route::post('auth/pin/verify', [AuthController::class, 'verifyPin'])->middleware('throttle:pin-verify');
         Route::delete('auth/logout', [AuthController::class, 'logout']);
 
         Route::get('work-orders', [WorkOrderController::class, 'index']);

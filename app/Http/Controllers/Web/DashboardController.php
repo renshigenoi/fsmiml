@@ -28,6 +28,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -409,45 +410,49 @@ class DashboardController extends Controller
 
         $validated = $request->validated();
 
-        $scheduledAt = $validated['scheduled_start_at'];
-        if (filled($validated['scheduled_start_time'] ?? null)) {
-            $scheduledAt .= ' '.$validated['scheduled_start_time'];
-        }
+        // B21: seluruh perubahan dalam satu transaksi — jika syncTechnicians
+        // menolak (mis. teknisi accepted dilepas), edit lain ikut di-rollback.
+        DB::transaction(function () use ($request, $workOrder, $validated): void {
+            $scheduledAt = $validated['scheduled_start_at'];
+            if (filled($validated['scheduled_start_time'] ?? null)) {
+                $scheduledAt .= ' '.$validated['scheduled_start_time'];
+            }
 
-        $workOrder->update([
-            'scheduled_start_at' => $scheduledAt,
-            'notes' => $validated['notes'] ?? null,
-        ]);
-
-        if ($workOrder->serviceLocation !== null) {
-            $workOrder->serviceLocation->update([
-                'address' => $validated['location_address'] ?? $workOrder->serviceLocation->address,
-                'latitude' => isset($validated['latitude'])
-                    ? (float) $validated['latitude']
-                    : $workOrder->serviceLocation->latitude,
-                'longitude' => isset($validated['longitude'])
-                    ? (float) $validated['longitude']
-                    : $workOrder->serviceLocation->longitude,
+            $workOrder->update([
+                'scheduled_start_at' => $scheduledAt,
+                'notes' => $validated['notes'] ?? null,
             ]);
-        }
 
-        if ($workOrder->customer !== null) {
-            $customerUpdate = [];
-
-            if (filled($validated['customer_phone'] ?? null)) {
-                $customerUpdate['phone'] = $validated['customer_phone'];
+            if ($workOrder->serviceLocation !== null) {
+                $workOrder->serviceLocation->update([
+                    'address' => $validated['location_address'] ?? $workOrder->serviceLocation->address,
+                    'latitude' => isset($validated['latitude'])
+                        ? (float) $validated['latitude']
+                        : $workOrder->serviceLocation->latitude,
+                    'longitude' => isset($validated['longitude'])
+                        ? (float) $validated['longitude']
+                        : $workOrder->serviceLocation->longitude,
+                ]);
             }
 
-            if (filled($validated['customer_email'] ?? null)) {
-                $customerUpdate['email'] = $validated['customer_email'];
+            if ($workOrder->customer !== null) {
+                $customerUpdate = [];
+
+                if (filled($validated['customer_phone'] ?? null)) {
+                    $customerUpdate['phone'] = $validated['customer_phone'];
+                }
+
+                if (filled($validated['customer_email'] ?? null)) {
+                    $customerUpdate['email'] = $validated['customer_email'];
+                }
+
+                if ($customerUpdate !== []) {
+                    $workOrder->customer->update($customerUpdate);
+                }
             }
 
-            if ($customerUpdate !== []) {
-                $workOrder->customer->update($customerUpdate);
-            }
-        }
-
-        $this->syncTechnicians($workOrder, $validated['technician_legacy_serials'] ?? [], $request->user());
+            $this->syncTechnicians($workOrder, $validated['technician_legacy_serials'] ?? [], $request->user());
+        });
 
         return back()->with('success', "Work Order {$workOrder->number} berhasil diperbarui.");
     }
@@ -463,14 +468,33 @@ class DashboardController extends Controller
         $desired = collect($serials)->filter()->unique();
         $workOrder->loadMissing(['assignments.technician.user']);
 
-        $currentSerials = $workOrder->assignments
-            ->pluck('technician.external_serial')
-            ->filter();
+        // A4: hanya assignment AKTIF (Pending/Accepted) yang dihitung sebagai
+        // "sudah ada". Sebelumnya semua status dihitung, sehingga teknisi yang
+        // pernah dihapus (Cancelled) tidak bisa dicentang ulang.
+        $activeAssignments = $workOrder->assignments
+            ->whereIn('status', [AssignmentStatus::Pending, AssignmentStatus::Accepted]);
+        $currentSerials = $activeAssignments->pluck('technician.external_serial')->filter();
+
+        $changed = $desired->diff($currentSerials)->isNotEmpty() || $currentSerials->diff($desired)->isNotEmpty();
+
+        // A4: roster hanya boleh diubah selama WO belum ada yang menerima
+        // (draft / waiting_acceptance / rejected). Assignment Pending yang dibuat
+        // di status Accepted/Finished tidak akan pernah bisa di-accept.
+        if ($changed && ! in_array($workOrder->status, [WorkOrderStatus::Draft, WorkOrderStatus::WaitingAcceptance, WorkOrderStatus::Rejected], true)) {
+            throw ValidationException::withMessages([
+                'technician_legacy_serials' => sprintf(
+                    'Daftar teknisi tidak bisa diubah lagi pada status %s (sudah ada yang menerima tugas).',
+                    $workOrder->status->value,
+                ),
+            ]);
+        }
 
         $newSerials = $desired->diff($currentSerials)->values()->all();
 
         if ($newSerials !== []) {
             $technicians = $this->technicianImporter->importBySerials($newSerials);
+
+            $createdAssignments = [];
 
             foreach ($technicians as $technician) {
                 $assignment = Assignment::query()->create([
@@ -488,8 +512,15 @@ class DashboardController extends Controller
                     'realtime_channel' => Str::random(32),
                 ]);
 
-                AssignmentCreated::dispatch($assignment);
+                $createdAssignments[] = $assignment;
             }
+
+            // Konsisten dengan fix #29: event hanya jalan setelah commit terluar.
+            DB::afterCommit(function () use ($createdAssignments): void {
+                foreach ($createdAssignments as $assignment) {
+                    AssignmentCreated::dispatch($assignment);
+                }
+            });
         }
 
         foreach ($workOrder->assignments as $assignment) {

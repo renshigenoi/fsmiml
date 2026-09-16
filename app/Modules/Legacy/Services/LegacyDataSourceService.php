@@ -135,7 +135,13 @@ class LegacyDataSourceService
             $bindings = [$pattern, $pattern, $pattern];
         }
 
-        $sql .= ' ORDER BY s.serial DESC LIMIT '.$this->limit($limit);
+        // C9: LIMIT memotong baris berdasar ORDER BY — sebelumnya ORDER BY serial
+        // sementara PHP men-sort berdasar tanggal pasang, sehingga sales berjuluk
+        // lama tidak pernah masuk kandidat Top-N. Sekarang SQL memotong memakai
+        // kunci yang sama (coalesce tanggal pasang; ::text agar tipe campur aman,
+        // urutan leksikografis ISO ≈ kronologis — sama seperti perbandingan PHP).
+        $sql .= ' ORDER BY COALESCE(so.installation_date::text, s.installation_date::text) DESC NULLS LAST,'
+            .' s.serial DESC LIMIT '.$this->limit($limit);
 
         $rows = DB::connection('sales')->select($sql, $bindings);
 
@@ -195,9 +201,16 @@ class LegacyDataSourceService
 
         $placeholders = implode(',', array_fill(0, count($serials), '?'));
 
+        // B19: profil teknis wajib sama dengan query browse (status/user_type/
+        // division) — tanpa ini, serial user legacy mana pun bisa diimpor
+        // sebagai teknisi FSM aktif lewat API.
         return DB::connection('sales')->select(
             "SELECT serial, user_id, full_name, email, cell_phone, home_phone, status
-             FROM users WHERE serial IN ({$placeholders})",
+             FROM users
+             WHERE serial IN ({$placeholders})
+               AND status ILIKE '%1%'
+               AND user_type ILIKE '%7%'
+               AND division ILIKE '%09%'",
             array_values($serials),
         );
     }

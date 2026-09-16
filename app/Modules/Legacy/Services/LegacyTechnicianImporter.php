@@ -51,15 +51,7 @@ class LegacyTechnicianImporter
         $technician = Technician::query()->where('external_serial', $serial)->first();
 
         if ($technician === null) {
-            $user = User::query()->firstOrCreate(
-                ['email' => $email],
-                [
-                    'name' => $name,
-                    'phone' => $phone,
-                    'password' => Hash::make(config('fsm.technician_default_password')),
-                    'role' => UserRole::Technician,
-                ],
-            );
+            $user = $this->resolveUser($email, $name, $phone);
 
             return Technician::query()->create([
                 'user_id' => $user->getKey(),
@@ -70,10 +62,45 @@ class LegacyTechnicianImporter
             ]);
         }
 
-        $technician->user()->update(['name' => $name, 'phone' => $phone]);
-        $technician->update(['phone' => $phone, 'is_active' => true]);
+        // A7: akun lama bisa sudah di-soft-delete (relasi `user` mengembalikan
+        // null karena global scope) — resolveUser memulihkannya, alih-alih
+        // no-op senyap yang mengaktifkan teknisi tanpa user.
+        $user = $technician->user ?? $this->resolveUser($email, $name, $phone);
+
+        $user->update(['name' => $name, 'phone' => $phone]);
+        $technician->update([
+            'user_id' => $user->getKey(),
+            'phone' => $phone,
+            'is_active' => true,
+        ]);
 
         return $technician;
+    }
+
+    /**
+     * Cari user by email TERMASUK soft-deleted (unique index email tetap
+     * memandang baris terhapus — firstOrCreate polos memicu SQLSTATE 23505),
+     * pulihkan bila terhapus, selain itu buat baru.
+     */
+    private function resolveUser(string $email, string $name, ?string $phone): User
+    {
+        $user = User::query()->withTrashed()->where('email', $email)->first();
+
+        if ($user === null) {
+            return User::query()->create([
+                'email' => $email,
+                'name' => $name,
+                'phone' => $phone,
+                'password' => Hash::make(config('fsm.technician_default_password')),
+                'role' => UserRole::Technician,
+            ]);
+        }
+
+        if ($user->trashed()) {
+            $user->restore();
+        }
+
+        return $user;
     }
 
     private function uniqueEmployeeCode(string $code): string

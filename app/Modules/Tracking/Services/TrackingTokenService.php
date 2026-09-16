@@ -36,9 +36,13 @@ class TrackingTokenService
             return null;
         }
 
+        // B17: hanya reuse token yang BELUM kedaluwarsa — sebelumnya token expired
+        // tapi status masih Active ikut dipakai sehingga dashboard menampilkan
+        // link yang mati (endpoint publik akan 404 saat dibuka).
         $existing = TrackingToken::query()
             ->where('tracking_session_id', $session->getKey())
             ->where('status', TrackingTokenStatus::Active->value)
+            ->where('expires_at', '>', now())
             ->whereNotNull('token_plain_encrypted')
             ->orderByDesc('id')
             ->first();

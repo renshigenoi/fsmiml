@@ -19,7 +19,7 @@
             <!-- ============ PIN LOCK SCREEN ============ -->
             <div v-if="token && view === 'lock'" class="lock-screen">
                 <div class="lock-logo-wrap">
-                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                    <img src="./assets/images/iml-logo.png" alt="Indo Motor Lestari">
                 </div>
                 <div class="lock-title">Masukkan PIN</div>
                 <div class="lock-sub">Buka aplikasi FSM Teknisi</div>
@@ -69,7 +69,7 @@
             <!-- ============ FULLSCREEN BUAT PIN ============ -->
             <div v-if="view === 'setup-pin'" class="lock-screen">
                 <div class="lock-logo-wrap">
-                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                    <img src="./assets/images/iml-logo.png" alt="Indo Motor Lestari">
                 </div>
                 <div class="lock-title">Buat PIN Keamanan</div>
                 <div class="lock-sub">
@@ -96,7 +96,7 @@
             <!-- ============ FULLSCREEN KEAMANAN ============ -->
             <div v-if="view === 'security'" class="lock-screen">
                 <div class="lock-logo-wrap">
-                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                    <img src="./assets/images/iml-logo.png" alt="Indo Motor Lestari">
                 </div>
                 <div class="lock-title">Keamanan</div>
                 <div class="lock-sub">Atur PIN &amp; biometrik</div>
@@ -143,7 +143,7 @@
             <!-- ============ FULLSCREEN GANTI PIN ============ -->
             <div v-if="view === 'change-pin'" class="lock-screen">
                 <div class="lock-logo-wrap">
-                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                    <img src="./assets/images/iml-logo.png" alt="Indo Motor Lestari">
                 </div>
                 <div class="lock-title">Ganti PIN</div>
                 <div class="lock-sub">
@@ -170,7 +170,7 @@
             <!-- ============ FULLSCREEN GANTI PASSWORD ============ -->
             <div v-if="view === 'change-pass'" class="lock-screen">
                 <div class="lock-logo-wrap">
-                    <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                    <img src="./assets/images/iml-logo.png" alt="Indo Motor Lestari">
                 </div>
                 <div class="lock-title">Ganti Password</div>
                 <div class="lock-sub">Password minimal 6 karakter</div>
@@ -227,7 +227,7 @@
             <div v-if="view === 'login'" class="login-screen">
                 <div class="login-top">
                     <div class="login-logo-wrap">
-                        <img src="/assets/images/iml-logo.png" alt="Indo Motor Lestari">
+                        <img src="./assets/images/iml-logo.png" alt="Indo Motor Lestari">
                     </div>
                     <h1>FSM Teknisi</h1>
                     <p class="login-tagline">Sistem Manajemen Field Service<br>Indo Motor Lestari</p>
@@ -320,7 +320,7 @@
                         <div class="app-header">
                             <div class="app-header-inner">
                                 <div class="logo-chip">
-                                    <img src="/assets/images/iml-logo.png" alt="IML">
+                                    <img src="./assets/images/iml-logo.png" alt="IML">
                                 </div>
                                 <div class="header-title">
                                     <strong>FSM Teknisi</strong>
@@ -622,7 +622,7 @@
                     </div>
 
                     <div v-if="view === 'attendance'" class="attendance-view">
-                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendance" title="Muat ulang">⟳</button></div></div>
+                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="./assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendance" title="Muat ulang">⟳</button></div></div>
                         <div class="greet-band att-greet-band"><h2>Halo, {{ firstName }}! 👋</h2><p>Catat kehadiran Anda hari ini.</p></div>
                         <div class="tab-switcher-wrapper attendance-tab-wrapper"><div class="tab-switcher attendance-single-tab"><button type="button" class="tab-btn active"><span>🚀 Aktivitas Hari Ini</span></button></div></div>
                         <div class="attendance-page attendance-content">
@@ -710,7 +710,7 @@
                         </div>
                     </div>
                     <div v-if="view === 'attendance-calendar'" class="attendance-view">
-                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="/assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendance" title="Muat ulang">⟳</button></div></div>
+                        <div class="app-header"><div class="app-header-inner"><div class="logo-chip"><img src="./assets/images/iml-logo.png" alt="IML"></div><div class="header-title"><strong>FSM Teknisi</strong><span>{{ todayLabel }}</span></div><button class="icon-btn" @click="loadAttendance" title="Muat ulang">⟳</button></div></div>
                         <div class="greet-band att-greet-band"><h2>Halo, {{ firstName }}! 👋</h2><p>Lihat riwayat kehadiran per hari.</p></div>
                         <div class="tab-switcher-wrapper attendance-tab-wrapper"><div class="tab-switcher attendance-single-tab"><button type="button" class="tab-btn active"><span>📅 Kalender & Laporan Harian</span></button></div></div>
                         <div class="attendance-page calendar-page"><button type="button" class="calendar-back-link" @click="view = 'attendance'">‹ Kembali</button>
@@ -1071,7 +1071,12 @@ export default {
                 data() {
                     return {
                         token: localStorage.getItem('fsm_tech_token') || '',
-                        user: JSON.parse(localStorage.getItem('fsm_tech_user') || 'null'),
+                        // C3: value korup tidak boleh membuat app gagal mount
+                        // permanen — buang dan mulai bersih.
+                        user: (() => {
+                            try { return JSON.parse(localStorage.getItem('fsm_tech_user') || 'null'); }
+                            catch (_) { localStorage.removeItem('fsm_tech_user'); return null; }
+                        })(),
                         view: (localStorage.getItem('fsm_tech_token') && localStorage.getItem(fsmLocalPinKey(fsmCurrentEmail())))
                             ? 'lock'
                             : (localStorage.getItem('fsm_tech_token') ? 'home' : 'login'),
@@ -1129,7 +1134,6 @@ export default {
                         locked: localStorage.getItem('fsm_locked') === '1',
                         installTimer: null,
                         installPromptInit: false,
-                        isAndroidBrowser: false,
                         isIosBrowser: false,
                         bioEnabledState: false,
                         manualHint: false,
@@ -1425,9 +1429,8 @@ export default {
                     } else {
                         this.view = 'login';
                     }
-                    if (false && 'serviceWorker' in navigator) {
-                        navigator.serviceWorker.register('/mobile/sw.js').catch(() => {});
-                    }
+                    // C10: registrasi service worker PWA dinonaktifkan oleh produk
+                    // (sw di-serve route PHP, bukan file) — blok mati dihapus.
                     this.maybeShowInstall();
                 },
                 beforeUnmount() {
@@ -1503,6 +1506,9 @@ export default {
                         if (options.body) config.body = JSON.stringify(options.body);
                         const res = await fetch(API_V1 + path, config);
                         if (res.status === 401) {
+                            // B13: hentikan polling — tanpa ini lock screen di-spam
+                            // toast "Sesi berakhir" setiap 45 detik selamanya.
+                            if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
                             if (this.pinEnabled) {
                                 this.pendingRelogin = true;
                                 this.locked = true;
@@ -1561,6 +1567,9 @@ export default {
                         if (this.token) config.headers.Authorization = 'Bearer ' + this.token;
                         const res = await fetch(API_V1 + path, config);
                         if (res.status === 401) {
+                            // B13: hentikan polling — tanpa ini lock screen di-spam
+                            // toast "Sesi berakhir" setiap 45 detik selamanya.
+                            if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
                             if (this.pinEnabled) {
                                 this.pendingRelogin = true;
                                 this.locked = true;
@@ -1590,15 +1599,21 @@ export default {
                         }
                     },
                     saveOfflineSyncQueue() {
-                        try {
-                            localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
-                        } catch (e) {
-                            // QuotaExceededError: hapus item terlama supaya muat
-                            if (this.offlineSyncQueue.length > 1) {
-                                this.offlineSyncQueue = this.offlineSyncQueue.slice(-1);
-                                try {
-                                    localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
-                                } catch (_) { /* give up silently */ }
+                        // B20: drop satu per satu dari yang TERLAMA sampai muat.
+                        // Sebelumnya slice(-1) membuang SEMUA job lain sekaligus,
+                        // dan 1 job yang kelewat besar membuat antrean tak pernah
+                        // tersimpan padahal UI mengklaim tertunda.
+                        while (this.offlineSyncQueue.length > 0) {
+                            try {
+                                localStorage.setItem(this.offlineSyncStorageKey(), JSON.stringify(this.offlineSyncQueue));
+                                break;
+                            } catch (e) {
+                                if (this.offlineSyncQueue.length <= 1) {
+                                    this.offlineSyncQueue = [];
+                                    try { localStorage.removeItem(this.offlineSyncStorageKey()); } catch (_) {}
+                                    break;
+                                }
+                                this.offlineSyncQueue.shift();
                             }
                         }
                         this.reportOfflineSyncStatus();
@@ -1870,8 +1885,11 @@ export default {
                                     device_name: 'fsm-mobile-web'
                                 }),
                             });
-                            const data = await res.json();
+                            // C2: parse aman — respons 500 HTML tidak boleh berubah
+                            // jadi SyntaxError mentah di UI.
+                            const data = await res.json().catch(() => ({}));
                             if (!res.ok) throw new Error(data.message || 'Login gagal.');
+                            if (!data.token) throw new Error('Respons login tidak valid.');
                             this.token = data.token;
                             this.user = data.user;
                             localStorage.setItem('fsm_tech_token', this.token);
@@ -1901,7 +1919,7 @@ export default {
                         this._loadingOrders = true;
                         if (!silent) this.loading = true;
                         try {
-                            const data = await this.api('/work-orders');
+                            const data = await this.api('/work-orders?per_page=200');
                             this.orders = data.data || [];
                             await this.syncTracking();
                         } catch (err) {
@@ -2217,6 +2235,23 @@ export default {
                             clearInterval(this.pollTimer);
                             this.pollTimer = null;
                         }
+                        // B13: "Ganti Akun" harus benar-benar melepas sesi — dulu
+                        // token & user dibiarkan di localStorage sehingga cold start
+                        // berikutnya auto-resume ke akun lama (perangkat bersama).
+                        const token = this.token;
+                        this.token = null;
+                        this.user = null;
+                        this.locked = false;
+                        this.pendingRelogin = false;
+                        localStorage.removeItem('fsm_tech_token');
+                        localStorage.removeItem('fsm_tech_user');
+                        localStorage.removeItem('fsm_locked');
+                        if (token) {
+                            fetch(API_V1 + '/auth/logout', {
+                                method: 'DELETE',
+                                headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + token },
+                            }).catch(() => {});
+                        }
                         this.view = 'login';
                     },
                     setupInstallPrompt() {
@@ -2232,7 +2267,6 @@ export default {
                         if (isStandalone) return;
 
                         this.isIosBrowser = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
-                        this.isAndroidBrowser = /android/i.test(navigator.userAgent || '');
 
                         // Ambil link download APK dari server (jika tersedia).
                         fetch(API_V1 + '/app/version')
@@ -2306,6 +2340,7 @@ export default {
                             this.online = true;
                             this.showToast('Koneksi kembali ✓', 'success');
                             this.processOfflineSyncQueue();
+                            this.sendFcmToken(); // C6: kirim ulang token FCM yang gagal saat offline
                         };
                         this._offlineHandler = () => {
                             this.online = false;
@@ -2398,13 +2433,17 @@ export default {
                         if (status !== 'ok') {
                             this.pinChange.error = status === 'wrong'
                                 ? 'PIN lama salah.'
-                                : 'Tidak dapat verifikasi — periksa koneksi.';
+                                : status === 'expired'
+                                    ? 'Sesi berakhir — masuk ulang dengan kata sandi terlebih dahulu.'
+                                    : 'Tidak dapat verifikasi — periksa koneksi.';
                             this.pinChange.stage = 'old';
                             this.pinChange.old = '';
                             return;
                         }
                         try {
-                            await this.api('/auth/pin', { method: 'POST', body: { pin: newPin } });
+                            // A1: server (SetPinRequest) mewajibkan current_pin bila
+                            // user sudah punya PIN — tanpa ini ganti PIN selalu 422.
+                            await this.api('/auth/pin', { method: 'POST', body: { pin: newPin, current_pin: oldPin } });
                             await this.saveLocalPin(newPin);
                             this.showToast('PIN berhasil diganti ✅', 'success');
                             this.view = 'home';
@@ -2438,6 +2477,7 @@ export default {
                                 body: JSON.stringify({ pin }),
                             });
                             if (res.ok) return 'ok';
+                            if (res.status === 401) return 'expired'; // A8: token sesi mati — bukan salah PIN / bukan koneksi
                             return res.status === 422 ? 'wrong' : 'error';
                         } catch (_) {
                             return 'error';
@@ -2514,19 +2554,27 @@ export default {
                     async verifyPin() {
                         const pin = this.pinEntry;
                         const status = await this.serverPinCheck(pin);
-                        if (status !== 'ok') {
+
+                        // A8: status 'expired' (token sesi mati) TIDAK lagi mentok di
+                        // sini — pinLogin publik di bawah yang memverifikasi PIN
+                        // sekaligus menerbitkan token baru.
+                        if (status === 'error') {
                             this.pinEntry = '';
-                            this.pinError = status === 'wrong'
-                                ? 'PIN salah, coba lagi.'
-                                : 'Tidak dapat verifikasi — periksa koneksi.';
+                            this.pinError = 'Tidak dapat verifikasi — periksa koneksi.';
                             return;
                         }
+                        if (status === 'wrong') {
+                            this.pinEntry = '';
+                            this.pinError = 'PIN salah, coba lagi.';
+                            return;
+                        }
+
                         localStorage.setItem(fsmLocalPinKey(this.currentEmail()), 'verified');
-                        if (this.pendingRelogin) {
+                        if (status === 'expired' || this.pendingRelogin) {
                             const relogged = await this.pinLogin(pin);
                             if (!relogged) {
                                 this.pinEntry = '';
-                                this.pinError = 'Gagal memperbarui sesi — coba lagi.';
+                                this.pinError = 'Sesi berakhir dan refresh token gagal — masuk ulang dengan kata sandi.';
                                 return;
                             }
                         }
@@ -2560,6 +2608,7 @@ export default {
                         this.locked = false;
                         localStorage.removeItem('fsm_locked');
                         this.view = 'home';
+                        this.sendFcmToken(); // C6: flush token FCM tertunda pasca-unlock/login
                         this.maybeShowInstall();
                         if (!this.pollTimer) {
                             this.loadOrders();
@@ -2608,6 +2657,13 @@ export default {
                                 androidTitle: 'Autentikasi',
                                 androidSubtitle: 'Sentuh sensor sidik jari',
                             });
+                            // B13/A8: biometrik TIDAK memverifikasi apa pun ke server.
+                            // Bila sesi terbukti sudah mati (pendingRelogin di-set oleh
+                            // api()), wajib PIN — pinLogin akan terbitkan token baru.
+                            if (this.pendingRelogin) {
+                                this.pinError = 'Sesi berakhir — masukkan PIN.';
+                                return;
+                            }
                             this.unlock();
                         } catch (err) {
                             this.pinError = 'Autentikasi gagal, gunakan PIN.';

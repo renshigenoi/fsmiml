@@ -96,19 +96,42 @@ class AttendanceAdminController extends Controller
             'review_note' => ['nullable', 'string', 'max:1000']
         ]);
 
+        // B10: hanya pengajuan berstatus pending yang boleh direview —
+        // mencegah toggle approved<->rejected berulang (dan melewati cek overlap).
+        if ($leaveRequest->status !== 'pending') {
+            return back()->withErrors(['status' => 'Pengajuan ini sudah pernah direview.']);
+        }
+
         // Re-check tumpang tindih saat approve: dua pengajuan untuk periode sama
         // tidak boleh sama-sama berstatus approved (FR audit P3).
         if ($data['status'] === 'approved') {
-            $overlap = LeaveRequest::query()
+            $selfStart = $leaveRequest->leave_date;
+            $selfEnd = $leaveRequest->leave_end_date ?? $leaveRequest->leave_date;
+            $selfStartHM = $leaveRequest->start_time?->format('H:i');
+            $selfEndHM = $leaveRequest->end_time?->format('H:i');
+
+            $conflict = LeaveRequest::query()
                 ->where('user_id', $leaveRequest->user_id)
                 ->where('id', '!=', $leaveRequest->getKey())
                 ->where('status', 'approved')
-                ->where('leave_date', '<=', $leaveRequest->leave_end_date ?? $leaveRequest->leave_date)
-                ->where('leave_end_date', '>=', $leaveRequest->leave_date)
+                ->where('leave_date', '<=', $selfEnd)
+                // B10: baris lama bisa punya leave_end_date NULL — perlakukan sebagai harian.
+                ->whereRaw('COALESCE(leave_end_date, leave_date) >= ?', [$selfStart])
+                // B10: dua IZIN dengan jam eksplisit di hari sama hanya konflik bila
+                // jamnya benar-benar beririsan; cuti tanpa jam tetap konflik per tanggal.
+                ->when($selfStartHM !== null && $selfEndHM !== null, function ($query) use ($selfStartHM, $selfEndHM) {
+                    $query->where(function ($q) use ($selfStartHM, $selfEndHM) {
+                        $q->whereNull('start_time')
+                            ->orWhere(function ($q2) use ($selfStartHM, $selfEndHM) {
+                                $q2->where('start_time', '<', $selfEndHM)
+                                    ->where('end_time', '>', $selfStartHM);
+                            });
+                    });
+                })
                 ->exists();
 
-            if ($overlap) {
-                return back()->withErrors(['status' => 'Tidak bisa disetujui: sudah ada pengajuan APPROVED pada rentang tanggal yang sama untuk karyawan ini.']);
+            if ($conflict) {
+                return back()->withErrors(['status' => 'Tidak bisa disetujui: sudah ada pengajuan APPROVED pada rentang tanggal/jam yang sama untuk karyawan ini.']);
             }
         }
 

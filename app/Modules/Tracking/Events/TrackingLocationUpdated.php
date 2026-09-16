@@ -27,8 +27,12 @@ class TrackingLocationUpdated implements ShouldBroadcast
     {
         $channels = [new PrivateChannel("work-order.{$this->workOrderId}")];
 
+        // A2: halaman tracking pelanggan diakses GUEST (tanpa sesi web) sehingga
+        // PrivateChannel mustahil di-authorize (/broadcasting/auth butuh login).
+        // Audiens channel ini = pemegang token tracking (kredensial = possess),
+        // nama channel random 32-char, dan payload hanya posisi teknisi (tanpa PII).
         if (filled($this->realtimeChannel)) {
-            $channels[] = new PrivateChannel("tracking.{$this->realtimeChannel}");
+            $channels[] = new Channel("tracking.{$this->realtimeChannel}");
         }
 
         return $channels;

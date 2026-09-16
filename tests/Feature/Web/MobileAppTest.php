@@ -10,9 +10,12 @@ class MobileAppTest extends TestCase
     #[Test]
     public function mobile_app_shell_is_available(): void
     {
+        // C5: HTML di-serve dengan injeksi <base href="/mobile/"> supaya aset
+        // relatif build resolve ke subpath /mobile/ di browser.
         $this->get('/mobile')
             ->assertOk()
-            ->assertHeader('Content-Type', 'text/html; charset=UTF-8');
+            ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
+            ->assertSee('<base href="/mobile/">', false);
     }
 
     #[Test]

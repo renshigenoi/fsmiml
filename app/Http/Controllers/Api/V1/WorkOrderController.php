@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\FinishWorkOrderRequest;
 use App\Http\Requests\Api\V1\StartInstallationRequest;
+use App\Http\Requests\Api\V1\TransitionRequest;
 use App\Http\Requests\Api\V1\ReasonRequest;
 use App\Http\Requests\Api\V1\StoreWorkOrderRequest;
 use App\Http\Resources\Api\V1\WorkOrderResource;
@@ -20,7 +21,6 @@ use App\Modules\WorkOrder\Services\WorkOrderTransitionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class WorkOrderController extends Controller
@@ -37,7 +37,11 @@ class WorkOrderController extends Controller
             $query->whereHas('assignments', fn ($assignments) => $assignments->where('technician_id', $user->technician?->getKey()));
         }
 
-        return WorkOrderResource::collection($query->latest('scheduled_start_at')->paginate());
+        // B14: mobile meminta per_page lebih besar (riwayat) — clamp agar tidak
+        // bisa dipakai DoS lewat nilai per_page raksasa.
+        $perPage = max(1, min(200, request()->integer('per_page', 15)));
+
+        return WorkOrderResource::collection($query->latest('scheduled_start_at')->paginate($perPage)->withQueryString());
     }
 
     public function store(StoreWorkOrderRequest $request): WorkOrderResource
@@ -119,14 +123,14 @@ class WorkOrderController extends Controller
         return new WorkOrderResource($workOrder);
     }
 
-    public function startTrip(Request $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
+    public function startTrip(TransitionRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
     {
-        return $this->transition($request, $workOrder, WorkOrderStatus::OnTheWay, $transitions);
+        return $this->transition($request, $workOrder, WorkOrderStatus::OnTheWay, $transitions, null, $request->validated('sync_token'));
     }
 
-    public function arrive(Request $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
+    public function arrive(TransitionRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
     {
-        return $this->transition($request, $workOrder, WorkOrderStatus::Arrived, $transitions);
+        return $this->transition($request, $workOrder, WorkOrderStatus::Arrived, $transitions, null, $request->validated('sync_token'));
     }
 
     public function startInstallation(StartInstallationRequest $request, WorkOrder $workOrder, WorkOrderTransitionService $transitions): WorkOrderResource
@@ -135,8 +139,11 @@ class WorkOrderController extends Controller
         $actor = $request->user();
         $this->authorize('view', $workOrder);
 
+        // B9: cek idempotensi per-stage — satu sync_token tidak boleh
+        // membuat aksi LAIN (finish) dianggap sudah pernah terjadi.
         if ($request->filled('sync_token') && $workOrder->photos()
             ->where('sync_token', (string) $request->string('sync_token'))
+            ->where('stage', 'before_installation')
             ->exists()) {
             return new WorkOrderResource($workOrder->load('photos'));
         }
@@ -175,8 +182,10 @@ class WorkOrderController extends Controller
         $actor = $request->user();
         $this->authorize('view', $workOrder);
 
+        // B9: cek idempotensi per-stage (lihat startInstallation).
         if ($request->filled('sync_token') && $workOrder->photos()
             ->where('sync_token', (string) $request->string('sync_token'))
+            ->where('stage', 'completion')
             ->exists()) {
             return new WorkOrderResource($workOrder->load('photos'));
         }
@@ -192,6 +201,9 @@ class WorkOrderController extends Controller
 
                 $workOrder->photos()->create([
                     'uploaded_by' => $actor->id,
+                    // B9: stage eksplisit — sebelumnya hanya mengandalkan
+                    // default kolom, membuat foto completion tak pernah tampil.
+                    'stage' => 'completion',
                     'disk' => 'public',
                     'path' => $path,
                     'original_name' => $photo->getClientOriginalName(),
@@ -234,9 +246,8 @@ class WorkOrderController extends Controller
         $actor = request()->user();
         $this->authorize('view', $workOrder);
 
-        $syncToken = $syncToken ?? $request->input('sync_token');
-        $syncToken = is_string($syncToken) && $syncToken !== '' ? Str::substr($syncToken, 0, 64) : null;
-
+        // B12: sync_token sudah tervalidasi (string|max:64) oleh FormRequest
+        // masing-masing endpoint — tidak ada lagi coercion/truncation senyap.
         return new WorkOrderResource($transitions->transition($workOrder, $status, $actor, $reason, $syncToken));
     }
 }
